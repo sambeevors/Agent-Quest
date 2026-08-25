@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { isPath } from './activityFeedUtils';
 import { isError } from './activityFeedUtils';
-import { getAgentNameFallback } from './activityFeedUtils';
 import { resolvePath } from './activityFeedUtils';
 import { filterByAction } from './activityFeedUtils';
 import { filterByAgent, groupByAgent } from './activityFeedUtils';
@@ -55,20 +54,6 @@ describe('isError', () => {
 
   it('returns false for plain Bash success', () => {
     expect(isError('Bash', 'git status')).toBe(false);
-  });
-});
-
-describe('getAgentNameFallback', () => {
-  it('extracts descriptor from agent-<descriptor>-<hex> id', () => {
-    expect(getAgentNameFallback('agent-code-reviewer-abc123def4567890')).toBe('code-reviewer');
-  });
-
-  it('returns first 12 chars of rest if no hex match', () => {
-    expect(getAgentNameFallback('agent-someweirdformat')).toBe('someweirdfor');
-  });
-
-  it('returns first 8 chars for non-agent-prefixed id', () => {
-    expect(getAgentNameFallback('abc12345-def6-7890-1234-567890abcdef')).toBe('abc12345');
   });
 });
 

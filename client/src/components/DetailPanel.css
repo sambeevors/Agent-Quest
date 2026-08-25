@@ -115,6 +115,22 @@
   color: #aaa;
   text-transform: capitalize;
   font-size: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* Session identity beside the class — dimmer, never wraps, truncates instead
+   (subagent descriptors run to 60 chars). */
+.detail-slug {
+  font-family: 'Fira Code', monospace;
+  text-transform: none;
+  font-size: 11px;
+  color: #7d8fa3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-close {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { HeroAvatar } from './HeroAvatar';
 import { usePartyPrefs } from '../hooks/usePartyPrefs';
 import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, displayActivity, type AgentState } from '../types/agent';
+import { heroNameFor } from '../naming/hero-names';
 import './PartyBar.css';
 
 interface PartyBarProps {
@@ -51,8 +52,10 @@ function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge }: PartyRo
     flashing ? 'flashing' : '',
   ].filter(Boolean).join(' ');
 
+  const heroName = heroNameFor(agent.id);
+
   const title = mode === 'icons'
-    ? `${agent.name} · ${displayActivity(agent)}`
+    ? `${heroName} · ${displayActivity(agent)}`
     : undefined;
 
   return (
@@ -60,7 +63,7 @@ function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge }: PartyRo
       type="button"
       className={classes}
       onClick={onClick}
-      aria-label={`Select ${agent.name}${showSourceBadge ? ` (${agent.source})` : ''}, ${displayActivity(agent)}`}
+      aria-label={`Select ${heroName}${showSourceBadge ? ` (${agent.source})` : ''}, ${displayActivity(agent)}`}
       aria-current={isSelected ? 'true' : undefined}
       title={title}
     >
@@ -74,7 +77,7 @@ function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge }: PartyRo
             <span
               className="partybar-agent-name"
               style={isSelected ? undefined : { color: HERO_LABEL_COLOR[agent.heroColor] }}
-            >{agent.name}</span>
+            >{heroName}</span>
             <span className={`partybar-dot ${agent.status}`} aria-hidden="true" />
           </span>
           <span className="partybar-row-bottom">

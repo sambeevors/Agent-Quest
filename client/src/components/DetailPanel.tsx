@@ -5,6 +5,7 @@ import { HeroAvatar } from './HeroAvatar';
 import { SessionReport } from './SessionReport';
 import { configDirLabel } from './configDirLabel';
 import { isPath, resolvePath } from './activityFeedUtils';
+import { heroNameFor } from '../naming/hero-names';
 import './DetailPanel.css';
 
 interface DetailPanelProps {
@@ -84,7 +85,7 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
         </span>
         <div className="detail-topbar-body">
           <div className="detail-name-row">
-            <span className="detail-name" style={{ color: HERO_LABEL_COLOR[agent.heroColor] }}>{agent.name}</span>
+            <span className="detail-name" style={{ color: HERO_LABEL_COLOR[agent.heroColor] }}>{heroNameFor(agent.id)}</span>
             {showSourceBadge && (
               <span
                 className="detail-source-badge"
@@ -99,7 +100,12 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
               </span>
             )}
           </div>
-          <div className="detail-class">{agent.heroClass}</div>
+          <div className="detail-class">
+            {agent.heroClass}
+            {/* The session's own identity — slug, project or subagent descriptor —
+                so a hero on screen can still be tied back to a real session. */}
+            <span className="detail-slug" title={agent.name}>· {agent.name}</span>
+          </div>
         </div>
         <button className="detail-close" onClick={onClose} aria-label="Close panel">✕</button>
       </div>
@@ -241,7 +247,7 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
     </div>
     {modalOpen && lastMessage !== undefined && (
       <LastMessageModal
-        agentName={agent.name}
+        agentName={heroNameFor(agent.id)}
         message={lastMessage}
         onClose={() => setModalOpen(false)}
       />

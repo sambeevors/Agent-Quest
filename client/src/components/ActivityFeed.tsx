@@ -4,9 +4,10 @@ import { useFeedPrefs, type FoldState } from '../hooks/useFeedPrefs';
 import { ActivityFeedHeader } from './ActivityFeedHeader';
 import { ActivityRow } from './ActivityRow';
 import {
-  filterByAgent, getAgentNameFallback, categorizeEntry, detectCategories,
+  filterByAgent, categorizeEntry, detectCategories,
   type ActionFilter,
 } from './activityFeedUtils';
+import { heroNameFor } from '../naming/hero-names';
 import './ActivityFeed.css';
 
 interface ActivityFeedProps {
@@ -56,11 +57,6 @@ export function ActivityFeed({ log, agents, selectedAgentId, onSelectAgent, show
     for (const a of agents) m.set(a.id, a);
     return m;
   }, [agents]);
-
-  const resolveName = useCallback(
-    (agentId: string) => agentLookup.get(agentId)?.name ?? getAgentNameFallback(agentId),
-    [agentLookup],
-  );
 
   // --- Auto-scroll lock + closed-state counter ---
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -180,7 +176,7 @@ export function ActivityFeed({ log, agents, selectedAgentId, onSelectAgent, show
                     key={entryKey}
                     entry={entry}
                     agent={agentLookup.get(entry.agentId)}
-                    agentName={resolveName(entry.agentId)}
+                    agentName={heroNameFor(entry.agentId)}
                     highlighted={shouldHighlight(entry)}
                     isSelected={entryKey === selectedEntryKey}
                     showSourceBadge={showSourceBadge}

@@ -2,6 +2,7 @@ import type { FoldState } from '../hooks/useFeedPrefs';
 import type { ActionFilter } from './activityFeedUtils';
 import type { AgentState } from '../types/agent';
 import { HeroAvatar } from './HeroAvatar';
+import { heroNameFor } from '../naming/hero-names';
 
 interface ActivityFeedHeaderProps {
   foldState: FoldState;
@@ -97,7 +98,7 @@ export function ActivityFeedHeader({
           {filteredAgent !== null && (
             <span className="feed-agent-chip">
               <HeroAvatar agent={filteredAgent} size={14} />
-              <span>{filteredAgent.name}</span>
+              <span>{heroNameFor(filteredAgent.id)}</span>
               <button type="button" aria-label="Clear agent filter" className="feed-chip-close" onClick={onClearAgentFilter}>×</button>
             </span>
           )}
