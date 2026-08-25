@@ -36,17 +36,6 @@ export function Tutorial({ onClose }: TutorialProps) {
           Use <strong>Claude Code CLI</strong> or <strong>Codex</strong> as usual — each session auto-spawns a hero on the dashboard, live.
         </div>
 
-        <a
-          className="tutorial-tip-jar"
-          href="https://buymeacoffee.com/fulvio"
-          target="_blank"
-          rel="noreferrer"
-          title="Support the project — buy me a beer"
-        >
-          <span className="tutorial-tip-jar-icon" aria-hidden="true">🍺</span>
-          <span className="tutorial-tip-jar-text">Buy me a beer</span>
-        </a>
-
         <p className="tutorial-text">
           Agent Quest is a live dashboard that turns your{' '}
           <strong>Claude Code</strong> and <strong>Codex</strong> sessions into a 2D

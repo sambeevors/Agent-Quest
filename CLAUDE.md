@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Agent Quest is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as fantasy heroes in a 2D WoW-style village. Each agent is represented as a hero character that walks between buildings corresponding to its current activity (Read → Library, Edit → Forge, Bash → Arena, etc.).
 
-This repository is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiOS/Agent-Quest). Beyond upstream it adds cost tracking and Linear-backed construction sites — see "Fork additions" below.
+This repository is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiOS/Agent-Quest). Beyond upstream it adds cost tracking, Linear-backed construction sites, and generated roads/scenery — see "Fork additions" and "Generated map layers" below.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Data flow: `~/.claude*/projects/**/*.jsonl` and `~/.codex/sessions/**/rollout-*.
 
 ## Fork additions
 
-Two features this fork adds on top of upstream. Each is isolated in its own module with unit tests.
+Features this fork adds on top of upstream. Each is isolated in its own module with unit tests.
 
 | Feature | Server | Client |
 |---|---|---|
@@ -34,6 +34,25 @@ Notes for anyone extending these:
 - **A new key is verified against the live API before it's persisted** — surfacing a bad key at submit time rather than on the next poll.
 - **Linear queries must stay cheap.** Fetching `projects × issues` exceeds Linear's 10k complexity ceiling and 400s. Read `progress` / `scope` / `*CountHistory` off the project instead.
 - **The construction yard is placed relative to the spawned buildings** (`computeVillageAnnexes`), not at fixed world coordinates, because the map editor lets users move everything.
+
+## Generated map layers
+
+Roads and scenery are **generated at runtime**, not read from the saved map. Both are pure modules with unit tests, and both key off the buildings that actually spawned — so they stay correct when a building moves, the map editor is used, or a Linear project appears.
+
+| Layer | Module | Renderer |
+|---|---|---|
+| Roads (desire paths) | `game/data/desire-paths.ts` | `game/terrain/DesirePathRenderer.ts` |
+| Scenery (trees/bushes/rocks/mushrooms) | `game/data/scenery.ts` | `game/terrain/SceneryRenderer.ts` |
+
+`VillageScene.rebuildRoads()` drives both; it re-runs when the Linear hamlet gains or loses a building.
+
+What a saved `MapConfig` still contributes: terrain tiles, building positions, spawn point, NPCs, settings, and **placed features** (water, mines, towers). What it no longer contributes: `paths` (superseded by generated roads) and natural scatter (regenerated — see `SCATTER_PREFIXES` in `MapConfigRenderer`). The editor's path tool therefore no longer affects the village view.
+
+Invariants worth preserving:
+
+- **No road may cross a building.** The routing graph heroes walk IS the road network, so this is also what stops heroes clipping. Two subtleties have already bitten here, both covered by regression tests in `desire-paths.test.ts`: a door sits inside its own building's *clearance ring*, so routes collide against that building's bare footprint rather than dropping it from the route entirely; and the organic wobble applied after routing is validated per *segment*, since a point just outside a corner can still be reached by a line through it.
+- **Nothing spawns on a road or against a wall.** Per-kind clearances live in `KIND_SPECS`; trees need far more room than mushrooms.
+- **Both generators are seeded and deterministic.** Scenery that reshuffles every reload is disorienting, and a road that moves under a walking hero is a bug.
 
 ## Commands
 
