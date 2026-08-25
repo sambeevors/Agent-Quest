@@ -74,27 +74,6 @@ describe('buildAssetManifestCc0', () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('emits goblin NPC sprites (tnt, torch) across all 5 logical colors', () => {
-    const goblinUnits = new Set(['tnt', 'torch']);
-    const goblins = manifest.npcSprites.filter((n) => goblinUnits.has(n.unit));
-    // 2 goblin units × 5 logical colors (black falls back to purple path) = 10.
-    expect(goblins.length).toBe(10);
-    // Every goblin entry should point under Factions/Goblins/Troops/…
-    for (const g of goblins) {
-      expect(g.idlePath.includes('/Factions/Goblins/Troops/')).toBe(true);
-      expect(g.runPath).toBe(g.idlePath);
-    }
-    // And the knight entries should still be present (3 units × 5 colors).
-    const knightUnits = new Set(['warrior', 'archer', 'pawn']);
-    const knights = manifest.npcSprites.filter((n) => knightUnits.has(n.unit));
-    expect(knights.length).toBe(15);
-    // TNT directory segment is all-caps in the upstream pack — verify we
-    // preserve that instead of capitalising only the first letter.
-    const tnt = goblins.find((g) => g.unit === 'tnt' && g.color === 'blue');
-    expect(tnt?.idlePath.includes('/TNT/')).toBe(true);
-    expect(tnt?.idlePath.endsWith('TNT_Blue.png')).toBe(true);
-  });
-
   it('legacy aliases cover pre-branch CC0 keys so old maps still render', () => {
     const keys = new Set(manifest.decorations.map((d) => d.key));
     // bush/rock/stump 1–4 + tree 1–4 + 5 colours × 4 house variants = 32 aliases

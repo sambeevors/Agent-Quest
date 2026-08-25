@@ -4,23 +4,6 @@
  * client/src/game/data/map-config.ts.
  */
 
-// ---------------------------------------------------------------------------
-// NPC placement types
-// ---------------------------------------------------------------------------
-
-export type UnitType = 'warrior' | 'archer' | 'pawn' | 'tnt' | 'torch';
-export type UnitColor = 'blue' | 'red' | 'black' | 'yellow' | 'purple';
-
-export interface NpcPlacement {
-  id: string;
-  unit: UnitType;
-  color: UnitColor;
-  x: number;
-  y: number;
-  scale: number;
-  wanderRadius: number;
-}
-
 export interface MapSettings {
   heroScale: number;
   /** Asset theme the map was authored against. Optional — absent value
@@ -43,7 +26,7 @@ export interface TerrainCell {
   walkable: boolean;
 }
 
-/** Free-placed decoration sprite (water, mine, tower, prop). */
+/** Free-placed decoration sprite (water, water rocks, the bridge). */
 export interface DecorationInstance {
   id: string;
   /** texture key registered by the scene, e.g. "tree-1" */
@@ -85,8 +68,6 @@ export interface MapConfig {
   terrain: Record<string, TerrainCell>;
   decorations: DecorationInstance[];
   buildings: BuildingPosition[];
-  /** NPC placements on the map */
-  npcs: NpcPlacement[];
   /** Optional hero spawn point. Falls back to VILLAGE_GATE when absent. */
   spawn?: SpawnPoint;
   /** map-level settings */
@@ -152,29 +133,8 @@ export interface ProtectedBuildingManifest {
   defaultScale: number;
 }
 
-export interface NpcSpriteManifest {
-  unit: UnitType;
-  color: UnitColor;
-  idleKey: string;
-  runKey: string;
-  idlePath: string;
-  runPath: string;
-  idleFrames: number;
-  runFrames: number;
-  frameWidth: number;
-  frameHeight: number;
-  /** Optional explicit frame indices for the idle animation — used by
-   * themes (e.g. Tiny Swords CC0) whose sheets combine multiple
-   * animations on different rows. When absent, frames 0..idleFrames-1
-   * are assumed contiguous. */
-  idleFrameIndices?: number[];
-  /** Same for the run animation. */
-  runFrameIndices?: number[];
-}
-
 export interface AssetManifest {
   tilesets: TilesetManifest[];
   decorations: DecorationManifest[];
   protectedBuildings: ProtectedBuildingManifest[];
-  npcSprites: NpcSpriteManifest[];
 }

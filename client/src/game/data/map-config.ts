@@ -12,42 +12,10 @@
 
 export const TILE_SIZE = 64;
 
-export type UnitType = 'warrior' | 'archer' | 'pawn' | 'tnt' | 'torch';
-export type UnitColor = 'blue' | 'red' | 'black' | 'yellow' | 'purple';
-
-export interface NpcPlacement {
-  id: string;
-  unit: UnitType;
-  color: UnitColor;
-  x: number;
-  y: number;
-  scale: number;
-  wanderRadius: number;
-}
-
 export interface MapSettings {
   heroScale: number;
   /** Asset theme the map was authored against. Absent falls back to the default. */
   theme?: string;
-}
-
-export interface NpcSpriteManifest {
-  unit: UnitType;
-  color: UnitColor;
-  idleKey: string;
-  runKey: string;
-  idlePath: string;
-  runPath: string;
-  idleFrames: number;
-  runFrames: number;
-  frameWidth: number;
-  frameHeight: number;
-  /** Explicit frame indices for the idle animation — used by themes (e.g.
-   * Tiny Swords CC0) whose sheets combine several animations on different
-   * rows. Absent means frames 0..idleFrames-1 are contiguous. */
-  idleFrameIndices?: number[];
-  /** Same for the run animation. */
-  runFrameIndices?: number[];
 }
 
 export interface TileRef {
@@ -60,7 +28,7 @@ export interface TerrainCell {
   walkable: boolean;
 }
 
-/** Free-placed decoration sprite (tree, water, prop, tower). */
+/** Free-placed decoration sprite (water, water rocks, the bridge). */
 export interface DecorationInstance {
   id: string;
   /** texture key registered by the scene, e.g. "tree-1" */
@@ -98,7 +66,6 @@ export interface MapConfig {
   terrain: Record<string, TerrainCell>;
   decorations: DecorationInstance[];
   buildings: BuildingPosition[];
-  npcs: NpcPlacement[];
   spawn?: SpawnPoint;
   settings: MapSettings;
   meta: {
@@ -158,5 +125,4 @@ export interface AssetManifest {
   tilesets: TilesetManifest[];
   decorations: DecorationManifest[];
   protectedBuildings: ProtectedBuildingManifest[];
-  npcSprites: NpcSpriteManifest[];
 }

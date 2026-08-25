@@ -333,19 +333,18 @@ export const tinySwordsCc0Theme: ThemeManifest = {
       frameHeight: 192,
     });
 
-    // Decorative coloured houses — 5 colours × 4 kinds. CC0 has 4 colours;
-    // black falls back to purple. Four "kinds" map to House / House
-    // Construction / House Destroyed / Tower of the same colour.
+    // Houses for the Linear construction sites — a finished House and the
+    // Construction variant that stands in while a project is in progress, in
+    // each of the 5 logical colours (CC0 ships 4; black falls back to purple).
+    // Nothing else in the village is a house: every other building on the map
+    // is one of the 8 activity buildings.
     const colorToCc0: Record<string, UnitColor> = {
       blue: 'blue', yellow: 'yellow', red: 'red', purple: 'purple', black: 'purple',
     };
     for (const logical of ['blue', 'yellow', 'red', 'purple', 'black'] as const) {
-      const cc0Color = colorToCc0[logical]!;
-      const Cc0 = cap(cc0Color);
+      const Cc0 = cap(colorToCc0[logical]!);
       entries.push({ key: `house-${logical}-house1`, path: `${KNIGHTS_BUILD}/House/House_${Cc0}.png` });
       entries.push({ key: `house-${logical}-house2`, path: `${KNIGHTS_BUILD}/House/House_Construction.png` });
-      entries.push({ key: `house-${logical}-house3`, path: `${KNIGHTS_BUILD}/House/House_Destroyed.png` });
-      entries.push({ key: `house-${logical}-tower`,  path: `${KNIGHTS_BUILD}/Tower/Tower_${Cc0}.png` });
     }
 
     return entries;
