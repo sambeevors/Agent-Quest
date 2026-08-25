@@ -58,6 +58,23 @@ describe('classifyBashCommand', () => {
     expect(classifyBashCommand('git log --oneline | head -20')).toBe('bash');
   });
 
+  it('routes publishing gh commands to the Chapel', () => {
+    expect(classifyBashCommand('gh pr create --base main --title "x"')).toBe('git');
+    expect(classifyBashCommand('gh pr merge --squash')).toBe('git');
+    expect(classifyBashCommand('gh issue comment 42 --body "done"')).toBe('git');
+    expect(classifyBashCommand('gh release upload v1.0.0 dist.tgz')).toBe('git');
+    expect(classifyBashCommand('bun test && gh pr create --fill')).toBe('git');
+  });
+
+  it('leaves read-only gh commands at the Arena', () => {
+    expect(classifyBashCommand('gh pr view 9')).toBe('bash');
+    expect(classifyBashCommand('gh pr list')).toBe('bash');
+    expect(classifyBashCommand('gh pr checks --watch')).toBe('bash');
+    expect(classifyBashCommand('gh run list --limit 5')).toBe('bash');
+    // A write verb outside the verb slot is not a write.
+    expect(classifyBashCommand('gh pr list --search create')).toBe('bash');
+  });
+
   it('reads through absolute paths and env prefixes', () => {
     expect(classifyBashCommand('/usr/bin/grep -rn foo src')).toBe('reading');
     expect(classifyBashCommand('LC_ALL=C grep -rn foo src')).toBe('reading');

@@ -9,6 +9,20 @@ import type { AgentActivity } from '../types';
 export const GIT_COMMAND_PATTERN = /\bgit\s+(commit|push|merge|rebase|cherry-pick)\b/;
 
 /**
+ * The `gh` verbs that publish something, in the `gh <group> <verb>` slot —
+ * `gh pr create`, `gh issue comment`, `gh release upload`. These are the same
+ * kind of act as a `git push`, so they share the Chapel.
+ *
+ * Split write-from-read exactly as `git` is: `gh pr view`/`list`/`checks`/`diff`
+ * are polling, and an agent watching CI shouldn't be kneeling in the Chapel for
+ * the ten minutes it takes.
+ */
+const GH_WRITE_VERBS = new Set([
+  'create', 'merge', 'close', 'reopen', 'comment', 'review', 'edit', 'delete',
+  'ready', 'publish', 'upload', 'fork', 'rename', 'sync',
+]);
+
+/**
  * Commands whose whole job is to read or search the filesystem. An agent running
  * these is doing the same work as the Read/Grep/Glob tools — it just went through
  * a shell to do it — so it belongs in the Library, not the Arena.
@@ -195,6 +209,17 @@ function writesToFile(segment: string): boolean {
 }
 
 /**
+ * True when the segment is a `gh` call that publishes something. Only the verb
+ * slot counts: `gh pr list --search create` mentions a write verb but is a read.
+ */
+function isGhWrite(name: string, args: string[]): boolean {
+  if (name !== 'gh') return false;
+  const words = args.filter((a) => !a.startsWith('-'));
+  const verb = words[1];
+  return verb !== undefined && GH_WRITE_VERBS.has(verb);
+}
+
+/**
  * `find`/`fd` are only searches until they're told to run something on what they
  * found — `find . -name '*.tmp' -exec rm {} +` deletes files.
  */
@@ -222,18 +247,25 @@ function isInPlaceEdit(name: string, args: string[]): boolean {
  * reading only when *every* segment is a read or a neutral chore and nothing
  * redirects into a file — so `grep x src | head` reads, while `grep x src > out`
  * or `cat f | xargs rm` stay generic shell work.
+ *
+ * Publishing outranks both: a write-oriented `git` or `gh` anywhere in the chain
+ * sends the hero to the Chapel.
  */
 export function classifyBashCommand(command: string): AgentActivity {
   if (GIT_COMMAND_PATTERN.test(command)) return 'git';
 
-  const segments = splitSegments(command);
+  const segments = splitSegments(command).map((segment) => ({ segment, parsed: commandOf(segment) }));
   if (segments.length === 0) return 'bash';
 
-  let sawRead = false;
-  for (const segment of segments) {
-    if (writesToFile(segment)) return 'bash';
+  // Publishing wins wherever it appears in a chain, the same way the git pattern
+  // does — `bun test && gh pr create` ends at the Chapel, not the Arena.
+  if (segments.some(({ parsed }) => parsed !== null && isGhWrite(parsed.name, parsed.args))) {
+    return 'git';
+  }
 
-    const parsed = commandOf(segment);
+  let sawRead = false;
+  for (const { segment, parsed } of segments) {
+    if (writesToFile(segment)) return 'bash';
     if (parsed === null) return 'bash';
 
     if (isFindWithAction(parsed.name, parsed.args)) return 'bash';
