@@ -3,11 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './fonts.css';
 
-// Phaser rasterises each in-world label into a canvas texture the first time it
-// draws and never re-renders it when a webfont arrives later, so a label built
-// before RuneScape loads keeps the fallback face for the life of the scene.
-// Mount only once the font is resolved. The 2s cap is a safety net: a font that
-// never arrives must not leave the village unmounted.
+// Phaser bakes each label into a texture on first draw and never re-renders it,
+// so mount behind the font. The cap keeps a stalled font from blocking the app.
 const MOUNT_TIMEOUT_MS = 2000;
 
 function fontReady(): Promise<unknown> {

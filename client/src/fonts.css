@@ -1,37 +1,23 @@
 /*
- * The village is set in RuneScape, the pixel face in `public/assets/fonts/`.
- * Every glyph bound and advance width in that file is a multiple of 1/16 em,
- * so it was drawn to render at 16px — that is its native size, and it has only
- * the one. Its lowercase is small for its em (x-height 0.375em, cap 0.625em),
- * which is why it reads noticeably smaller than the Fira Code and Cinzel it
- * replaces when both are set at the same font-size.
+ * RuneScape is a 16px pixel face (every glyph bound and advance is a multiple
+ * of 1/16 em) with a small x-height of 0.375em, so at the 9-14px this UI
+ * declares, it renders both small and off-grid. Two faces off the one file:
  *
- * Two faces off the same file, because the two renderers want opposite things:
- *
- * `RuneScape` keeps the file's own metrics. Phaser sizes its in-world labels
- * explicitly, and those already pass through addCrispText's 4x supersample and
- * a 1.5x camera zoom, so the pixel grid is long gone by the time they are
- * drawn — what matters there is choosing a px value directly, not having one
- * silently scaled underneath.
- *
- * `RuneScape UI` is the DOM face. The panels declare sizes in the 9-14px range
- * across ~140 rules; re-tuning all of them (and the widths they were fitted
- * to) to reach 16px is not worth it, so size-adjust scales the glyphs while
- * leaving the declared font-size alone. 145.45% is 16/11 — 11px is by far the
- * commonest size here, so the bulk of the UI lands exactly on the font's
- * native size, and it is also the factor that matches x-height with Fira Code.
- * That second property is what lets the fallbacks below go unadjusted: they
- * cover the glyphs RuneScape lacks — arrows, ≥, ✓, the box-drawing marks —
- * and those come out at the same optical size as the text around them.
+ * - `RuneScape UI` adds size-adjust: 145.45% (16/11, the commonest size here),
+ *   putting most panels on the native size without re-tuning ~140 font-size
+ *   rules. It also matches Fira Code's x-height, so the unadjusted fallbacks
+ *   below sit at the same optical size; they cover the glyphs RuneScape lacks
+ *   (arrows, ≥, ✓).
+ * - `RuneScape` keeps the file's own metrics for Phaser, which sets label
+ *   sizes per call site (LABEL_FONT in game/text.ts).
  */
 @font-face {
   font-family: 'RuneScape';
   src: url('/assets/fonts/runescape.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
-  /* `block` rather than `swap`: Phaser bakes each in-world label into a canvas
-     texture once and never re-renders it, so a frame drawn on the fallback
-     would keep the fallback for the life of the scene. 22KB, served locally. */
+  /* `block`, not `swap`: Phaser bakes a label into a texture once, so a frame
+     drawn on the fallback would keep it for the life of the scene. */
   font-display: block;
 }
 
@@ -45,9 +31,7 @@
 }
 
 :root {
-  /* Body copy and controls. */
   --font-ui: 'RuneScape UI', 'Fira Code', ui-monospace, monospace;
-  /* Headings and panel titles. Same face — only the fallback differs. */
   --font-display: 'RuneScape UI', 'Cinzel', serif;
 }
 

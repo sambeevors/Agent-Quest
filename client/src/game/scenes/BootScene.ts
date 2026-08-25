@@ -141,10 +141,8 @@ export class BootScene extends Phaser.Scene {
       const sampleLines =
         samples.map((p) => `  ${p}`).join('\n') +
         (overflow > 0 ? `\n  …and ${overflow} more` : '');
-      // Paths and the shell command below stay in monospace while the rest of
-      // this screen is set in RuneScape: they are meant to be read character
-      // by character and pasted into a terminal, which a proportional pixel
-      // face with no case-distinct 0/O makes needlessly hard.
+      // Paths and the git command below stay monospace: they are read
+      // character by character and pasted into a terminal.
       const sample = addCrispText(this, cx, summary.y + summary.displayHeight + 16, sampleLines, {
         fontSize: '11px',
         color: '#8ea0b4',

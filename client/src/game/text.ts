@@ -86,13 +86,8 @@ if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
 }
 
 /**
- * Face for in-world labels — building names, hero names, activity lines.
- *
- * This is the un-adjusted RuneScape face (see `fonts.css`): the `fontSize`
- * passed alongside it is the real px value, nothing scales it underneath.
- * RuneScape's caps measure 0.625em against the ~0.72em of the Inter and Fira
- * Code these labels used to be set in, so a label that keeps its old px value
- * reads about a sixth smaller — the sizes at each call site were stepped up to
- * hold the size they were tuned to.
+ * In-world label face: the un-adjusted RuneScape (see `fonts.css`), so the
+ * `fontSize` beside it is a real px value. Its caps are shorter per em than the
+ * Inter and Fira Code they replaced, hence the ~15% bump at each call site.
  */
 export const LABEL_FONT = '"RuneScape", ui-monospace, monospace';
