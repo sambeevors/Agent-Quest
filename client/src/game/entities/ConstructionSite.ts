@@ -120,6 +120,22 @@ export class ConstructionSite {
     return { x: this.x, y: this.y };
   }
 
+  /** Where a track meets this site — just outside its front door. */
+  get door(): { x: number; y: number } {
+    return { x: this.x, y: this.y + 5 };
+  }
+
+  /**
+   * Ground plan for road routing. Same reasoning as `Building.footprint`:
+   * only the lower band of the sprite stands on the ground, so tracks route
+   * around that rather than the full image height.
+   */
+  get footprint(): { x: number; y: number; w: number; h: number } {
+    const w = this.scaffold.displayWidth * 0.78;
+    const h = Math.max(20, this.scaffold.displayHeight * 0.34);
+    return { x: this.x - w / 2, y: this.y - h, w, h };
+  }
+
   destroy(): void {
     this.scaffold.destroy();
     this.built.destroy();

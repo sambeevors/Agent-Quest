@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import type { AssetManifest, MapConfig, PathSegment } from '../../editor/types/map';
+import type { AssetManifest, MapConfig } from '../../editor/types/map';
 import { TILE_SIZE } from '../../editor/types/map';
 
 /**
@@ -12,19 +12,54 @@ interface Containers {
   base: Phaser.GameObjects.TileSprite;
   terrain: Phaser.GameObjects.Container;
   paths: Phaser.GameObjects.Container;
+  /**
+   * World-space bounds of every PLACED feature that survived (water, mines,
+   * props). The caller feeds these to the scenery generator as keep-out
+   * ground, so generated trees don't grow out of the lake.
+   */
+  featureBounds: Array<{ x: number; y: number; w: number; h: number }>;
 }
 
-const PATH_STYLES = {
-  main:      { fill: 0x7A6548, stroke: 0x4A3A24, strokeAlpha: 0.55, fillAlpha: 0.92 },
-  secondary: { fill: 0x8A7858, stroke: 0x5A4A2C, strokeAlpha: 0.5,  fillAlpha: 0.88 },
-  trail:     { fill: 0x5C4A30, stroke: 0x3A2A18, strokeAlpha: 0.55, fillAlpha: 0.9  },
-  plaza:     { fill: 0x7A6548, stroke: 0x5C4E3A, strokeAlpha: 0.6,  fillAlpha: 0.95 },
-} as const;
+/**
+ * Texture-key prefixes for natural clutter. These are regenerated procedurally
+ * against the current buildings and roads (see data/scenery.ts), so whatever a
+ * saved map has for them is stale by definition — the map editor had no idea
+ * where this fork's hamlet or its generated lanes would end up.
+ *
+ * Everything NOT matching is a deliberately placed feature — water, a gold
+ * mine, a tower — and is drawn as saved.
+ */
+const SCATTER_PREFIXES = ['tree-', 'bush-', 'rock-', 'stump-', 'mushroom-', 'deco-', 'resources-trees-'];
+
+function isScatter(textureKey: string): boolean {
+  return SCATTER_PREFIXES.some((prefix) => textureKey.startsWith(prefix));
+}
+
+/** Rect in world space; scenery whose anchor falls inside one is not drawn. */
+export interface ClearZone {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+function insideAny(x: number, y: number, zones: readonly ClearZone[]): boolean {
+  for (const z of zones) {
+    if (x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) return true;
+  }
+  return false;
+}
 
 export function renderMapConfig(
   scene: Phaser.Scene,
   map: MapConfig,
   manifest: AssetManifest,
+  /**
+   * Ground reserved for things the editor doesn't know about — currently the
+   * Linear hamlet. Decorations here are skipped so the settlement stands in a
+   * clearing rather than having the saved map's trees growing through it.
+   */
+  clearZones: readonly ClearZone[] = [],
 ): Containers {
   const baseInfo = manifest.tilesets.find((t) => t.key === map.baseTileset) ?? manifest.tilesets[0];
   if (baseInfo === undefined) {
@@ -65,17 +100,21 @@ export function renderMapConfig(
     terrain.add(sprite);
   }
 
-  // Paths
-  for (const path of map.paths) {
-    drawPath(scene, paths, path);
-  }
+  // Paths painted in the map editor are intentionally NOT drawn. Roads are
+  // generated as desire paths from the buildings that actually get spawned
+  // (see game/data/desire-paths.ts), and a stale hand-drawn layer underneath
+  // would contradict them. The container is still created so the returned
+  // shape is unchanged for callers.
 
   // Decorations — added top-level so Y-sorting works against NPCs/heroes.
   // Depth uses the sprite's *foot* Y (bottom edge), not its center: an NPC
   // walking in front of a tree's trunk (NPC Y > tree foot Y) should cover the
   // tree, while an NPC standing behind it (NPC Y < foot Y) stays hidden.
+  const featureBounds: Containers['featureBounds'] = [];
   for (const d of map.decorations) {
     if (!scene.textures.exists(d.textureKey)) continue;
+    if (isScatter(d.textureKey)) continue;
+    if (insideAny(d.x, d.y, clearZones)) continue;
     const needsSprite = d.frame !== undefined || d.animated === true;
     const gameObj = needsSprite
       ? scene.add.sprite(d.x, d.y, d.textureKey, d.frame ?? 0)
@@ -88,46 +127,13 @@ export function renderMapConfig(
     }
     const footY = d.y + gameObj.displayHeight * 0.5;
     gameObj.setDepth(d.depth ?? footY);
+    featureBounds.push({
+      x: d.x - gameObj.displayWidth / 2,
+      y: d.y - gameObj.displayHeight / 2,
+      w: gameObj.displayWidth,
+      h: gameObj.displayHeight,
+    });
   }
 
-  return { base, terrain, paths };
-}
-
-function drawPath(
-  scene: Phaser.Scene,
-  container: Phaser.GameObjects.Container,
-  path: PathSegment,
-): void {
-  const style = PATH_STYLES[path.style];
-  if (path.points.length < 2) return;
-
-  const g = scene.add.graphics();
-  // outer stroke (shadow)
-  g.lineStyle(path.width + 6, style.stroke, style.strokeAlpha * 0.5);
-  drawPolyline(g, path.points);
-  // main fill
-  g.lineStyle(path.width, style.fill, style.fillAlpha);
-  drawPolyline(g, path.points);
-  // inner highlight
-  g.lineStyle(Math.max(2, path.width - 14), style.fill + 0x0a0a0a, Math.min(1, style.fillAlpha + 0.05));
-  drawPolyline(g, path.points);
-  // border
-  g.lineStyle(1.5, style.stroke, style.strokeAlpha);
-  drawPolyline(g, path.points);
-
-  container.add(g);
-}
-
-function drawPolyline(g: Phaser.GameObjects.Graphics, pts: Array<{ x: number; y: number }>): void {
-  if (pts.length < 2) return;
-  const first = pts[0];
-  if (first === undefined) return;
-  g.beginPath();
-  g.moveTo(first.x, first.y);
-  for (let i = 1; i < pts.length; i++) {
-    const p = pts[i];
-    if (p === undefined) continue;
-    g.lineTo(p.x, p.y);
-  }
-  g.strokePath();
+  return { base, terrain, paths, featureBounds };
 }
