@@ -14,11 +14,10 @@ import { renderPathTiles } from '../terrain/PathTileRenderer';
 import { generateScenery } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
 import { waterKeepOut } from '../data/water';
-import { NpcSprite } from '../entities/NpcSprite';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
 import { heroNameFor } from '../../naming/hero-names';
-import type { AssetManifest, MapConfig, BuildingPosition, NpcPlacement } from '../data/map-config';
+import type { AssetManifest, MapConfig, BuildingPosition } from '../data/map-config';
 import { SERVER_URL as API_BASE } from '../../config';
 import { getActiveTheme, rebaseSavedScale } from '../themes/registry';
 import { sceneRenderScale } from '../dpr';
@@ -66,9 +65,6 @@ export class VillageScene extends Phaser.Scene {
   private lightningTimer: Phaser.Time.TimerEvent | null = null;
   private onNightToggle: ((on: unknown) => void) | null = null;
   private onRainToggle: ((on: unknown) => void) | null = null;
-
-  /** Decorative villagers placed by the shipped map. */
-  private villagerNpcs: NpcSprite[] = [];
 
   /** Linear construction sites, keyed by project id. */
   private constructionSites = new Map<string, ConstructionSite>();
@@ -439,8 +435,6 @@ export class VillageScene extends Phaser.Scene {
       this.buildings = [];
       this.buildingSlots.clear();
       this.heroBuildingMap.clear();
-      for (const npc of this.villagerNpcs) npc.destroy();
-      this.villagerNpcs = [];
       if (this.onLinearUpdated !== null) {
         eventBridge.off('linear:updated', this.onLinearUpdated);
         this.onLinearUpdated = null;
@@ -529,11 +523,6 @@ export class VillageScene extends Phaser.Scene {
       this.heroSpawn = mapConfig.spawn
         ? { x: mapConfig.spawn.x, y: mapConfig.spawn.y }
         : { x: VILLAGE_GATE.x, y: VILLAGE_GATE.y };
-
-      // Spawn the map's decorative villagers
-      if (mapConfig.npcs && mapConfig.npcs.length > 0) {
-        this.spawnVillagerNpcs(mapConfig.npcs);
-      }
     } else {
       console.warn('[VillageScene] FALLBACK → procedural TerrainRenderer', {
         reason: mapConfig === null ? 'mapConfig is null' : 'manifest is null',
@@ -793,22 +782,6 @@ export class VillageScene extends Phaser.Scene {
         ? { ...def, x: override.x, y: override.y }
         : def;
       this.buildings.push(new Building(this, resolved));
-    }
-  }
-
-  private spawnVillagerNpcs(npcs: NpcPlacement[]): void {
-    for (const npc of npcs) {
-      const sprite = new NpcSprite(
-        this,
-        npc.unit,
-        npc.color,
-        npc.x,
-        npc.y,
-        npc.wanderRadius,
-        Math.floor(Math.random() * 10000),
-        rebaseSavedScale(npc.scale),
-      );
-      this.villagerNpcs.push(sprite);
     }
   }
 

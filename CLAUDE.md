@@ -48,7 +48,9 @@ Roads and scenery are **generated at runtime**, not read from the shipped map. A
 
 `VillageScene.rebuildRoads()` drives both; it re-runs when the Linear hamlet gains or loses a building.
 
-What the shipped `MapConfig` contributes: terrain tiles, building positions, spawn point, NPCs, settings, and **placed features** (water, mines, towers, the bridge). It carries no roads and no natural scatter — both are generated.
+What the shipped `MapConfig` contributes: terrain tiles, building positions, spawn point, settings, and **placed features** (the lake's rocks and its bridge). It carries no roads and no natural scatter — both are generated.
+
+**Nothing stands in the village that doesn't mean something.** Every building on the map is one of the 8 activity buildings or a Linear construction site; everything else is landscape. The map used to also carry a knight's tower, three gold mines, wood piles, a stray fire and explosion, and 51 wandering villagers around a purple hamlet — all removed, because a reader who can't tell decoration from signal has to check each one before trusting any of them. Foliage is exempt: it reads as ground, not as state.
 
 Roads are **tiled from the ground tileset**, not painted over it, so a track meets the grass with the artist's own border rather than a procedural edge that never quite matches. The pack has only grass and beach sand, so `buildRoadTileset` in `themes/tiny-swords-cc0.ts` derives a packed-earth surface by recolouring the sand onto the brown ramp the pack already uses for its bridge and tree trunks (`SAND_TO_EARTH`). It is generated at load rather than shipped as a PNG so the recolour stays a readable table beside the palette it came from.
 

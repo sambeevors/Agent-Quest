@@ -22,7 +22,7 @@ export const WORLD_HEIGHT = 1800;
 
 /**
  * Main village clear-zone (no forest inside here). Forest fills everything
- * outside this ellipse, with a secondary clearing around the NPC hamlet.
+ * outside this ellipse.
  */
 export const CITY_CLEAR = { x: 1400, y: 780, rx: 520, ry: 420 };
 
@@ -46,12 +46,6 @@ export const BUILDING_DEFS: BuildingDef[] = [
 
 /** South gate — where heroes first spawn before walking into the village. */
 export const VILLAGE_GATE = { x: 1400, y: 1130 };
-
-/**
- * Small purple NPC village tucked into the NE forest, visually separated
- * from the main village by a strip of woods.
- */
-export const NPC_VILLAGE = { x: 2420, y: 1430, radius: 180 };
 
 /** Number of construction plots the yard provides. */
 export const CONSTRUCTION_PLOT_COUNT = 6;

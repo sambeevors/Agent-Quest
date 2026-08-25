@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { WORLD_WIDTH, WORLD_HEIGHT, BUILDING_DEFS, VILLAGE_GATE, PLAZA, NPC_VILLAGE, CITY_CLEAR } from '../data/building-layout';
+import { WORLD_WIDTH, WORLD_HEIGHT, BUILDING_DEFS, VILLAGE_GATE, PLAZA, CITY_CLEAR } from '../data/building-layout';
 import { getRoadSegments } from '../data/road-network';
 import { addCrispText, LABEL_FONT } from '../text';
 import { getActiveTheme } from '../themes/registry';
@@ -60,8 +60,6 @@ export class TerrainRenderer {
     this.drawForestFloor();
     this.drawLake();
     this.drawPond();
-    this.drawNpcVillageGround();
-    this.drawForestTrail();
     this.layPlaza();
     this.layYards();
     this.drawDecor();
@@ -70,8 +68,6 @@ export class TerrainRenderer {
     // (see game/data/scenery.ts) so nothing can end up on a lane or against a
     // wall — which hand-tuned scatter could not guarantee once the layout
     // became dynamic.
-    this.drawDecorativeHouses();
-    this.drawNpcVillageHouses();
     this.drawFences();
     this.drawShadows();
     this.drawGate();
@@ -110,12 +106,6 @@ export class TerrainRenderer {
     const rCity = dxC * dxC + dyC * dyC;
     const perturbCity = 1.12 + this.edgeNoise(x, y) * 0.05;
     if (rCity < perturbCity) return false;
-
-    const dxN = (x - NPC_VILLAGE.x) / NPC_VILLAGE.radius;
-    const dyN = (y - NPC_VILLAGE.y) / (NPC_VILLAGE.radius * 0.85);
-    const rNpc = dxN * dxN + dyN * dyN;
-    const perturbNpc = 1.1 + this.edgeNoise(x + 331, y - 217) * 0.08;
-    if (rNpc < perturbNpc) return false;
 
     return true;
   }
@@ -270,50 +260,6 @@ export class TerrainRenderer {
   // `onRoad()` above still consults the routing graph, so scattered decor
   // keeps clear of wherever the tracks end up running.
 
-  private strokeThickLine(g: Phaser.GameObjects.Graphics, x1: number, y1: number, x2: number, y2: number, w: number): void {
-    const dx = x2 - x1, dy = y2 - y1;
-    const len = Math.hypot(dx, dy); if (len === 0) return;
-    const nx = -dy / len, ny = dx / len;
-    const hw = w / 2;
-    g.fillPoints([
-      new Phaser.Math.Vector2(x1 + nx * hw, y1 + ny * hw),
-      new Phaser.Math.Vector2(x2 + nx * hw, y2 + ny * hw),
-      new Phaser.Math.Vector2(x2 - nx * hw, y2 - ny * hw),
-      new Phaser.Math.Vector2(x1 - nx * hw, y1 - ny * hw),
-    ], true);
-  }
-
-  private drawForestTrail(): void {
-    // Curvy dirt trail from the city's SE edge out to the NPC hamlet (decorative).
-    const start = { x: 1850, y: 1130 };
-    const mid1 = { x: 2050, y: 1200 };
-    const mid2 = { x: 2230, y: 1340 };
-    const end = NPC_VILLAGE;
-    const pts: { x: number; y: number }[] = [];
-    for (let t = 0; t <= 1.0001; t += 0.04) {
-      // Quadratic-ish chain of two segments
-      const p1 = this.lerpP(start, mid1, t);
-      const p2 = this.lerpP(mid1, mid2, t);
-      const p3 = this.lerpP(mid2, end, t);
-      const q1 = this.lerpP(p1, p2, t);
-      const q2 = this.lerpP(p2, p3, t);
-      pts.push(this.lerpP(q1, q2, t));
-    }
-    const g = this.scene.add.graphics(); g.setDepth(-0.01);
-    g.fillStyle(0x5C4A30, 0.65);
-    for (let i = 0; i < pts.length - 1; i++) {
-      this.strokeThickLine(g, pts[i]!.x, pts[i]!.y, pts[i + 1]!.x, pts[i + 1]!.y, 26);
-    }
-    g.fillStyle(0x7A6548, 0.55);
-    for (let i = 0; i < pts.length - 1; i++) {
-      this.strokeThickLine(g, pts[i]!.x, pts[i]!.y, pts[i + 1]!.x, pts[i + 1]!.y, 18);
-    }
-  }
-
-  private lerpP(a: { x: number; y: number }, b: { x: number; y: number }, t: number) {
-    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-  }
-
   // --- plaza & yards ---------------------------------------------------
 
   private layPlaza(): void {
@@ -373,90 +319,6 @@ export class TerrainRenderer {
         g.lineBetween(bx, y, bx + this.rand(-3, 3), y - this.rand(4, 10));
       }
     }
-  }
-
-  // --- decorative small houses -----------------------------------------
-
-  private drawDecorativeHouses(): void {
-    const colors = ['blue', 'yellow', 'red', 'blue', 'yellow'] as const;
-    const kinds = ['house1', 'house2', 'house3'] as const;
-    const placed: Array<{ x: number; y: number }> = [];
-    const tooClose = (x: number, y: number, d = 130) => placed.some(p => Math.hypot(p.x - x, p.y - y) < d);
-
-    let attempts = 0, placed_n = 0;
-    while (placed_n < 12 && attempts < 500) {
-      attempts++;
-      const x = this.rand(180, WORLD_WIDTH - 180);
-      const y = this.rand(180, WORLD_HEIGHT - 260);
-      if (Math.hypot(x - NPC_VILLAGE.x, y - NPC_VILLAGE.y) < NPC_VILLAGE.radius + 80) continue;
-      if (this.inForest(x, y) || !this.canPlace(x, y, 40)) continue;
-      if (tooClose(x, y)) continue;
-      const color = this.pick(colors);
-      const kind = this.pick(kinds);
-      const key = `house-${color}-${kind}`;
-      if (!this.scene.textures.exists(key)) continue;
-      const scale = this.rand(0.30, 0.40);
-      const img = this.scene.add.image(x, y, key).setScale(scale);
-      img.setDepth(y + img.displayHeight / 2 - 2);
-      placed.push({ x, y });
-      placed_n++;
-      this.scene.add.tileSprite(x, y + img.displayHeight / 2 + 8, 38, 16, 'tile-cobble').setDepth(0.02);
-    }
-
-    const towerSpots = [
-      { x: 1250, y: 680, c: 'blue' },
-      { x: 1620, y: 680, c: 'yellow' },
-    ];
-    for (const t of towerSpots) {
-      if (this.inForest(t.x, t.y) || !this.canPlace(t.x, t.y, 40)) continue;
-      const key = `house-${t.c}-tower`;
-      if (!this.scene.textures.exists(key)) continue;
-      const img = this.scene.add.image(t.x, t.y, key).setScale(0.34);
-      img.setDepth(t.y + img.displayHeight / 2 - 2);
-    }
-  }
-
-  // --- NPC village (purple hamlet) -------------------------------------
-
-  private drawNpcVillageGround(): void {
-    const { x: cx, y: cy } = NPC_VILLAGE;
-    const g = this.scene.add.graphics(); g.setDepth(-0.05);
-    g.fillStyle(0x6C5A3A, 0.55);
-    g.fillEllipse(cx, cy, NPC_VILLAGE.radius * 2, NPC_VILLAGE.radius * 1.5);
-    g.fillStyle(0x8B7A5A, 0.35);
-    g.fillEllipse(cx + 10, cy - 4, NPC_VILLAGE.radius * 1.6, NPC_VILLAGE.radius * 1.1);
-    // small fountain-ish center
-    g.fillStyle(0x5A5A6A, 0.85); g.fillCircle(cx, cy, 14);
-    g.fillStyle(0x8B5AD8, 0.7); g.fillCircle(cx, cy, 9);
-    g.fillStyle(0xBA88EE, 0.5); g.fillCircle(cx - 2, cy - 2, 4);
-  }
-
-  private drawNpcVillageHouses(): void {
-    const { x: cx, y: cy } = NPC_VILLAGE;
-    const houseSpots: Array<{ dx: number; dy: number; kind: 'house1' | 'house2' | 'house3' | 'tower' }> = [
-      { dx: -100, dy: -30, kind: 'house1' },
-      { dx: -30,  dy: -70, kind: 'house2' },
-      { dx: 60,   dy: -45, kind: 'house3' },
-      { dx: 115,  dy: 25,  kind: 'house1' },
-      { dx: 20,   dy: 70,  kind: 'house2' },
-      { dx: -85,  dy: 65,  kind: 'house3' },
-      { dx: 40,   dy: -110,kind: 'tower' },
-    ];
-    for (const s of houseSpots) {
-      const key = `house-purple-${s.kind}`;
-      if (!this.scene.textures.exists(key)) continue;
-      const x = cx + s.dx, y = cy + s.dy;
-      const scale = s.kind === 'tower' ? 0.34 : this.rand(0.28, 0.38);
-      const img = this.scene.add.image(x, y, key).setScale(scale);
-      img.setDepth(y + img.displayHeight / 2 - 2);
-    }
-    // signpost
-    const sx = cx - NPC_VILLAGE.radius + 30, sy = cy + 60;
-    const p = this.scene.add.graphics(); p.setDepth(sy + 0.5);
-    p.fillStyle(0x6B4E2E, 0.95); p.fillRect(sx - 1.5, sy - 18, 3, 22);
-    p.fillStyle(0x8B7A5A, 0.95); p.fillRect(sx - 22, sy - 14, 44, 10);
-    p.lineStyle(1, 0x3A2A18, 0.8); p.strokeRect(sx - 22, sy - 14, 44, 10);
-    addCrispText(this.scene, sx, sy - 9, 'Mossvale', { fontSize: '11px', color: '#F5E6C8', fontFamily: LABEL_FONT }).setOrigin(0.5).setDepth(sy + 0.6);
   }
 
   // --- shadows ---------------------------------------------------------
