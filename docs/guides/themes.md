@@ -1,110 +1,58 @@
 # Asset Themes
 
-Agent Quest renders heroes from a **theme** — a manifest that tells
-Phaser which PNGs to preload and how to animate them. Themes are
-data-driven, so swapping in a new pack is a matter of dropping files
-into `client/public/assets/themes/<theme-id>/` and registering a manifest.
+Agent Quest renders the world from a **theme** — a manifest
+(`client/src/game/themes/types.ts` → `ThemeManifest`) that tells Phaser which
+PNGs to preload and how to animate them. The active theme is registered in
+`client/src/game/themes/registry.ts`; there is no runtime switching.
 
-## Active theme
+## Active theme: `sunnyside`
 
-| Id | Display name | License | Location | Distribution |
+| Id | Display name | Source pack | Licence | Location |
 |---|---|---|---|---|
-| `tiny-swords-cc0` | Tiny Swords (CC0) | CC0 1.0 Universal (Pixel Frog) | `client/public/assets/themes/tiny-swords-cc0/` | **Bundled in the repo** — zero setup for the user. |
+| `sunnyside` | Sunnyside World | [Sunnyside World](https://danieldiggle.itch.io/sunnyside) by Daniel Diggle | Paid; use in projects permitted, raw-asset redistribution not | `client/public/assets/themes/sunnyside/` |
 
-The theme is fully self-contained: no external downloads, no setup
-scripts. Everything BootScene needs ships in the `tiny-swords-cc0`
-subtree.
+The committed assets are **baked derivatives**, not the pack: composited hero
+sheets, assembled buildings, re-laid tilesets. They are produced by
+`scripts/bake-sunnyside/` (Python + Pillow) from the purchased pack zips and
+committed, so cloning the repo needs no setup. See
+`client/public/assets/themes/sunnyside/README.md` for the full inventory and
+re-bake instructions, and the "Art pipeline" section of `CLAUDE.md` for the
+design decisions.
 
-### CC0 fallbacks
+## The manifest surface
 
-The CC0 pack has fewer variants than Agent Quest's 5×4 hero grid:
+- `getHeroPreload()` / `getHeroConfig(color, unit, source?)` /
+  `getHeroPreview(color, unit, source?)` — hero sheets, animation frame
+  indices (including `extraAnims` for activity-matched stationary
+  animations), and the React avatar portraits. `source === 'codex'` returns
+  the goblin.
+- `terrain` — grass tileset + the road sheet contract (6 columns: a 4×4
+  16-edge-tile block, gravel accent, tuft accent) consumed by
+  `PathTileRenderer` and pinned by `path-tiles.test.ts`.
+- `getBuildingImage(id)` / `getBuildingScale(id)` — the 8 activity buildings;
+  scale is derived from measured doorway heights so a doorway renders at one
+  size everywhere (`sunnyside.test.ts` pins it).
+- `getStaticAssetPreload()` — scenery (static images and animated
+  spritesheets), construction-site sprites, VFX.
+- `getChimneyAnchor(id)` — where smoke rises from an occupied building.
+- `postLoadHook(scene)` — registers looping animations for animated scenery
+  and the chimney smoke.
 
-| Missing | Falls back to | Encoded in |
-|---|---|---|
-| Monk (unit) | Warrior of the same color | `resolveUnit(unit)` in `tiny-swords-cc0.ts` |
-| Black (color) | Purple of the same unit | `resolveColor(color)` |
-
-Combined: `(monk, black)` resolves to `(warrior, purple)`.
-`getHeroPreload()` de-dupes on the resolved pair so the same texture
-isn't registered twice.
-
-### Frame layout
-
-Combined sheets (one PNG per `(color, unit)`) with 192-px frames,
-rows = animation, columns = frame:
-
-| Unit | Sheet | Grid | Idle indices | Walk indices |
-|---|---|---|---|---|
-| Warrior | `Warrior_{Color}.png` | 6×8 | `[0..5]` | `[6..11]` |
-| Pawn    | `Pawn_{Color}.png`    | 6×6 | `[0..5]` | `[6..11]` |
-| Archer  | `Archer_{Color}.png`  | 8×7 | `[0..5]` | `[8..13]` (row 1 — no dedicated walk; rows 2-6 are shoot) |
-
-Upstream filename quirk preserved: `Archer/Purple/Archer_Purlple.png`.
-
-## Manifest interface
-
-Defined in `client/src/game/themes/types.ts`:
-
-```ts
-interface ThemeManifest {
-  id: ThemeId;
-  name: string;
-  heroScale: number;
-  getHeroPreload(): PreloadEntry[];
-  getHeroConfig(color, unit): HeroSpriteConfig;
-  getHeroPreview(color, unit): HeroPreview;
-  terrain?: TerrainConfig;
-  getBuildingImage(id: string): string;
-  getBuildingScale?(id: string): number | undefined;
-  getStaticAssetPreload(): StaticAssetEntry[];
-  postLoadHook?(scene: Phaser.Scene): void;
-}
-```
-
-## Scale rebase
-
-MapConfig saves `settings.heroScale` and per-NPC `scale` as absolute
-numbers authored against a `heroScale: 0.5` baseline. `rebaseSavedScale`
-is an identity passthrough today (one theme) but stays in place so
-future themes with different native sizes Just Work without migrating
-every stored map.
+The generated `client/src/game/themes/sunnyside-sheet.ts` carries every frame
+count, row index, door height and chimney anchor the manifest needs — it is
+emitted by the bake and must never be edited by hand.
 
 ## Adding a new theme
 
-1. Drop the pack into `client/public/assets/themes/<theme-id>/`.
-2. Create `client/src/game/themes/<theme-id>.ts` exporting a `ThemeManifest`.
-3. Register it in `client/src/game/themes/registry.ts` (`THEMES` map).
-   Widen `ThemeId` in `client/src/game/themes/types.ts` and
-   `server/src/map/types.ts` from the current single literal to a
-   union (e.g. `'tiny-swords-cc0' | '<new-id>'`).
-4. If the theme should be selectable at runtime, wire a picker in
-   `TopBar.tsx`.
-
-## CC0 — building-to-activity mapping
-
-Functional buildings use user-authored custom art in
-`client/public/assets/themes/tiny-swords-cc0/BuildingsCustom/` — one
-dedicated PNG per activity. See `tiny-swords-cc0.ts:CC0_BUILDINGS`
-for paths and per-building scales.
-
-| Activity   | Building id  | PNG                         |
-|---|---|---|
-| thinking   | castle       | `BuildingsCustom/Castle.png`    |
-| reviewing  | watchtower   | `BuildingsCustom/Tower.png`     |
-| bash       | arena        | `BuildingsCustom/Arena.png`     |
-| reading    | library      | `BuildingsCustom/Library.png`   |
-| editing    | forge        | `BuildingsCustom/Forge.png`     |
-| idle       | tavern       | `BuildingsCustom/Tavern.png`    |
-| git        | chapel       | `BuildingsCustom/Chapel.png`    |
-| debugging  | alchemist    | `BuildingsCustom/Alchemist.png` |
-
-## Phase-2 gaps (still open)
-
-- **VFX per activity**: the CC0 pack ships Fire + Explosion sheets but
-  the scene has no per-activity VFX hook.
-- **UI 9-slice**: React panels are CSS-drawn, so theming them is a
-  standalone cosmetic pass.
-- **Archer walk cycle**: CC0 archer has no dedicated walk row — idle is
-  reused.
-- **Goblin troops** (Barrel / TNT / Torch): unused in the current game
-  mode.
+1. Bake (or collect) assets into `client/public/assets/themes/<id>/`,
+   matching the shapes above — in particular the road sheet's 6-column
+   contract and per-kind scenery keys (`tree-1…`, `bush-1…`, `rock-1…`,
+   `mushroom-1…`, `flower-1…`, `stump-1…`, `crop-1…`, `animal-1…`).
+2. Write the manifest in `client/src/game/themes/<id>.ts`, widen `ThemeId`
+   (also in `server/src/map/asset-manifest.ts`), register it, and set
+   `rebaseSavedScale` so `village.json`'s stored `heroScale` (authored
+   against the original Tiny Swords baseline) renders at the right size.
+3. Provide a server manifest (`server/src/map/asset-manifest-<id>.ts`) whose
+   tileset keys match what `server/data/map/village.json` references — or
+   migrate the map (`scripts/migrate-village-map.ts` is the worked example).
+4. `bun run check:assets`, `bun test`, and eyeball the running app.

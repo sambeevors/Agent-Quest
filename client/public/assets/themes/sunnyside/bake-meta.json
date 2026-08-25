@@ -1,0 +1,274 @@
+{
+  "heroes": {
+    "frameWidth": 96,
+    "frameHeight": 64,
+    "columns": 23,
+    "anims": {
+      "walk": {
+        "row": 0,
+        "frames": 8
+      },
+      "idle": {
+        "row": 1,
+        "frames": 9
+      },
+      "waiting": {
+        "row": 2,
+        "frames": 9
+      },
+      "hammering": {
+        "row": 3,
+        "frames": 23
+      },
+      "attack": {
+        "row": 4,
+        "frames": 10
+      },
+      "doing": {
+        "row": 5,
+        "frames": 8
+      },
+      "mining": {
+        "row": 6,
+        "frames": 10
+      },
+      "axe": {
+        "row": 7,
+        "frames": 10
+      },
+      "watering": {
+        "row": 8,
+        "frames": 5
+      }
+    },
+    "classes": [
+      "warrior",
+      "archer",
+      "pawn"
+    ],
+    "colors": [
+      "red",
+      "blue",
+      "yellow",
+      "black",
+      "purple",
+      "teal",
+      "orange",
+      "green"
+    ]
+  },
+  "goblin": {
+    "anims": {
+      "walk": {
+        "row": 0,
+        "frames": 8
+      },
+      "idle": {
+        "row": 1,
+        "frames": 8
+      },
+      "waiting": {
+        "row": 2,
+        "frames": 8
+      },
+      "attack": {
+        "row": 4,
+        "frames": 9
+      },
+      "doing": {
+        "row": 5,
+        "frames": 8
+      },
+      "mining": {
+        "row": 6,
+        "frames": 10
+      },
+      "axe": {
+        "row": 7,
+        "frames": 10
+      },
+      "watering": {
+        "row": 8,
+        "frames": 5
+      }
+    }
+  },
+  "terrain": {
+    "grassFrames": 6,
+    "waterFrames": 5
+  },
+  "buildings": {
+    "doorHeight": {
+      "library": 64,
+      "forge": 52,
+      "tavern": 52,
+      "alchemist": 48,
+      "chapel": 48,
+      "castle": 60,
+      "watchtower": 48,
+      "arena": 60
+    },
+    "size": {
+      "library": [
+        368,
+        244
+      ],
+      "forge": [
+        288,
+        208
+      ],
+      "tavern": [
+        272,
+        216
+      ],
+      "alchemist": [
+        192,
+        248
+      ],
+      "chapel": [
+        168,
+        376
+      ],
+      "castle": [
+        384,
+        208
+      ],
+      "watchtower": [
+        144,
+        384
+      ],
+      "arena": [
+        288,
+        188
+      ]
+    },
+    "chimney": {
+      "library": [
+        184,
+        32
+      ],
+      "forge": [
+        176,
+        12
+      ],
+      "tavern": [
+        56,
+        44
+      ],
+      "alchemist": [
+        60,
+        32
+      ],
+      "chapel": [
+        84,
+        16
+      ],
+      "castle": [
+        64,
+        8
+      ],
+      "watchtower": [
+        72,
+        8
+      ],
+      "arena": [
+        108,
+        40
+      ]
+    }
+  },
+  "scenery": {
+    "animated": {
+      "tree-1": {
+        "frames": 4,
+        "frameWidth": 128,
+        "frameHeight": 136
+      },
+      "tree-2": {
+        "frames": 4,
+        "frameWidth": 112,
+        "frameHeight": 172
+      },
+      "mushroom-1": {
+        "frames": 4,
+        "frameWidth": 64,
+        "frameHeight": 64
+      },
+      "mushroom-2": {
+        "frames": 4,
+        "frameWidth": 64,
+        "frameHeight": 64
+      },
+      "mushroom-3": {
+        "frames": 4,
+        "frameWidth": 64,
+        "frameHeight": 64
+      },
+      "mushroom-4": {
+        "frames": 4,
+        "frameWidth": 64,
+        "frameHeight": 64
+      },
+      "animal-1": {
+        "frames": 4,
+        "frameWidth": 128,
+        "frameHeight": 128
+      },
+      "animal-2": {
+        "frames": 4,
+        "frameWidth": 128,
+        "frameHeight": 128
+      },
+      "animal-3": {
+        "frames": 4,
+        "frameWidth": 128,
+        "frameHeight": 128
+      },
+      "animal-4": {
+        "frames": 4,
+        "frameWidth": 128,
+        "frameHeight": 128
+      },
+      "animal-5": {
+        "frames": 4,
+        "frameWidth": 64,
+        "frameHeight": 64
+      },
+      "animal-6": {
+        "frames": 4,
+        "frameWidth": 64,
+        "frameHeight": 64
+      }
+    }
+  },
+  "vfx": {
+    "chimneysmoke": {
+      "frames": 30,
+      "frameWidth": 60,
+      "frameHeight": 148
+    },
+    "glint": {
+      "frames": 6,
+      "frameWidth": 28,
+      "frameHeight": 28
+    }
+  },
+  "ui": {
+    "box-white": {
+      "slice": 3
+    },
+    "box-light": {
+      "slice": 3
+    },
+    "box-dark": {
+      "slice": 3
+    },
+    "label": {
+      "slice": [
+        4,
+        4
+      ],
+      "height": 13
+    }
+  }
+}

@@ -74,6 +74,8 @@ export class HeroSprite {
   private idleKey: string;
   private runKey: string;
   private facesLeft: boolean;
+  private cfg!: import('../themes/types').HeroSpriteConfig;
+  private moving = false;
   private nameOffsetY: number;
   private subagentOffsetY: number;
   private bubbleOffsetY: number;
@@ -108,11 +110,11 @@ export class HeroSprite {
 
     const theme = getActiveTheme();
     // Map the logical hero color to a sprite base the theme actually ships
-    // with. Extra palette entries (teal/orange/green) share the sprite of
-    // their base color — only the label (name tag) gets the expanded color,
-    // the sprite itself is never recolored.
+    // with (identity for Sunnyside — every colour has a baked sheet). The
+    // source decides the species: Codex sessions render as goblins.
     const spriteBase = HERO_COLOR_SPRITE_BASE[heroColor];
-    const cfg = theme.getHeroConfig(spriteBase, heroClass);
+    const cfg = theme.getHeroConfig(spriteBase, heroClass, source);
+    this.cfg = cfg;
     this.idleKey = cfg.idleKey;
     this.runKey = cfg.runKey;
     this.facesLeft = cfg.facesLeft;
@@ -167,7 +169,7 @@ export class HeroSprite {
       });
     }
 
-    this.sprite.play(idleAnimKey);
+    this.playStationary();
 
     const nameColor = HERO_LABEL_COLOR[heroColor] ?? '#DDDDDD';
     this.nameBaseColor = nameColor;
@@ -267,9 +269,13 @@ export class HeroSprite {
     }
   }
 
-  /** Record what the hero is doing — it picks the pool its thoughts come from. */
+  /** Record what the hero is doing — it picks the pool its thoughts come
+   * from and, when the theme maps this state to an animation, what the
+   * stationary sprite plays (hammering at the Forge, foot-tapping while
+   * waiting, …). */
   setActivity(activity: AgentActivity): void {
     this.currentActivity = activity;
+    if (!this.moving) this.playStationary();
   }
 
   /** Apply status-driven overlays (e.g. 'waiting' pulses the name). */
@@ -281,7 +287,35 @@ export class HeroSprite {
     } else if (!wantsWaiting && this.isWaiting) {
       this.isWaiting = false;
       this.stopWaitingPulse();
+    } else {
+      return;
     }
+    if (!this.moving) this.playStationary();
+  }
+
+  /**
+   * Play the animation for a parked hero: the theme's entry for the current
+   * state ('waiting' outranks the activity — a blocked hero taps its foot
+   * whatever building it is stationed at), falling back to idle. Animations
+   * are created lazily; every state indexes into the same texture.
+   */
+  private playStationary(): void {
+    const state = this.isWaiting ? 'waiting' : this.currentActivity;
+    const extra = this.cfg.extraAnims?.[state];
+    if (extra !== undefined) {
+      const key = `${this.idleKey}-${state}`;
+      if (!this.scene.anims.exists(key)) {
+        this.scene.anims.create({
+          key,
+          frames: this.scene.anims.generateFrameNumbers(this.idleKey, { frames: extra.frameIndices }),
+          frameRate: extra.frameRate,
+          repeat: -1,
+        });
+      }
+      this.sprite.play(key, true);
+      return;
+    }
+    this.sprite.play(`${this.idleKey}-anim`, true);
   }
 
   /**
@@ -432,16 +466,19 @@ export class HeroSprite {
     }
 
     if (path.length === 0) {
-      this.sprite.play(`${this.idleKey}-anim`, true);
+      this.moving = false;
+      this.playStationary();
       return;
     }
 
+    this.moving = true;
     this.moveAlongPath(path);
   }
 
   private moveAlongPath(path: Point[]): void {
     if (path.length === 0) {
-      this.sprite.play(`${this.idleKey}-anim`, true);
+      this.moving = false;
+      this.playStationary();
       return;
     }
 

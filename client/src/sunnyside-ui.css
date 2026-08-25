@@ -1,0 +1,68 @@
+/*
+ * Sunnyside UI kit reskin — panel CHROME only.
+ *
+ * Loaded after every component stylesheet, this overrides just the container
+ * treatment (background, border) of the overlay panels with the pack's 9-slice
+ * wooden boxes, and dresses panel headers with the wooden label plate. Layout,
+ * information design and the RuneScape type stay exactly as they were.
+ *
+ * The box PNGs are baked at native 1x (3px slices) by scripts/bake-sunnyside/
+ * — border-image displays each slice at an integer multiple with
+ * image-rendering: pixelated, which stays crisp at any devicePixelRatio.
+ */
+
+.partybar,
+.detail-panel,
+.activity-feed,
+.topbar,
+.construction-popover,
+.building-info-panel,
+.notif-menu,
+.settings-modal,
+.tutorial-modal,
+.report,
+.minimap,
+.toast {
+  /* Frame only — no `fill`: the box centre is opaque tan wood, and every
+   * panel's text palette is tuned for the dark background, so the interior
+   * stays the app's own navy. */
+  border: 9px solid transparent;
+  border-image: url('/assets/ui/sunnyside/box-dark.png') 3 repeat;
+  image-rendering: pixelated;
+  border-radius: 0;
+  background: rgba(26, 26, 46, 0.92);
+  background-clip: padding-box;
+}
+
+/* The dark wooden frame carries the pixel look; a soft drop shadow keeps the
+ * panels separated from the busy canvas underneath. */
+.partybar,
+.detail-panel,
+.activity-feed,
+.construction-popover,
+.building-info-panel,
+.notif-menu,
+.settings-modal,
+.tutorial-modal,
+.report {
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Wooden label plate for the section headers. */
+.partybar-header,
+.feed-header-row,
+.construction-pop-header {
+  border: 6px solid transparent;
+  border-image: url('/assets/ui/sunnyside/label.png') 6 fill stretch;
+  image-rendering: pixelated;
+  background: none;
+}
+.partybar-header,
+.feed-header-row {
+  border-bottom-width: 6px;
+}
+.partybar-header .partybar-title,
+.feed-header-row .feed-title {
+  color: #3d2a1a;
+  text-shadow: none;
+}

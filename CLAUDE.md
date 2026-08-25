@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Agent Quest is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as fantasy heroes in a 2D WoW-style village. Each agent is represented as a hero character that walks between buildings corresponding to its current activity (Read → Library, Edit → Forge, Bash → Arena, etc.).
 
-This repository is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiOS/Agent-Quest). Beyond upstream it adds cost tracking, Linear-backed construction sites, and generated roads/scenery — see "Fork additions" and "Generated map layers" below.
+This repository is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiOS/Agent-Quest). Beyond upstream it adds cost tracking, Linear-backed construction sites, generated roads/scenery, and a full art replacement (Sunnyside World) — see "Fork additions", "Generated map layers" and "Art pipeline" below.
 
 ## Architecture
 
@@ -27,6 +27,7 @@ Features this fork adds on top of upstream. Each is isolated in its own module w
 | Linear construction sites | `server/src/linear/` — key resolution (`linear-config.ts`), polling (`linear-provider.ts`), HTTP surface (`routes.ts`); `WsEvent` `linear:status` | `components/ConstructionPanel.tsx`, `components/LinearConnect.tsx`, `game/entities/ConstructionSite.ts` |
 | Hero names | — | `naming/hero-names.ts` — `heroNameFor(agentId)`; the only label on the canvas, and the primary one in every panel |
 | Hero chatter | — | `game/data/hero-chatter.ts` (lines + timing) drawn by `game/entities/ThoughtBubble.ts`; scheduled per hero in `HeroSprite` |
+| Sunnyside art | `server/src/map/asset-manifest-sunnyside.ts` | `game/themes/sunnyside.ts` + generated `sunnyside-sheet.ts`; baked assets under `client/public/assets/themes/sunnyside/`; bake pipeline in `scripts/bake-sunnyside/` |
 
 Notes for anyone extending these:
 
@@ -46,21 +47,21 @@ Roads and scenery are **generated at runtime**, not read from the shipped map. A
 | Layer | Modules | Renderer |
 |---|---|---|
 | Roads (desire paths) | `game/data/desire-paths.ts` (routing) + `game/data/path-tiles.ts` (tiling) | `game/terrain/PathTileRenderer.ts` |
-| Scenery (trees/bushes/rocks/mushrooms) | `game/data/scenery.ts` | `game/terrain/SceneryRenderer.ts` |
+| Scenery (trees/bushes/rocks/mushrooms/flowers/crops/animals) | `game/data/scenery.ts` | `game/terrain/SceneryRenderer.ts` |
 
 `VillageScene.rebuildRoads()` drives both; it re-runs when the Linear hamlet gains or loses a building.
 
 What the shipped `MapConfig` contributes: terrain tiles, building positions, spawn point, settings, and **placed features** (the lake's rocks and its bridge). It carries no roads and no natural scatter — both are generated.
 
-**Nothing stands in the village that doesn't mean something.** Every building on the map is one of the 8 activity buildings or a Linear construction site; everything else is landscape. The map used to also carry a knight's tower, three gold mines, wood piles, a stray fire and explosion, and 51 wandering villagers around a purple hamlet — all removed, because a reader who can't tell decoration from signal has to check each one before trusting any of them. Foliage is exempt: it reads as ground, not as state.
+**Nothing stands in the village that doesn't mean something.** Every building on the map is one of the 8 activity buildings or a Linear construction site; everything else is landscape. The map used to also carry a knight's tower, three gold mines, wood piles, a stray fire and explosion, and 51 wandering villagers around a purple hamlet — all removed, because a reader who can't tell decoration from signal has to check each one before trusting any of them. Foliage is exempt: it reads as ground, not as state — and with the Sunnyside art that exemption deliberately covers the whole cozy-farm layer (flowers, crop patches, grazing animals, blinking mushrooms), which is scattered by the same seeded generator as the trees. The one piece of ambience that IS signal: **chimney smoke rises from a building only while a hero is stationed inside** (`Building.setSmoking`, driven from `VillageScene`'s slot bookkeeping).
 
-Roads are **tiled from the ground tileset**, not painted over it, so a track meets the grass with the artist's own border rather than a procedural edge that never quite matches. The pack has only grass and beach sand, so `buildRoadTileset` in `themes/tiny-swords-cc0.ts` derives a packed-earth surface by recolouring the sand onto the brown ramp the pack already uses for its bridge and tree trunks (`SAND_TO_EARTH`). It is generated at load rather than shipped as a PNG so the recolour stays a readable table beside the palette it came from.
+Roads are **tiled from the pack's own dirt tiles**, not painted over the grass, so a track meets the meadow with the artist's own wavy fringe rather than a procedural edge that never quite matches. The tileset has no orthogonal 16-tile edge set, so the bake synthesises one — plain-earth fill plus the fringe strip mirrored/transposed per side — into the exact 6-column sheet the renderer expects (`scripts/bake-sunnyside/terrain.py`; the contract is pinned by `path-tiles.test.ts`).
 
-**Sprite size comes from the artwork, and the unit is the doorway — not the file.** `SCENERY_SCALE` covers all four scenery kinds, so a 192px tree frame and a 64px mushroom frame render at the sizes they were drawn.
+**Sprite size comes from the artwork, and the unit is the doorway — not the file.** `SCENERY_SCALE` covers every scenery kind, so a tree frame and a mushroom frame render at the proportions they were drawn. The whole pack is baked from one 16px grid at ×4, which is what makes a single scale sufficient.
 
-Buildings need one more step, because the eight PNGs under `BuildingsCustom/` were drawn for this project at zooms that differ by a factor of two — measured on their doorways: `library 68 · tavern 70 · chapel 70 · watchtower 78` agree, `castle 60 · arena 90 · forge 115 · alchemist 140` do not. Scaling every file alike therefore produces enormous huts beside a miniature castle. `DOOR_HEIGHT` in the theme records the measurements and `getBuildingScale` divides them out, so a doorway ends up the same size on every building. **Those numbers correct the source art; they are not per-building size normalisation, which is the bug they replaced** (an earlier table stretched the Castle 29% against its neighbours and left the tallest and shortest buildings a hand apart). Redrawing the art at a consistent zoom would remove the need for the table; `tiny-swords-cc0.test.ts` pins the invariant either way.
+Buildings are assembled by the bake at that same zoom, so their doorways come out consistent **by construction** — where they differ (`library 64 · castle/arena 60 · forge/tavern 52 · alchemist/chapel/watchtower 48`, in baked px) it is by design: a castle gate is taller than a hut door. `DOOR_HEIGHT` (from the generated `sunnyside-sheet.ts`) and `getBuildingScale` still normalise the *rendered* doorway to one size, because door-to-hero proportion is the thing the eye checks; `sunnyside.test.ts` pins the invariant.
 
-Heroes sit on a third scale again (`MapConfig.settings.heroScale`) — a known inconsistency, not a licence to add more.
+Heroes sit on a third scale again (`MapConfig.settings.heroScale`, stored against the original Tiny Swords baseline and rebased ×4 in `registry.ts`) — a known inconsistency, not a licence to add more.
 
 Invariants worth preserving:
 
@@ -68,6 +69,20 @@ Invariants worth preserving:
 - **Nothing spawns on a road, against a wall, or in the water.** Per-kind clearances live in `KIND_SPECS`; trees need far more room than mushrooms. Water is the awkward one: the lake is 204 cells of `terrain-water` in the terrain grid, not a placed feature, and every one of them is flagged `walkable: true` — so `game/data/water.ts` derives the keep-out rects from the tiles themselves rather than trusting the map to describe them.
 - **Both generators are seeded and deterministic.** Scenery that reshuffles every reload is disorienting, and a road that moves under a walking hero is a bug.
 - **Don't close concave corners in the road grid.** A 16-tile edge set has no inner-corner tile, and filling the notch looks like the fix — but iterating that rule is a morphological closing: it eats the grass out of every space the network encloses and turns the village into one plaza. `makeTileable` fills only pinholes and diagonal-only touches, and `path-tiles.test.ts` guards a ring of roads around an open green.
+
+## Art pipeline (Sunnyside World)
+
+All artwork is [Sunnyside World](https://danieldiggle.itch.io/sunnyside) by Daniel Diggle — a **paid, non-redistributable** pack. The repo commits only **baked derivatives** under `client/public/assets/themes/sunnyside/` (+ `client/public/assets/ui/sunnyside/`), produced by `scripts/bake-sunnyside/` (Python + Pillow) reading the pack zips directly. Re-baking needs the zips; the baked PNGs and the generated metadata (`client/src/game/themes/sunnyside-sheet.ts`, `bake-meta.json`) are committed so nobody else ever runs the bake.
+
+What the bake does, and why it exists at all:
+
+- **Heroes** — the pack ships layered strips (base + 6 hairstyles + tools). The bake composites them per frame into one grid sheet per (class, colour): rows are animations, 96×64 frames, 23 columns. Class = hairstyle silhouette (warrior spikey, archer long, pawn bowl); **colour = shirt AND hair palette-swap** — at portrait size the hair is the only feature big enough to carry colour identity. Codex sessions get the goblin sheet (`getHeroConfig(color, unit, source)`); square content-cropped portraits feed the React avatars.
+- **Activity animations** — `HeroSpriteConfig.extraAnims` maps agent states to sheet rows: editing→hammering, bash→attack, debugging/git→doing, waiting→foot-tap. Everything else idles. A parked hero plays its state's animation (`HeroSprite.playStationary`); 'waiting' outranks the activity.
+- **Buildings** — the pack has **no prefab buildings**, only a modular sheet plus tileset wall/roof pieces in 5 roof colours. Each of the 8 buildings is a recipe in `scripts/bake-sunnyside/buildings.py` (pieces + roof recolour + props: books→Library, anvil→Forge, knight statue→Castle, sword barrel→Arena…). Roof recolouring maps the sheet's blue shingle ramp to the tileset's other colour ramps, and tints the window glass to match — the pack's own colour blocks do the same.
+- **Terrain** — 16px tiles upscaled ×4 to the 64px world grid, so `village.json` geometry survived the swap untouched (the one-off `scripts/migrate-village-map.ts` rewrote its keys/frames). One coherent pixel-density story: everything on the canvas is ×4 of the same 16px grid except hero frames (kept native, scaled 1.6).
+- **UI kit** — 9-slice boxes/label plate at native 1× for CSS `border-image` (`client/src/sunnyside-ui.css` reskins panel chrome only; layout, text palette and RuneScape type unchanged).
+
+If a sprite looks wrong, fix the **recipe** and re-bake — never edit a baked PNG by hand. Coordinates of every tile the bake pulls from the 16px tileset are named constants in the bake modules.
 
 ## Typography
 

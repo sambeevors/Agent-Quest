@@ -14,7 +14,7 @@ export function registerMapRoutes(app: Hono): void {
   });
 
   app.get('/api/assets/manifest', (c) => {
-    const theme = c.req.query('theme') ?? 'tiny-swords-cc0';
+    const theme = c.req.query('theme') ?? 'sunnyside';
     return c.json(buildAssetManifest(theme));
   });
 }

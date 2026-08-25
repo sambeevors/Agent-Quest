@@ -10,9 +10,12 @@ export class Building {
   readonly label: Phaser.GameObjects.Text;
   readonly doorX: number;
   readonly doorY: number;
+  private readonly scene: Phaser.Scene;
+  private smoke: Phaser.GameObjects.Sprite | null = null;
 
   constructor(scene: Phaser.Scene, def: BuildingDef) {
     this.def = def;
+    this.scene = scene;
 
     this.image = scene.add.image(def.x, def.y, def.imageKey);
     this.image.setOrigin(0.5, 1); // bottom-centre — the def's y IS the ground line
@@ -69,6 +72,34 @@ export class Building {
       strokeThickness: 1,
       shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 2, fill: true },
     }).setOrigin(0.5, 0).setDepth(this.doorY + 0.1);
+  }
+
+  /**
+   * Chimney smoke while someone is working inside — the one piece of building
+   * state readable from right across the map. The anchor comes from the theme
+   * in image pixels; smoke scales with the building so the plume stays
+   * proportionate.
+   */
+  setSmoking(smoking: boolean): void {
+    if (!smoking) {
+      this.smoke?.destroy();
+      this.smoke = null;
+      return;
+    }
+    if (this.smoke !== null) return;
+    const anchor = getActiveTheme().getChimneyAnchor?.(this.def.id);
+    if (anchor == null) return;
+    if (!this.scene.textures.exists('vfx-chimneysmoke') || !this.scene.anims.exists('vfx-chimneysmoke-anim')) return;
+    const scale = this.image.scaleX;
+    const [ax, ay] = anchor;
+    const x = this.def.x - this.image.displayWidth / 2 + ax * scale;
+    const y = this.def.y - this.image.displayHeight + ay * scale;
+    this.smoke = this.scene.add.sprite(x, y, 'vfx-chimneysmoke');
+    this.smoke.setOrigin(0.5, 1);
+    this.smoke.setScale(scale);
+    this.smoke.setAlpha(0.9);
+    this.smoke.setDepth(this.doorY + 0.15);
+    this.smoke.play('vfx-chimneysmoke-anim');
   }
 
   /**

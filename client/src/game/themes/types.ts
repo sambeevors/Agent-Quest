@@ -1,7 +1,13 @@
-export type ThemeId = 'tiny-swords-cc0';
+export type ThemeId = 'sunnyside';
 
-export type UnitType = 'warrior' | 'archer' | 'pawn' | 'tnt' | 'torch';
-export type UnitColor = 'blue' | 'yellow' | 'red' | 'black' | 'purple';
+export type UnitType = 'warrior' | 'archer' | 'pawn';
+/** Sunnyside hero sheets are baked per hero colour (shirt palette swap), so
+ * every logical HeroColor has its own sprite variant. */
+export type UnitColor =
+  | 'blue' | 'yellow' | 'red' | 'black' | 'purple'
+  | 'teal' | 'orange' | 'green';
+/** Which provider a session came from — Codex sessions render as goblins. */
+export type UnitSource = 'claude' | 'codex';
 
 export interface PreloadEntry {
   key: string;
@@ -41,6 +47,14 @@ export interface HeroSpriteConfig {
   facesLeft: boolean;
   /** Phaser tint (0xRRGGBB) applied via setTint on the sprite, or null. */
   tint: number | null;
+  /**
+   * Optional stationary animations keyed by what the hero is doing —
+   * an AgentActivity ('editing', 'bash', …) or the pseudo-state 'waiting'.
+   * When a hero is parked at a building, HeroSprite plays the entry for its
+   * current state if one exists, and falls back to idle otherwise. Frames
+   * index into the same texture as idleKey.
+   */
+  extraAnims?: Record<string, { frameIndices: number[]; frameRate: number }>;
 }
 
 /** Static preview of a hero's idle sheet — used by React UI (PartyBar). */
@@ -60,12 +74,12 @@ export interface HeroPreview {
  * TerrainRenderer is mostly procedural (roads/forest/lake/noise) but the
  * base grass fill is drawn as a tiled sprite from one frame of a tileset. */
 /**
- * The packed-earth surface roads are drawn from. Its tiles are not in the
- * shipped pack — the pack has grass and beach sand and nothing between — so
- * the theme derives them at load time and registers them under `tilesetKey`.
+ * The packed-earth surface roads are drawn from. The bake pipeline lays the
+ * pack's dirt tiles out in this exact sheet shape (see
+ * scripts/bake-sunnyside/terrain.py), so the theme just preloads it.
  */
 export interface RoadTilesetConfig {
-  /** Phaser texture key the theme registers the generated tileset under. */
+  /** Phaser texture key the road sheet is registered under. */
   tilesetKey: string;
   /** Columns in the generated sheet, needed to walk frame indices by row. */
   columns: number;
@@ -102,8 +116,8 @@ export interface ThemeManifest {
    * rebaseSavedScale() in registry.ts. */
   heroScale: number;
   getHeroPreload(): PreloadEntry[];
-  getHeroConfig(color: UnitColor, unit: UnitType): HeroSpriteConfig;
-  getHeroPreview(color: UnitColor, unit: UnitType): HeroPreview;
+  getHeroConfig(color: UnitColor, unit: UnitType, source?: UnitSource): HeroSpriteConfig;
+  getHeroPreview(color: UnitColor, unit: UnitType, source?: UnitSource): HeroPreview;
   /** Background tileset for TerrainRenderer. When absent, the renderer
    * falls back to its built-in procedural grass tile. */
   terrain?: TerrainConfig;
@@ -119,14 +133,20 @@ export interface ThemeManifest {
   /**
    * Scale for one building's PNG. A theme whose building art is all drawn at
    * the same zoom should return `buildingScale` for every id and let the PNG's
-   * own dimensions decide what looks big. It returns something else only to
-   * correct art that disagrees with itself — see the Tiny Swords theme, where
-   * the doorways range over a factor of two.
+   * own dimensions decide what looks big. It returns something else only when
+   * doorway heights differ across buildings (by design or by accident of the
+   * source art) and the rendered doorway should still come out one size.
    */
   getBuildingScale(id: string): number;
   /** Decorations, decorative houses, trees, stumps — every static/sprite
    * asset BootScene used to hardcode. */
   getStaticAssetPreload(): StaticAssetEntry[];
+  /**
+   * Where chimney smoke rises from on a building, in the building image's own
+   * pixels (origin top-left), or null when the theme has no anchor for the
+   * id. Themes without smoke omit the method entirely.
+   */
+  getChimneyAnchor?(id: string): readonly [number, number] | null;
   /** Optional post-load hook, called from BootScene.create() after the
    * Phaser loader has finished. Useful for canvas-based slicing: e.g.
    * turn one combined tree atlas into 4 separate `tree-1..4` textures. */

@@ -91,11 +91,10 @@ export class VillageScene extends Phaser.Scene {
   private contentBounds: Phaser.Geom.Rectangle | null = null;
 
 
-  /** Hero sprite scale — overridden by MapConfig settings if available. */
-  /** Hero sprite scale — defaults to the active theme's baseline (0.5 for
-   * Tiny Swords / CC0 edition). MapConfig-saved overrides are rebased
-   * through `rebaseSavedScale` so they're stored once against the Tiny
-   * Swords baseline and render proportionally under any theme. */
+  /** Hero sprite scale — defaults to the active theme's baseline.
+   * MapConfig-saved overrides are stored against the original Tiny Swords
+   * baseline and rebased through `rebaseSavedScale` so they render
+   * proportionally under the current art. */
   private heroScale = getActiveTheme().heroScale;
 
   /** Spawn point used for new heroes. Overridden by MapConfig.spawn when present. */
@@ -474,8 +473,8 @@ export class VillageScene extends Phaser.Scene {
       if (mapRes.status === 200) {
         mapConfig = await mapRes.json() as MapConfig;
 
-        // Single-theme project — the server lazy-migrates legacy ids to
-        // 'tiny-swords-cc0' on load, so no runtime switch is possible.
+        // Single-theme project — the server serves one manifest, so no
+        // runtime switch is possible.
         const activeTheme = getActiveTheme().id;
 
         // Fetch the asset manifest for the (now aligned) theme so
@@ -964,6 +963,14 @@ export class VillageScene extends Phaser.Scene {
 
     for (const buildingId of buildingsToReposition) {
       this.repositionBuilding(buildingId);
+    }
+
+    // Chimney smoke marks an occupied building — meaningful ambience: it
+    // rises while at least one hero is stationed inside and stops the moment
+    // the last one leaves.
+    for (const building of this.buildings) {
+      const slots = this.buildingSlots.get(building.def.id);
+      building.setSmoking(slots !== undefined && slots.length > 0);
     }
   }
 }
