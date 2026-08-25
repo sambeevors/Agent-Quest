@@ -50,18 +50,19 @@ export class TerrainRenderer {
     this.drawLake();
     this.drawPond();
     this.drawNpcVillageGround();
-    this.layRoads();
+    this.drawForestTrail();
     this.layPlaza();
     this.layYards();
     this.drawDecor();
-    this.placeRocks();
-    this.placeBushes();
-    this.placeStumps();
+    // Trees, shrubs, rocks and mushrooms are NOT placed here. They are
+    // generated procedurally against the buildings and the generated roads
+    // (see game/data/scenery.ts) so nothing can end up on a lane or against a
+    // wall — which hand-tuned scatter could not guarantee once the layout
+    // became dynamic.
     this.drawDecorativeHouses();
     this.drawNpcVillageHouses();
     this.drawFences();
     this.drawShadows();
-    this.drawForestTrees();
     this.drawGate();
     this.drawSignposts();
     this.addFx();
@@ -247,145 +248,16 @@ export class TerrainRenderer {
     g.strokeEllipse(POND_CX, POND_CY, POND_RX * 2 - 38, POND_RY * 2 - 24);
   }
 
-  // --- roads -----------------------------------------------------------
-
-  private layRoads(): void {
-    const segs = getRoadSegments();
-
-    // Collect junction points (where segments meet) with their widest road width
-    const junctions = new Map<string, { x: number; y: number; w: number }>();
-    for (const s of segs) {
-      const w = s.main ? ROAD_W_MAIN : ROAD_W_SEC;
-      for (const pt of [s.a, s.b]) {
-        const k = `${pt.x},${pt.y}`;
-        const prev = junctions.get(k);
-        junctions.set(k, { x: pt.x, y: pt.y, w: Math.max(prev?.w ?? 0, w) });
-      }
-    }
-
-    // --- Layer 0: Shadow (wider, dark, soft) ---
-    const gShadow = this.scene.add.graphics().setDepth(-0.01);
-    gShadow.fillStyle(0x2A2018, 0.30);
-    for (const s of segs) {
-      const w = (s.main ? ROAD_W_MAIN : ROAD_W_SEC) + 12;
-      this.strokeThickLine(gShadow, s.a.x, s.a.y, s.b.x, s.b.y, w);
-    }
-    for (const j of junctions.values()) gShadow.fillCircle(j.x, j.y, (j.w + 12) / 2);
-
-    // --- Layer 1: Outer fill (base stone colour) ---
-    const gBase = this.scene.add.graphics().setDepth(0);
-    gBase.fillStyle(0x8A7656, 0.95);
-    for (const s of segs) {
-      this.strokeThickLine(gBase, s.a.x, s.a.y, s.b.x, s.b.y, s.main ? ROAD_W_MAIN : ROAD_W_SEC);
-    }
-    for (const j of junctions.values()) gBase.fillCircle(j.x, j.y, j.w / 2);
-
-    // --- Layer 2: Inner lighter fill (gives bevel/depth) ---
-    const gInner = this.scene.add.graphics().setDepth(0.003);
-    gInner.fillStyle(0x9E8E6C, 0.55);
-    for (const s of segs) {
-      const w = (s.main ? ROAD_W_MAIN : ROAD_W_SEC) - 10;
-      this.strokeThickLine(gInner, s.a.x, s.a.y, s.b.x, s.b.y, w);
-    }
-    for (const j of junctions.values()) gInner.fillCircle(j.x, j.y, Math.max(4, (j.w - 10) / 2));
-
-    // --- Layer 3: Cobblestone pattern ---
-    const gStone = this.scene.add.graphics().setDepth(0.006);
-    this.drawCobblestones(gStone, segs);
-
-    // --- Layer 4: Border lines ---
-    const gBorder = this.scene.add.graphics().setDepth(0.02);
-    gBorder.lineStyle(1.8, 0x5A4A2A, 0.45);
-    for (const s of segs) {
-      const w = s.main ? ROAD_W_MAIN : ROAD_W_SEC;
-      const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
-      const len = Math.hypot(dx, dy); if (len === 0) continue;
-      const nx = -dy / len, ny = dx / len, hw = w / 2;
-      gBorder.lineBetween(s.a.x + nx * hw, s.a.y + ny * hw, s.b.x + nx * hw, s.b.y + ny * hw);
-      gBorder.lineBetween(s.a.x - nx * hw, s.a.y - ny * hw, s.b.x - nx * hw, s.b.y - ny * hw);
-    }
-
-    // --- Layer 5: Edge grass tufts (softens the road-to-grass transition) ---
-    const gEdge = this.scene.add.graphics().setDepth(0.025);
-    for (const s of segs) {
-      const w = s.main ? ROAD_W_MAIN : ROAD_W_SEC;
-      const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
-      const len = Math.hypot(dx, dy); if (len < 30) continue;
-      const nx = -dy / len, ny = dx / len, hw = w / 2;
-      const step = 12;
-      for (let d = 6; d < len - 6; d += step + this.rand(-2, 2)) {
-        for (const side of [-1, 1] as const) {
-          if (this.rng() < 0.35) continue;
-          const t = d / len;
-          const bx = s.a.x + dx * t + nx * side * (hw + this.rand(-2, 3));
-          const by = s.a.y + dy * t + ny * side * (hw + this.rand(-2, 3));
-          const bladeCount = this.randInt(2, 4);
-          for (let b = 0; b < bladeCount; b++) {
-            const gx = bx + this.rand(-3, 3), gy = by + this.rand(-2, 2);
-            const tipX = gx + this.rand(-3, 3), tipY = gy - this.rand(3, 7);
-            gEdge.lineStyle(1, this.pick([0x4A8A2E, 0x3A7A22, 0x5A9A3A] as const), 0.6);
-            gEdge.lineBetween(gx, gy, tipX, tipY);
-          }
-        }
-      }
-    }
-
-    // --- Layer 6: Scattered pebbles on main roads ---
-    const gPeb = this.scene.add.graphics().setDepth(0.03);
-    for (const s of segs) {
-      if (!s.main) continue;
-      const len = Math.hypot(s.b.x - s.a.x, s.b.y - s.a.y);
-      for (let d = 14; d < len - 14; d += this.rand(18, 30)) {
-        const t = d / len;
-        const px = s.a.x + (s.b.x - s.a.x) * t + this.rand(-8, 8);
-        const py = s.a.y + (s.b.y - s.a.y) * t + this.rand(-8, 8);
-        if (!this.onRoad(px, py, -6)) continue;
-        gPeb.fillStyle(this.pick([0x6A5A3A, 0x7A6A48, 0x5A4A2E] as const), 0.4);
-        gPeb.fillCircle(px, py, this.rand(1.2, 2.5));
-      }
-    }
-
-    this.drawForestTrail();
-  }
-
-  /** Draw a cobblestone pattern along road segments using small rectangles. */
-  private drawCobblestones(g: Phaser.GameObjects.Graphics, segs: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; main: boolean }>): void {
-    const stoneColors = [0x7A6A4A, 0x8A7A58, 0x6E5E3E, 0x96866A, 0x847454] as const;
-    const groutColor = 0x5A4A2E;
-
-    for (const s of segs) {
-      const w = s.main ? ROAD_W_MAIN : ROAD_W_SEC;
-      const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
-      const len = Math.hypot(dx, dy); if (len < 20) continue;
-      const ux = dx / len, uy = dy / len;  // unit along road
-      const nx = -uy, ny = ux;             // unit perpendicular
-
-      const stoneStep = 10;
-      const rows = Math.max(1, Math.floor((w - 12) / stoneStep));
-      const halfRows = (rows - 1) / 2;
-
-      for (let d = 6; d < len - 6; d += stoneStep) {
-        // Alternate row offset for brick-like pattern
-        const rowShift = (Math.floor(d / stoneStep) % 2 === 0) ? 0 : stoneStep / 2;
-        for (let r = 0; r < rows; r++) {
-          const across = (r - halfRows) * stoneStep + rowShift * 0.3;
-          const t = d / len;
-          const cx = s.a.x + dx * t + nx * across + this.rand(-0.8, 0.8);
-          const cy = s.a.y + dy * t + ny * across + this.rand(-0.8, 0.8);
-
-          if (!this.onRoad(cx, cy, -5)) continue;
-
-          const sw = this.rand(5, 8), sh = this.rand(4, 6.5);
-          // Stone fill
-          g.fillStyle(this.pick(stoneColors), 0.3);
-          g.fillRect(cx - sw / 2, cy - sh / 2, sw, sh);
-          // Grout line
-          g.lineStyle(0.5, groutColor, 0.18);
-          g.strokeRect(cx - sw / 2, cy - sh / 2, sw, sh);
-        }
-      }
-    }
-  }
+  // --- roads ---------------------------------------------------------
+  //
+  // Village roads are NOT painted here any more. They are generated as
+  // desire paths from the buildings that actually get spawned (see
+  // game/data/desire-paths.ts) and drawn by DesirePathRenderer once the
+  // scene knows where everything stands — painting a second, independently
+  // derived road layer underneath would contradict them.
+  //
+  // `onRoad()` above still consults the routing graph, so scattered decor
+  // keeps clear of wherever the tracks end up running.
 
   private strokeThickLine(g: Phaser.GameObjects.Graphics, x1: number, y1: number, x2: number, y2: number, w: number): void {
     const dx = x2 - x1, dy = y2 - y1;
@@ -492,102 +364,6 @@ export class TerrainRenderer {
     }
   }
 
-  private placeRocks(): void {
-    if (!this.scene.textures.exists('rock-1')) return;
-    const placed: Array<{ x: number; y: number }> = [];
-    const tooClose = (x: number, y: number, d = 32) => placed.some(p => Math.abs(p.x - x) < d && Math.abs(p.y - y) < d);
-
-    // Rocks along roads (inside city)
-    for (const s of getRoadSegments()) {
-      const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
-      const len = Math.hypot(dx, dy); if (len === 0) continue;
-      const nx = -dy / len, ny = dx / len;
-      const hw = (s.main ? ROAD_W_MAIN : ROAD_W_SEC) / 2;
-      const step = s.main ? 90 : 120;
-      for (let d = 30; d < len - 30; d += step + this.rand(-15, 15)) {
-        for (const side of [-1, 1] as const) {
-          if (this.rng() < 0.4) continue;
-          const off = hw + this.rand(10, 18);
-          const t = d / len;
-          const rx = s.a.x + dx * t + nx * side * off;
-          const ry = s.a.y + dy * t + ny * side * off;
-          if (this.onRoad(rx, ry, -4) || !this.canPlace(rx, ry, 4) || tooClose(rx, ry) || this.inForest(rx, ry)) continue;
-          const rock = this.scene.add.image(rx, ry, `rock-${this.randInt(1, 4)}`)
-            .setScale(this.rand(0.35, 0.6));
-          rock.setDepth(ry + rock.displayHeight * 0.5);
-          placed.push({ x: rx, y: ry });
-        }
-      }
-    }
-    // Interior scatter (light — village is tidy)
-    for (let i = 0; i < 16; i++) {
-      const x = this.rand(100, WORLD_WIDTH - 100), y = this.rand(100, WORLD_HEIGHT - 100);
-      if (this.inForest(x, y) || !this.canPlace(x, y, 12) || tooClose(x, y, 50)) continue;
-      const rock = this.scene.add.image(x, y, `rock-${this.randInt(1, 4)}`)
-        .setScale(this.rand(0.4, 0.75));
-      rock.setDepth(y + rock.displayHeight * 0.5);
-      placed.push({ x, y });
-    }
-    // Forest boulders — sparse, just enough to punctuate the tree cover
-    for (let i = 0; i < 40; i++) {
-      const x = this.rand(30, WORLD_WIDTH - 30), y = this.rand(30, WORLD_HEIGHT - 30);
-      if (!this.inForest(x, y) || tooClose(x, y, 70)) continue;
-      const rock = this.scene.add.image(x, y, `rock-${this.randInt(1, 4)}`)
-        .setScale(this.rand(0.55, 1.0))
-        .setTint(0x9AA59C);
-      rock.setDepth(y + rock.displayHeight * 0.5);
-      placed.push({ x, y });
-    }
-  }
-
-  private placeBushes(): void {
-    if (!this.scene.textures.exists('bush-1')) return;
-    const placed: Array<{ x: number; y: number }> = [];
-    const tooClose = (x: number, y: number, d = 55) => placed.some(p => Math.abs(p.x - x) < d && Math.abs(p.y - y) < d);
-
-    for (const b of BUILDING_DEFS) {
-      for (let j = 0; j < this.randInt(2, 4); j++) {
-        const side = this.rng() > 0.5 ? -1 : 1;
-        const bx = b.x + side * this.rand(56, 90), by = b.y + this.rand(18, 60);
-        if (this.onRoad(bx, by, 4) || tooClose(bx, by, 50) || this.inForest(bx, by)) continue;
-        const bush = this.scene.add.sprite(bx, by, `bush-${this.randInt(1, 4)}`, 0)
-          .setScale(this.rand(0.35, 0.55));
-        bush.setDepth(by + bush.displayHeight * 0.5);
-        placed.push({ x: bx, y: by });
-      }
-    }
-    for (let i = 0; i < 80; i++) {
-      const x = this.rand(90, WORLD_WIDTH - 90), y = this.rand(90, WORLD_HEIGHT - 90);
-      if (this.inForest(x, y) || !this.canPlace(x, y, 18) || tooClose(x, y)) continue;
-      const bush = this.scene.add.sprite(x, y, `bush-${this.randInt(1, 4)}`, 0)
-        .setScale(this.rand(0.35, 0.6));
-      bush.setDepth(y + bush.displayHeight * 0.5);
-      placed.push({ x, y });
-    }
-    // Forest-floor bushes — only outside the village, sparse
-    for (let i = 0; i < 130; i++) {
-      const x = this.rand(30, WORLD_WIDTH - 30), y = this.rand(30, WORLD_HEIGHT - 30);
-      if (!this.inForest(x, y) || tooClose(x, y, 65)) continue;
-      const bush = this.scene.add.sprite(x, y, `bush-${this.randInt(1, 4)}`, 0)
-        .setScale(this.rand(0.45, 0.75));
-      bush.setDepth(y + bush.displayHeight * 0.5);
-      placed.push({ x, y });
-    }
-  }
-
-  private placeStumps(): void {
-    if (!this.scene.textures.exists('stump-1')) return;
-    // Stumps only in the forest — keeps the village clean.
-    for (let i = 0; i < 14; i++) {
-      const x = this.rand(30, WORLD_WIDTH - 30), y = this.rand(30, WORLD_HEIGHT - 30);
-      if (!this.inForest(x, y)) continue;
-      const key = `stump-${this.randInt(1, 4)}`;
-      const stump = this.scene.add.image(x, y, key)
-        .setScale(this.rand(0.28, 0.42));
-      stump.setDepth(y + stump.displayHeight * 0.5);
-    }
-  }
-
   // --- decorative small houses -----------------------------------------
 
   private drawDecorativeHouses(): void {
@@ -680,61 +456,6 @@ export class TerrainRenderer {
       g.fillStyle(0x1A2A10, 0.2);
       g.fillEllipse(b.x + 8, b.y + 55, 95 * b.scale, 26 * b.scale);
     }
-  }
-
-  // --- forest trees ----------------------------------------------------
-
-  private drawForestTrees(): void {
-    const useSprites = this.scene.textures.exists('tree-1');
-    const placed: Array<{ x: number; y: number }> = [];
-    const tooClose = (x: number, y: number, d = 70) => placed.some(p => Math.hypot(p.x - x, p.y - y) < d);
-    const nearWater = (x: number, y: number) =>
-      Math.hypot(x - LAKE_CX, y - LAKE_CY) < LAKE_RX + 30 ||
-      Math.hypot(x - POND_CX, y - POND_CY) < POND_RX + 25;
-    const nearTrail = (x: number, y: number) =>
-      distToSegment(x, y, 1850, 1130, 2050, 1200) < 30 ||
-      distToSegment(x, y, 2050, 1200, 2230, 1340) < 30 ||
-      distToSegment(x, y, 2230, 1340, NPC_VILLAGE.x, NPC_VILLAGE.y) < 30;
-
-    // Forest trees — only outside the village clearings.
-    // Lowered density + larger min-distance for a cleaner, less busy look.
-    for (let i = 0; i < 900; i++) {
-      const x = this.rand(10, WORLD_WIDTH - 10), y = this.rand(10, WORLD_HEIGHT - 10);
-      if (!this.inForest(x, y)) continue;
-      if (nearWater(x, y)) continue;
-      if (nearTrail(x, y)) continue;
-      if (tooClose(x, y, this.rand(62, 88))) continue;
-      this.drawOneTree(x, y, useSprites, this.rand(0.5, 0.95));
-      placed.push({ x, y });
-    }
-  }
-
-  private drawOneTree(x: number, y: number, useSprites: boolean, scale: number): void {
-    if (useSprites) {
-      const k = `tree-${this.randInt(1, 4)}`;
-      // CC0 trees are single-frame textures (sliced from Tree.png by
-      // postLoadHook) so we fall into the frame-0 branch below. The
-      // multi-frame path is kept for future themes that ship animated
-      // sway sheets — picking a random frame gives each tree a unique pose.
-      const tex = this.scene.textures.get(k);
-      const frameCount = tex.getFrameNames().length;
-      const frame = frameCount > 1 ? this.randInt(0, frameCount - 1) : 0;
-      const img = this.scene.add.sprite(x, y, k, frame).setScale(scale);
-      img.setDepth(y + img.displayHeight / 2 - 2);
-    } else {
-      const g = this.scene.add.graphics();
-      g.setDepth(y + 50 * scale);
-      this.oak(g, x, y, scale);
-    }
-  }
-
-  private oak(g: Phaser.GameObjects.Graphics, x: number, y: number, s: number): void {
-    g.fillStyle(0x1A3A12, 0.2); g.fillEllipse(x + 3, y + 5 * s, 32 * s, 11 * s);
-    g.fillStyle(0x5C3A1E, 1); g.fillRect(x - 3 * s, y - 14 * s, 6 * s, 20 * s);
-    g.fillStyle(0x1B5E20, 1); g.fillCircle(x - 6 * s, y - 18 * s, 12 * s);
-    g.fillStyle(0x2E7D32, 1); g.fillCircle(x + 5 * s, y - 20 * s, 11 * s);
-    g.fillStyle(0x388E3C, 1); g.fillCircle(x, y - 26 * s, 10 * s);
-    g.fillStyle(0x4CAF50, 0.35); g.fillCircle(x - 3 * s, y - 28 * s, 5 * s);
   }
 
   // --- gate & fences ---------------------------------------------------

@@ -208,19 +208,20 @@ export const tinySwordsCc0Theme: ThemeManifest = {
     const RES_TREES = 'assets/themes/tiny-swords-cc0/Resources/Trees';
     const KNIGHTS_BUILD = 'assets/themes/tiny-swords-cc0/Factions/Knights/Buildings';
 
-    // Bush/Rock/Stump: map each slot to a distinct Deco 64×64 prop.
-    // Deco/01-15 are 64×64, 16-17 are 64×128 (signposts/pillars — would
-    // render as tall sticks when used as stumps), 18 is 192×192. We keep
-    // every slot inside the 64×64 range for consistent scale with the
-    // TerrainRenderer.placeBushes / placeStumps code.
-    const bushDeco = [1, 2, 3, 4];
-    const rockDeco = [9, 10, 11, 12];
-    const stumpDeco = [5, 6, 7, 8];
-    for (let i = 0; i < 4; i++) {
-      entries.push({ key: `bush-${i + 1}`, path: `${DECO}/${String(bushDeco[i]).padStart(2, '0')}.png` });
-      entries.push({ key: `rock-${i + 1}`, path: `${DECO}/${String(rockDeco[i]).padStart(2, '0')}.png` });
-      entries.push({ key: `stump-${i + 1}`, path: `${DECO}/${String(stumpDeco[i]).padStart(2, '0')}.png` });
-    }
+    // Ground props, keyed by what the sprite ACTUALLY depicts. The upstream
+    // pack numbers Deco/01-18 without naming them, and the previous mapping had
+    // them crossed over — mushrooms registered as `bush-*`, bushes as `rock-*`,
+    // rocks as `stump-*` — so scattering "rocks" put shrubs on the map.
+    // Verified against the art: 01-03 mushrooms, 04-08 rocks, 09-11 shrubs.
+    // (12-13 are gourds, 14 a bone, 15-17 signposts/pillars at 64×128, 18 is
+    // 192×192 — none of them scatter well, so they're left out.)
+    const MUSHROOM_DECO = [1, 2, 3];
+    const ROCK_DECO = [4, 5, 6, 7, 8];
+    const BUSH_DECO = [9, 10, 11];
+    const deco = (n: number): string => `${DECO}/${String(n).padStart(2, '0')}.png`;
+    MUSHROOM_DECO.forEach((n, i) => entries.push({ key: `mushroom-${i + 1}`, path: deco(n) }));
+    ROCK_DECO.forEach((n, i) => entries.push({ key: `rock-${i + 1}`, path: deco(n) }));
+    BUSH_DECO.forEach((n, i) => entries.push({ key: `bush-${i + 1}`, path: deco(n) }));
 
     // Trees: Tree.png is a 768×576 atlas (4×3 grid of 192-px frames).
     // Load the whole atlas once; postLoadHook slices frames 0-3 into
