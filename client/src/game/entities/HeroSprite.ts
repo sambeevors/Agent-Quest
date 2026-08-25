@@ -1,8 +1,10 @@
 import * as Phaser from 'phaser';
-import { HERO_COLOR_SPRITE_BASE, HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, type HeroClass, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
+import { HERO_COLOR_SPRITE_BASE, HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroClass, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
 import { getActiveTheme } from '../themes/registry';
 import { findRoadPath, type Point } from '../data/road-network';
 import { addCrispText, LABEL_FONT } from '../text';
+import { ThoughtBubble } from './ThoughtBubble';
+import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
 
 const MOVE_SPEED = 150;
 /** Ground distance covered by one full run-cycle. Keeps legs synced to travel. */
@@ -11,27 +13,17 @@ const RUN_PIXELS_PER_CYCLE = 60;
 /**
  * Label offsets are computed per-instance from the sprite's actual
  * displayHeight so they adapt to whatever scale the active theme uses.
- * The formulas below reproduce the original Tiny Swords values
- * (sprite 96 px → name -50, activity +46, detail +60, task +74).
+ * Only the name (and the subagent / source badges tucked under it) is drawn
+ * on the hero — activity, model, file and prompt used to stack below the
+ * sprite, four rows deep, and buried the village in log text. That detail
+ * lives in the React panels; the canvas says what a hero is thinking instead.
  */
-const TASK_MAX_CHARS = 28;
 
-const ACTIVITY_COLOR: Record<AgentActivity, string> = {
-  idle:      '#888888',
-  thinking:  '#C48BE8',
-  reading:   '#88BBFF',
-  // Forge/edit = amber orange. Deliberately NOT yellow — gold is reserved for
-  // the 'waiting' state so the two are never confused on the hero label.
-  editing:   '#FF8C42',
-  bash:      '#FF9966',
-  git:       '#88E08A',
-  debugging: '#FF6B6B',
-  reviewing: '#7AE0C8',
-};
-
-const WAITING_COLOR = '#FFD700';
-const ERROR_COLOR = '#FF4444';
-const ERROR_WINDOW_MS = 90 * 1000;
+/**
+ * A hero speaks again this soon after an error, whatever its chatter timer
+ * was going to do. Errors are the one event worth reacting to on sight.
+ */
+const ERROR_CHATTER_MAX_AGE_MS = 30 * 1000;
 
 const HALO_TEXTURE_KEY = 'hero-selection-halo';
 
@@ -71,27 +63,22 @@ export class HeroSprite {
   private source: AgentSource;
   private isSubagent: boolean;
   private sourceBadgeVisible = false;
-  private activityText: Phaser.GameObjects.Text;
-  /** Lazily created when a model badge applies (Claude sessions only). */
-  private modelText: Phaser.GameObjects.Text | null = null;
-  private detailText: Phaser.GameObjects.Text;
-  private taskText: Phaser.GameObjects.Text;
+  private bubble: ThoughtBubble;
   private _x: number;
   private _y: number;
   private moveTween: Phaser.Tweens.Tween | null = null;
   private waitingTween: Phaser.Tweens.Tween | null = null;
-  private errorTimer: Phaser.Time.TimerEvent | null = null;
+  private chatterTimer: Phaser.Time.TimerEvent | null = null;
+  private lastChatterLine: string | null = null;
+  private lastErrorAt: number | undefined;
   private idleKey: string;
   private runKey: string;
   private facesLeft: boolean;
   private nameOffsetY: number;
   private subagentOffsetY: number;
-  private activityOffsetY: number;
-  private detailOffsetY: number;
-  private taskOffsetY: number;
+  private bubbleOffsetY: number;
   currentActivity: AgentActivity = 'idle';
   private isWaiting = false;
-  private isErrorRecent = false;
   private nameBaseColor = '#DDDDDD';
   private selectionTween: Phaser.Tweens.Tween | null = null;
   private selectionHalo: Phaser.GameObjects.Image | null = null;
@@ -147,9 +134,9 @@ export class HeroSprite {
     // Subagent marker sits ~16px below the name (standard "subtitle" placement,
     // so the name stays the primary anchor for the eye).
     this.subagentOffsetY = this.nameOffsetY + 16;
-    this.activityOffsetY = halfH - 2;
-    this.detailOffsetY = halfH + 12;
-    this.taskOffsetY = halfH + 26;
+    // The bubble hangs off the top of the name rather than the sprite, so it
+    // clears the label whatever the theme's hero scale is.
+    this.bubbleOffsetY = this.nameOffsetY - 12;
 
     // Create idle animation if it doesn't exist yet
     const idleAnimKey = `${this.idleKey}-anim`;
@@ -208,33 +195,8 @@ export class HeroSprite {
     // Source badge is created lazily by setSourceBadgeVisible(true) — shown
     // only when the UI is in mixed-provider mode.
 
-    // Activity label below hero
-    this.activityText = addCrispText(scene, x, y + this.activityOffsetY, 'idle', {
-      fontSize: '13px',
-      color: ACTIVITY_COLOR.idle,
-      fontFamily: LABEL_FONT,
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5);
-
-    // Detail label (file/command) below activity
-    this.detailText = addCrispText(scene, x, y + this.detailOffsetY, '', {
-      fontSize: '12px',
-      color: '#AABBCC',
-      fontFamily: LABEL_FONT,
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5);
-
-    // Task label (current user prompt) below detail
-    this.taskText = addCrispText(scene, x, y + this.taskOffsetY, '', {
-      fontSize: '11px',
-      color: '#9FB7D4',
-      fontFamily: LABEL_FONT,
-      fontStyle: 'italic',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5);
+    this.bubble = new ThoughtBubble(scene, x, y + this.bubbleOffsetY);
+    this.scheduleChatter();
 
     // Set initial Y-based depth
     this.updateDepth();
@@ -305,13 +267,12 @@ export class HeroSprite {
     }
   }
 
-  /** Update the displayed activity label and internal state. */
+  /** Record what the hero is doing — it picks the pool its thoughts come from. */
   setActivity(activity: AgentActivity): void {
     this.currentActivity = activity;
-    this.refreshActivityVisual();
   }
 
-  /** Apply status-driven overlays (e.g. 'waiting' pulses gold). */
+  /** Apply status-driven overlays (e.g. 'waiting' pulses the name). */
   setStatus(status: AgentState['status']): void {
     const wantsWaiting = status === 'waiting';
     if (wantsWaiting && !this.isWaiting) {
@@ -321,54 +282,49 @@ export class HeroSprite {
       this.isWaiting = false;
       this.stopWaitingPulse();
     }
-    this.refreshActivityVisual();
   }
 
-  /** Apply recent-error overlay; auto-clears after ERROR_WINDOW_MS from the given timestamp. */
+  /**
+   * React to the session's most recent error. Called on every update with the
+   * same timestamp, so the bubble fires once per distinct error — and only
+   * while it is fresh, or a hero spawning into a minute-old failure would
+   * announce it as news.
+   */
   setErrorTimestamp(ts: number | undefined): void {
-    if (this.errorTimer !== null) {
-      this.errorTimer.remove();
-      this.errorTimer = null;
-    }
-    if (ts === undefined) {
-      this.isErrorRecent = false;
-      this.refreshActivityVisual();
-      return;
-    }
-    const age = Date.now() - ts;
-    if (age >= ERROR_WINDOW_MS) {
-      this.isErrorRecent = false;
-      this.refreshActivityVisual();
-      return;
-    }
-    this.isErrorRecent = true;
-    this.refreshActivityVisual();
-    this.errorTimer = this.scene.time.delayedCall(ERROR_WINDOW_MS - age, () => {
-      this.isErrorRecent = false;
-      this.errorTimer = null;
-      this.refreshActivityVisual();
-    });
+    if (ts === undefined || ts === this.lastErrorAt) return;
+    this.lastErrorAt = ts;
+    if (Date.now() - ts > ERROR_CHATTER_MAX_AGE_MS) return;
+    this.speak('error');
+    // Push the periodic thought out, so the reaction isn't stepped on.
+    this.scheduleChatter();
   }
 
-  private refreshActivityVisual(): void {
-    if (this.isErrorRecent) {
-      this.activityText.setText('error');
-      this.activityText.setColor(ERROR_COLOR);
-    } else if (this.isWaiting) {
-      this.activityText.setText('waiting…');
-      this.activityText.setColor(WAITING_COLOR);
-    } else {
-      this.activityText.setText(this.currentActivity);
-      this.activityText.setColor(ACTIVITY_COLOR[this.currentActivity]);
-    }
-    // Text width changed → re-center the activity/model pair on the hero.
-    this.layoutActivityAndModel();
+  /** What the hero is minded to say right now. */
+  private chatterMood(): ChatterMood {
+    return this.isWaiting ? 'waiting' : this.currentActivity;
+  }
+
+  private speak(mood: ChatterMood): void {
+    const line = pickChatterLine(mood, this.lastChatterLine);
+    this.lastChatterLine = line;
+    this.bubble.say(line, CHATTER_HOLD_MS);
+  }
+
+  /** Queue the next idle thought. Each hero re-rolls its own gap, so a party
+   * of heroes never falls into step. */
+  private scheduleChatter(): void {
+    if (this.chatterTimer !== null) this.chatterTimer.remove();
+    this.chatterTimer = this.scene.time.delayedCall(nextChatterDelay(), () => {
+      this.chatterTimer = null;
+      this.speak(this.chatterMood());
+      this.scheduleChatter();
+    });
   }
 
   private startWaitingPulse(): void {
     if (this.waitingTween !== null) return;
     this.waitingTween = this.scene.tweens.add({
-      targets: this.activityText,
+      targets: this.nameText,
       alpha: { from: 1, to: 0.45 },
       duration: 700,
       ease: 'Sine.easeInOut',
@@ -382,7 +338,7 @@ export class HeroSprite {
       this.waitingTween.stop();
       this.waitingTween = null;
     }
-    this.activityText.setAlpha(1);
+    this.nameText.setAlpha(1);
   }
 
   /** Update depth of sprite and labels based on Y position (Y-sorting). */
@@ -396,10 +352,7 @@ export class HeroSprite {
     this.nameText.setDepth(footY + 0.6);
     if (this.subagentText !== null) this.subagentText.setDepth(footY + 0.6);
     if (this.sourceText !== null) this.sourceText.setDepth(footY + 0.6);
-    this.activityText.setDepth(footY + 0.6);
-    if (this.modelText !== null) this.modelText.setDepth(footY + 0.6);
-    this.detailText.setDepth(footY + 0.6);
-    this.taskText.setDepth(footY + 0.6);
+    this.bubble.setDepth(footY + 0.7);
     if (this.selectionHalo !== null) this.selectionHalo.setDepth(footY + 0.4);
   }
 
@@ -462,97 +415,8 @@ export class HeroSprite {
     }
   }
 
-  /**
-   * Show the model badge (e.g. `OPUS`, `SONNET`) next to the activity label on
-   * the row below the hero. Pass `undefined` to hide/destroy it. Called by the
-   * scene whenever the agent's model changes (mid-session switches included).
-   */
-  setModel(modelId: string | undefined): void {
-    const badge = modelBadge(modelId);
-    if (badge === null) {
-      if (this.modelText !== null) {
-        this.modelText.destroy();
-        this.modelText = null;
-        this.layoutActivityAndModel();
-      }
-      return;
-    }
-    if (this.modelText === null) {
-      this.modelText = addCrispText(
-        this.scene,
-        this._x,
-        this._y + this.activityOffsetY,
-        badge.short,
-        {
-          fontSize: '12px',
-          color: badge.color,
-          fontFamily: LABEL_FONT,
-          fontStyle: 'bold',
-          stroke: '#000000',
-          strokeThickness: 2,
-        },
-      );
-      // New text object: give it the hero's current depth so it renders above
-      // buildings even before the next tween tick re-runs updateDepth().
-      this.updateDepth();
-    } else {
-      this.modelText.setText(badge.short);
-      this.modelText.setColor(badge.color);
-    }
-    this.layoutActivityAndModel();
-  }
-
-  /**
-   * Center the activity label — plus the model badge when present — as a
-   * group on the hero's x axis, sharing the activityOffsetY row. A 6 px gap
-   * separates the two so they read as "activity · MODEL" without gluing.
-   */
-  private layoutActivityAndModel(): void {
-    const y = this._y + this.activityOffsetY;
-    if (this.modelText === null) {
-      this.activityText.setOrigin(0.5, 0.5);
-      this.activityText.setPosition(this._x, y);
-      return;
-    }
-    const gap = 6;
-    const widthA = this.activityText.displayWidth;
-    const widthM = this.modelText.displayWidth;
-    const leftEdge = this._x - (widthA + gap + widthM) / 2;
-    this.activityText.setOrigin(0, 0.5);
-    this.activityText.setPosition(leftEdge, y);
-    this.modelText.setOrigin(0, 0.5);
-    this.modelText.setPosition(leftEdge + widthA + gap, y);
-  }
-
-  /** Update the truncated task line shown below the detail. */
-  updateTask(task?: string): void {
-    if (task === undefined || task.length === 0) {
-      this.taskText.setText('');
-      return;
-    }
-    const single = task.replace(/\s+/g, ' ').trim();
-    const text = single.length > TASK_MAX_CHARS
-      ? single.slice(0, TASK_MAX_CHARS - 1) + '\u2026'
-      : single;
-    this.taskText.setText(text);
-  }
-
-  /** Update the detail line shown below the activity label. */
-  updateDetail(file?: string, command?: string): void {
-    let detail = '';
-    if (file) {
-      // Show only the filename, not the full path
-      const parts = file.split('/');
-      detail = parts[parts.length - 1] ?? file;
-    } else if (command) {
-      detail = command.length > 25 ? command.slice(0, 24) + '\u2026' : command;
-    }
-    this.detailText.setText(detail);
-  }
-
   moveTo(targetX: number, targetY: number, activity: AgentActivity): void {
     this.currentActivity = activity;
-    this.refreshActivityVisual();
 
     // Cancel existing move
     if (this.moveTween !== null) {
@@ -617,9 +481,7 @@ export class HeroSprite {
         this.sprite.setPosition(this._x, this._y);
         this.nameText.setPosition(this._x, this._y + this.nameOffsetY);
         this.layoutSubagentAndSource();
-        this.layoutActivityAndModel();
-        this.detailText.setPosition(this._x, this._y + this.detailOffsetY);
-        this.taskText.setPosition(this._x, this._y + this.taskOffsetY);
+        this.bubble.setPosition(this._x, this._y + this.bubbleOffsetY);
         if (this.selectionHalo !== null) {
           this.selectionHalo.setPosition(this._x, this._y);
         }
@@ -643,9 +505,9 @@ export class HeroSprite {
       this.waitingTween.stop();
       this.waitingTween = null;
     }
-    if (this.errorTimer !== null) {
-      this.errorTimer.remove();
-      this.errorTimer = null;
+    if (this.chatterTimer !== null) {
+      this.chatterTimer.remove();
+      this.chatterTimer = null;
     }
     if (this.selectionTween !== null) {
       this.selectionTween.stop();
@@ -659,9 +521,6 @@ export class HeroSprite {
     this.nameText.destroy();
     if (this.subagentText !== null) this.subagentText.destroy();
     if (this.sourceText !== null) this.sourceText.destroy();
-    this.activityText.destroy();
-    if (this.modelText !== null) this.modelText.destroy();
-    this.detailText.destroy();
-    this.taskText.destroy();
+    this.bubble.destroy();
   }
 }
