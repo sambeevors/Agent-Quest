@@ -160,6 +160,40 @@ describe('parseJsonlLine', () => {
     expect(parseJsonlLine(line)!.activity).toBe('bash');
   });
 
+  test('Bash that only greps maps to reading, not bash', () => {
+    const line = JSON.stringify({
+      type: 'assistant',
+      uuid: 'bash-grep',
+      timestamp: '2026-04-15T17:30:00.000Z',
+      sessionId: 'sess-1',
+      message: {
+        role: 'assistant',
+        content: [
+          { type: 'tool_use', id: 't', name: 'Bash', input: { command: "grep -rn 'foo' src | head -20" } },
+        ],
+      },
+    });
+    const result = parseJsonlLine(line);
+    expect(result!.activity).toBe('reading');
+    expect(result!.command).toBe("grep -rn 'foo' src | head -20");
+  });
+
+  test('Bash that runs a build stays as bash', () => {
+    const line = JSON.stringify({
+      type: 'assistant',
+      uuid: 'bash-build',
+      timestamp: '2026-04-15T17:30:00.000Z',
+      sessionId: 'sess-1',
+      message: {
+        role: 'assistant',
+        content: [
+          { type: 'tool_use', id: 't', name: 'Bash', input: { command: 'bun run build' } },
+        ],
+      },
+    });
+    expect(parseJsonlLine(line)!.activity).toBe('bash');
+  });
+
   test('Agent tool_use maps to reviewing activity', () => {
     const line = JSON.stringify({
       type: 'assistant',

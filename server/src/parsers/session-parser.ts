@@ -1,4 +1,5 @@
 import type { AgentActivity, JsonlLine, JsonlToolUse, ToolCall } from '../types';
+import { classifyBashCommand } from './bash-activity';
 
 const TOOL_ACTIVITY_MAP: Record<string, AgentActivity> = {
   Read: 'reading',
@@ -11,11 +12,6 @@ const TOOL_ACTIVITY_MAP: Record<string, AgentActivity> = {
   // Dispatching a subagent (Task/code review/etc.) → Watchtower.
   Agent: 'reviewing',
 };
-
-// Match write-oriented git subcommands anywhere in the Bash command (covers
-// `git add … && git commit …`, `cd repo && git push`, heredoc'd commits, etc.).
-// Read-only subcommands like `git status`/`log`/`diff` intentionally stay as 'bash'.
-const GIT_COMMAND_PATTERN = /\bgit\s+(commit|push|merge|rebase|cherry-pick)\b/;
 
 export function toolNameToActivity(toolName: string): AgentActivity {
   return TOOL_ACTIVITY_MAP[toolName] ?? 'thinking';
@@ -231,14 +227,19 @@ export function parseJsonlLine(raw: string): ParsedEvent | null {
         input: tu.input,
       });
 
-      // Determine activity — git detection overrides Bash
-      if (
-        tu.name === 'Bash' &&
-        typeof tu.input['command'] === 'string' &&
-        GIT_COMMAND_PATTERN.test(tu.input['command'])
-      ) {
-        activity = 'git';
+      // Determine activity. A Bash call is classified by what it actually runs:
+      // a `git commit` is Chapel work and a `grep`/`cat` is Library work, even
+      // though both arrive as the same tool.
+      if (tu.name === 'Bash' && typeof tu.input['command'] === 'string') {
+        const bashActivity = classifyBashCommand(tu.input['command']);
         command = tu.input['command'];
+        // 'git' is specific enough to override an earlier tool in the same
+        // message; 'reading'/'bash' follow the first-wins rule below.
+        if (bashActivity === 'git') {
+          activity = 'git';
+        } else if (activity === 'thinking') {
+          activity = bashActivity;
+        }
       } else {
         const mapped = toolNameToActivity(tu.name);
         // Only override if we haven't already set a more specific activity
