@@ -174,17 +174,6 @@ export function TopBar({ agents, connected, notifications, linear, onLinearStatu
             >
               {'\u{1F327}\u{FE0F}'}
             </button>
-            <a
-              className="topbar-effect-btn"
-              data-mobile-hide="true"
-              href="/?mode=editor"
-              target="_blank"
-              rel="noopener"
-              title="Open Map Editor"
-              style={{ textDecoration: 'none' }}
-            >
-              {'\u{1F5FA}\u{FE0F}'}
-            </a>
             <button
               className="topbar-effect-btn"
               onClick={() => eventBridge.emit('settings:open')}

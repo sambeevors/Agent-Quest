@@ -86,8 +86,7 @@ export function Tutorial({ onClose }: TutorialProps) {
         <p className="tutorial-text">
           Heroes appear in real time as you spawn new Claude Code or Codex sessions. Click a
           hero in the <em>Party Bar</em> (bottom) to see what it's doing; click any
-          building to see which heroes are there. The 🗺️ icon in the top bar opens
-          the map editor. Reopen this tutorial any time with the{' '}
+          building to see which heroes are there. Reopen this tutorial any time with the{' '}
           <strong>❓</strong> button, or press <code>Esc</code> to close it.
         </p>
 

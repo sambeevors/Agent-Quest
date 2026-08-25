@@ -1,11 +1,8 @@
 /**
- * Map Editor data model — server/client share the same shape.
- * If you change this file, mirror the change in client/src/editor/types/map.ts.
+ * The village's data model — server and client share the same shape.
+ * If you change this file, mirror the change in
+ * client/src/game/data/map-config.ts.
  */
-
-export const MAP_SCHEMA_VERSION = 1;
-
-export const TILE_SIZE = 64;
 
 // ---------------------------------------------------------------------------
 // NPC placement types
@@ -46,7 +43,7 @@ export interface TerrainCell {
   walkable: boolean;
 }
 
-/** Free-placed decoration sprite (tree, bush, rock, cloud, prop). */
+/** Free-placed decoration sprite (water, mine, tower, prop). */
 export interface DecorationInstance {
   id: string;
   /** texture key registered by the scene, e.g. "tree-1" */
@@ -66,17 +63,7 @@ export interface DecorationInstance {
   animation?: string;
 }
 
-/** Polyline describing a walkable path (road/trail). */
-export interface PathSegment {
-  id: string;
-  points: Array<{ x: number; y: number }>;
-  /** render width in pixels */
-  width: number;
-  /** visual style: main road, secondary path, forest trail, plaza cobble */
-  style: 'main' | 'secondary' | 'trail' | 'plaza';
-}
-
-/** Protected interactive building — editor can move it but cannot add/remove. */
+/** One of the eight interactive activity buildings. */
 export interface BuildingPosition {
   id: string;
   x: number;
@@ -97,7 +84,6 @@ export interface MapConfig {
   /** sparse grid — only cells painted explicitly. Key: `${col},${row}` */
   terrain: Record<string, TerrainCell>;
   decorations: DecorationInstance[];
-  paths: PathSegment[];
   buildings: BuildingPosition[];
   /** NPC placements on the map */
   npcs: NpcPlacement[];
@@ -105,7 +91,6 @@ export interface MapConfig {
   spawn?: SpawnPoint;
   /** map-level settings */
   settings: MapSettings;
-  /** editor metadata */
   meta: {
     createdAt: number;
     updatedAt: number;
@@ -142,8 +127,7 @@ export interface DecorationManifest {
   label: string;
   path: string;
   category: 'tree' | 'bush' | 'rock' | 'stump' | 'cloud' | 'house' | 'prop' | 'water-rock' | 'water' | 'effect';
-  /** UI group label — typically `folderPath.join('/')`. Kept for backward
-   * compat with existing palette code that reads `group`. */
+  /** Group label — typically `folderPath.join('/')`. */
   group: string;
   /** Hierarchical path from the theme root, e.g. ["Factions","Knights","Buildings","Castle"].
    * Optional — entries without a folder path render under the tree root as a flat group. */
@@ -152,9 +136,8 @@ export interface DecorationManifest {
   frameHeight?: number;
   /** Derived from sheet dimensions / frame size. Only set for spritesheets. */
   frameCount?: number;
-  /** Number of columns in the sheet (sheetWidth / frameWidth). Lets the
-   * palette preview render multi-row atlases like Tree (4×3) or Bridge
-   * (3×4) without assuming a single-row layout. */
+  /** Columns in the sheet (sheetWidth / frameWidth) — lets a consumer read
+   * multi-row atlases like Tree (4×3) without assuming a single row. */
   sheetColumns?: number;
   /** If present, Phaser animations named `${key}:${spec.name}` are registered at load time. */
   animations?: AnimSpec[];

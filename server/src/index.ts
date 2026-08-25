@@ -5,7 +5,6 @@ import { AgentStateManager } from './state/agent-state-manager';
 import { SessionRegistry } from './session-registry';
 import { WebSocketServer } from './ws/websocket-server';
 import type { WsClient } from './ws/websocket-server';
-import { MapStorage } from './map/storage';
 import { registerMapRoutes } from './map/routes';
 import { registerHookRoutes } from './hooks/routes';
 import { ClaudeProvider } from './providers/claude-provider';
@@ -61,7 +60,6 @@ const stateManager = new AgentStateManager({
   livenessOracle: sessionRegistry,
 });
 const wsServer = new WebSocketServer();
-const mapStorage = new MapStorage();
 const linearConfig = new LinearConfigStore();
 const linearProvider = new LinearProvider({
   pollMs: LINEAR_POLL_MS,
@@ -88,7 +86,7 @@ app.get('/api/agents', (c) => c.json(stateManager.getAll()));
 
 registerLinearRoutes(app, { provider: linearProvider, config: linearConfig });
 
-registerMapRoutes(app, mapStorage);
+registerMapRoutes(app);
 
 // --- Provider handlers: shared logic that every SessionProvider feeds into ---
 function broadcastAgentEventSideEffects(event: ParsedEvent): void {

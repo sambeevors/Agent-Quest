@@ -6,7 +6,7 @@ Thanks for your interest — issues and pull requests are very welcome.
 
 - **Bug reports** — open an issue with steps to reproduce, your OS, and your Bun version (`bun --version`).
 - **Feature ideas** — open an issue and describe the use case; small proposals are easier to merge than big ones.
-- **Pull requests** — fixes, new building sprites, extra hero classes, map editor improvements, platform polish.
+- **Pull requests** — fixes, new building sprites, extra hero classes, platform polish.
 - **Art & themes** — compatible pixel-art tilesets / sprite packs (CC0 or similarly permissive) are especially welcome.
 
 ## Development setup

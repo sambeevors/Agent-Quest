@@ -15,7 +15,7 @@ import { renderScenery } from '../terrain/SceneryRenderer';
 import { NpcSprite } from '../entities/NpcSprite';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
-import type { AssetManifest, MapConfig, BuildingPosition, NpcPlacement } from '../../editor/types/map';
+import type { AssetManifest, MapConfig, BuildingPosition, NpcPlacement } from '../data/map-config';
 import { SERVER_URL as API_BASE } from '../../config';
 import { getActiveTheme, rebaseSavedScale } from '../themes/registry';
 import { sceneRenderScale } from '../dpr';
@@ -64,8 +64,8 @@ export class VillageScene extends Phaser.Scene {
   private onNightToggle: ((on: unknown) => void) | null = null;
   private onRainToggle: ((on: unknown) => void) | null = null;
 
-  /** Decorative NPCs placed via the map editor. */
-  private editorNpcs: NpcSprite[] = [];
+  /** Decorative villagers placed by the shipped map. */
+  private villagerNpcs: NpcSprite[] = [];
 
   /** Linear construction sites, keyed by project id. */
   private constructionSites = new Map<string, ConstructionSite>();
@@ -123,9 +123,9 @@ export class VillageScene extends Phaser.Scene {
     // (TopBar, PartyBar, etc.) that should stay hidden during the BootScene.
     eventBridge.emit('village:ready');
 
-    // Try to load a user-saved map from the editor; fall back to the procedural
-    // terrain if none exists or the request fails. This is fire-and-forget —
-    // the rest of create() (input, overlays, listeners) doesn't depend on it.
+    // Load the shipped village; fall back to the procedural terrain if the
+    // request fails. This is fire-and-forget — the rest of create() (input,
+    // overlays, listeners) doesn't depend on it.
     void this.bootstrapWorld();
 
     // Set world bounds and fit the village into the viewport, then center the
@@ -436,8 +436,8 @@ export class VillageScene extends Phaser.Scene {
       this.buildings = [];
       this.buildingSlots.clear();
       this.heroBuildingMap.clear();
-      for (const npc of this.editorNpcs) npc.destroy();
-      this.editorNpcs = [];
+      for (const npc of this.villagerNpcs) npc.destroy();
+      this.villagerNpcs = [];
       if (this.onLinearUpdated !== null) {
         eventBridge.off('linear:updated', this.onLinearUpdated);
         this.onLinearUpdated = null;
@@ -505,14 +505,13 @@ export class VillageScene extends Phaser.Scene {
     try { if (!this.sys.isActive()) return; } catch { return; }
 
     if (mapConfig !== null && manifest !== null) {
-      console.log('[VillageScene] rendering SAVED map from /api/map');
+      console.log('[VillageScene] rendering the village from /api/map');
       await ensureAssetsLoaded(this, manifest, mapConfig);
       try { if (!this.sys.isActive()) return; } catch { return; }
-      // Annexes are derived from the saved building positions, which are known
-      // before anything is drawn — so the hamlet's clearing can be applied to
-      // the decoration pass rather than having to un-draw trees afterwards.
+      // Annexes are derived from the map's building positions, which are known
+      // before anything is drawn.
       this.annexes = computeVillageAnnexes(mapConfig.buildings);
-      const rendered = renderMapConfig(this, mapConfig, manifest, [this.annexes.clearing]);
+      const rendered = renderMapConfig(this, mapConfig, manifest);
       // Water and other placed features are keep-out ground for the generator.
       this.sceneryExclusions = rendered.featureBounds;
       this.spawnBuildings(mapConfig.buildings);
@@ -522,14 +521,13 @@ export class VillageScene extends Phaser.Scene {
         this.heroScale = rebaseSavedScale(mapConfig.settings.heroScale);
       }
 
-      // Always reassign so a reload of a slot without spawn reverts cleanly
       this.heroSpawn = mapConfig.spawn
         ? { x: mapConfig.spawn.x, y: mapConfig.spawn.y }
         : { x: VILLAGE_GATE.x, y: VILLAGE_GATE.y };
 
-      // Spawn editor-placed decorative NPCs
+      // Spawn the map's decorative villagers
       if (mapConfig.npcs && mapConfig.npcs.length > 0) {
-        this.spawnEditorNpcs(mapConfig.npcs);
+        this.spawnVillagerNpcs(mapConfig.npcs);
       }
     } else {
       console.warn('[VillageScene] FALLBACK → procedural TerrainRenderer', {
@@ -606,7 +604,12 @@ export class VillageScene extends Phaser.Scene {
       bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
       buildings: obstacles,
       roads: network.roads.map((r) => r.points),
-      exclusions: this.sceneryExclusions,
+      // Placed features (the lake, the mines) plus the hamlet's own ground,
+      // so its plots stand in a meadow rather than having to clear-fell a
+      // wood the moment a Linear project appears.
+      exclusions: this.annexes === null
+        ? this.sceneryExclusions
+        : [...this.sceneryExclusions, this.annexes.clearing],
     }));
 
     this.updateContentBounds(nodes);
@@ -773,7 +776,7 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  private spawnEditorNpcs(npcs: NpcPlacement[]): void {
+  private spawnVillagerNpcs(npcs: NpcPlacement[]): void {
     for (const npc of npcs) {
       const sprite = new NpcSprite(
         this,
@@ -785,7 +788,7 @@ export class VillageScene extends Phaser.Scene {
         Math.floor(Math.random() * 10000),
         rebaseSavedScale(npc.scale),
       );
-      this.editorNpcs.push(sprite);
+      this.villagerNpcs.push(sprite);
     }
   }
 

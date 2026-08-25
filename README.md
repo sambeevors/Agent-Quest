@@ -23,20 +23,11 @@ Agent Quest is a browser-based monitoring dashboard that visualizes active Claud
   <sub><em>Every hero is an agent — the building it visits tells you what it's doing.</em></sub>
 </p>
 
-<table align="center">
-  <tr>
-    <td align="center" width="50%">
-      <img src="docs/media/editor.gif" alt="Integrated tile map editor" width="400" />
-      <br/>
-      <sub><em>Integrated Tile Map Editor</em></sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="docs/media/night.gif" alt="Weather effects" width="400" />
-      <br/>
-      <sub><em>Weather effects</em></sub>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/media/night.gif" alt="Weather effects" width="560" />
+  <br/>
+  <sub><em>Weather effects</em></sub>
+</p>
 
 ## Why?
 
@@ -47,7 +38,6 @@ Claude Code and Codex sessions happen in a terminal — useful, but not very *al
 - Real-time visualization of active Claude Code and Codex sessions
 - Auto-discovery of every `~/.claude*` directory (supports multiple installations like `~/.claude-work`, `~/.claude-personale`) and of `~/.codex` if present
 - Activity feed, party bar, and detail panel alongside the village scene
-- Built-in map editor for customizing the village layout
 - Sub-2s latency via native WebSocket (optional lower-latency path via Claude Code `postToolUse` hooks — Claude Code only; Codex doesn't expose hooks)
 - **Cost & token tracking** — per-session and fleet-wide spend estimates
 - **Construction sites** — in-progress Linear projects rendered as buildings that finish as their issues close
@@ -77,8 +67,6 @@ Roads are no longer drawn by hand. Every track is a **desire path**: the map wor
 Trees, shrubs, rocks and mushrooms are scattered procedurally against the current layout, with per-kind clearances — a mushroom can sit at a road's edge, a tree keeps well back. Woodland follows a low-frequency density field so it clumps and thins naturally, and thins further near settlements so villages sit in their own clearings. Everything is seeded, so the same world regenerates identically on every reload.
 
 Both regenerate when the Linear hamlet gains or loses a building, so a new project arrives with lanes already running to it.
-
-> The map editor's **path tool no longer affects the village view** — roads come from the generator. Its terrain, building positions, spawn point, NPCs and placed features (water, mines) are all still used.
 
 ### Construction sites (Linear)
 
@@ -226,14 +214,13 @@ cd server && bun test  # run server tests
 cd client && bun test  # run client tests
 ```
 
-For installed end-user copies that follow `main`, `agentquest update` runs the equivalent of `git pull --ff-only && bun install` while preserving local map edits. Contributors on feature branches should use normal Git commands instead.
+For installed end-user copies that follow `main`, `agentquest update` runs the equivalent of `git pull --ff-only && bun install`. Contributors on feature branches should use normal Git commands instead.
 
 ### Missing assets
 
 If you accidentally delete or move files under `client/public/assets/themes/tiny-swords-cc0/` (hero spritesheets, building PNGs, terrain, decorations), Agent Quest will tell you:
 
 - The **main app** blocks at boot with a screen that lists the missing files grouped by category (hero / building / terrain / decoration) and suggests a restore command.
-- The **map editor** shows a dismissible banner at the top with the same breakdown — the editor stays usable so you can keep working.
 - Run `bun run check:assets` any time to verify the whole bundled pack ahead of starting the app. Exits non-zero with a detailed list if anything is missing — good for CI or pre-commit.
 
 Restore with:
@@ -299,7 +286,7 @@ Issues and pull requests are welcome — bug reports, feature ideas, new buildin
 
 ## Credits
 
-- Original project: [Agent Quest](https://github.com/FulAppiOS/Agent-Quest) by [Fulvio Scichilone](https://github.com/FulAppiOS). This repository is a fork; the village, the provider architecture, and the map editor are their work.
+- Original project: [Agent Quest](https://github.com/FulAppiOS/Agent-Quest) by [Fulvio Scichilone](https://github.com/FulAppiOS). This repository is a fork; the village and the provider architecture are their work.
 - Sprites, tiles, and decorations: [Tiny Swords](https://pixelfrog-assets.itch.io/tiny-swords) by Pixel Frog — licensed [CC0 1.0 Universal](client/public/assets/themes/tiny-swords-cc0/LICENSE.txt) (public domain dedication). Bundled under `client/public/assets/themes/tiny-swords-cc0/`.
 
 ## License

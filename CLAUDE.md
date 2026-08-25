@@ -13,7 +13,7 @@ This repository is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiO
 Two-process monorepo:
 
 - **server/** — Bun + Hono backend. Two providers run in parallel: `ClaudeProvider` auto-discovers every `~/.claude*` directory with a `projects/` subdir (e.g. `~/.claude`, `~/.claude-work`, `~/.claude-personale`); `CodexProvider` watches `~/.codex/sessions/` for Codex rollout files. Both poll their session logs every 2-3s, parse events into `AgentState` objects, push updates over native Bun WebSocket. Each `AgentState` carries its `configDir` and a `source` field (`'claude' | 'codex'`) so the UI can distinguish installations and providers. Optional Hono endpoint receives Claude Code `postToolUse` hooks for lower-latency events — **Claude Code only**; Codex doesn't expose hooks. `SessionRegistry` (pidfile oracle) is also **Claude-only by design**; Codex liveness is inferred purely from rollout-file activity.
-- **client/** — React 19 + Phaser 4 "Caladan" frontend. Fullscreen Phaser canvas renders the village; React overlay panels (Party Bar, Activity Feed, Detail Panel, Minimap, Top Bar) sit on top via ref-based bridge pattern (useRef + useEffect + EventEmitter).
+- **client/** — React 19 + Phaser 4 "Caladan" frontend. The world is a single read-only map (`server/data/map/village.json`) served by `GET /api/map`; there is no map editor. Fullscreen Phaser canvas renders the village; React overlay panels (Party Bar, Activity Feed, Detail Panel, Minimap, Top Bar) sit on top via ref-based bridge pattern (useRef + useEffect + EventEmitter).
 
 Data flow: `~/.claude*/projects/**/*.jsonl` and `~/.codex/sessions/**/rollout-*.jsonl` → ClaudeProvider / CodexProvider → SessionParser (per-format) → AgentStateManager → WebSocket → Browser (React state + Phaser scene).
 
@@ -33,11 +33,11 @@ Notes for anyone extending these:
 - **`LINEAR_API_KEY` beats the stored key** and disables the in-app controls, so a browser tab can't override an operator's explicit config.
 - **A new key is verified against the live API before it's persisted** — surfacing a bad key at submit time rather than on the next poll.
 - **Linear queries must stay cheap.** Fetching `projects × issues` exceeds Linear's 10k complexity ceiling and 400s. Read `progress` / `scope` / `*CountHistory` off the project instead.
-- **The construction yard is placed relative to the spawned buildings** (`computeVillageAnnexes`), not at fixed world coordinates, because the map editor lets users move everything.
+- **The construction yard is placed relative to the spawned buildings** (`computeVillageAnnexes`), not at fixed world coordinates, so it stays correct if a building moves.
 
 ## Generated map layers
 
-Roads and scenery are **generated at runtime**, not read from the saved map. Both are pure modules with unit tests, and both key off the buildings that actually spawned — so they stay correct when a building moves, the map editor is used, or a Linear project appears.
+Roads and scenery are **generated at runtime**, not read from the shipped map. Both are pure modules with unit tests, and both key off the buildings that actually spawned — so they stay correct when a building moves or a Linear project appears.
 
 | Layer | Module | Renderer |
 |---|---|---|
@@ -46,7 +46,7 @@ Roads and scenery are **generated at runtime**, not read from the saved map. Bot
 
 `VillageScene.rebuildRoads()` drives both; it re-runs when the Linear hamlet gains or loses a building.
 
-What a saved `MapConfig` still contributes: terrain tiles, building positions, spawn point, NPCs, settings, and **placed features** (water, mines, towers). What it no longer contributes: `paths` (superseded by generated roads) and natural scatter (regenerated — see `SCATTER_PREFIXES` in `MapConfigRenderer`). The editor's path tool therefore no longer affects the village view.
+What the shipped `MapConfig` contributes: terrain tiles, building positions, spawn point, NPCs, settings, and **placed features** (water, mines, towers, the bridge). It carries no roads and no natural scatter — both are generated.
 
 Invariants worth preserving:
 

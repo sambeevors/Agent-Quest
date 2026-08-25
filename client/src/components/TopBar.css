@@ -263,10 +263,6 @@
     padding: 8px 12px;
     font-size: 18px;
   }
-
-  .topbar-effect-btn[data-mobile-hide="true"] {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

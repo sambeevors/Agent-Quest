@@ -1,9 +1,14 @@
 /**
- * Map Editor data model — mirrored from server/src/map/types.ts.
- * If you change this file, mirror the change there too.
+ * The world's data model — terrain, decorations, buildings and NPCs, as
+ * shipped in `server/data/map/village.json` and served by `GET /api/map`.
+ *
+ * This is a read-only description of the village. Mirrors
+ * `server/src/map/types.ts`; if you change one, change the other.
+ *
+ * Two things the file deliberately does NOT describe, because both are
+ * generated at runtime against whatever buildings actually spawned:
+ * roads (see `desire-paths.ts`) and natural scatter (see `scenery.ts`).
  */
-
-export const MAP_SCHEMA_VERSION = 1;
 
 export const TILE_SIZE = 64;
 
@@ -22,8 +27,7 @@ export interface NpcPlacement {
 
 export interface MapSettings {
   heroScale: number;
-  /** Asset theme the map was authored against. Optional — absent value
-   * falls back to the default theme. */
+  /** Asset theme the map was authored against. Absent falls back to the default. */
   theme?: string;
 }
 
@@ -38,21 +42,12 @@ export interface NpcSpriteManifest {
   runFrames: number;
   frameWidth: number;
   frameHeight: number;
-  /** Optional explicit frame indices for the idle animation — used by
-   * themes (e.g. Tiny Swords CC0) whose sheets combine multiple
-   * animations on different rows. When absent, frames 0..idleFrames-1
-   * are assumed contiguous. */
+  /** Explicit frame indices for the idle animation — used by themes (e.g.
+   * Tiny Swords CC0) whose sheets combine several animations on different
+   * rows. Absent means frames 0..idleFrames-1 are contiguous. */
   idleFrameIndices?: number[];
   /** Same for the run animation. */
   runFrameIndices?: number[];
-}
-
-export interface SlotInfo {
-  slot: number;
-  name: string;
-  updatedAt: number | null;
-  isEmpty: boolean;
-  isActive: boolean;
 }
 
 export interface TileRef {
@@ -65,7 +60,7 @@ export interface TerrainCell {
   walkable: boolean;
 }
 
-/** Free-placed decoration sprite (tree, bush, rock, cloud, prop). */
+/** Free-placed decoration sprite (tree, water, prop, tower). */
 export interface DecorationInstance {
   id: string;
   /** texture key registered by the scene, e.g. "tree-1" */
@@ -79,17 +74,10 @@ export interface DecorationInstance {
   depth?: number;
   /** optional tint (hex, e.g. 0x9CC8C2) */
   tint?: number;
-  /** When true, renderer calls sprite.play(`${textureKey}:${animation}`). Optional for back-compat. */
+  /** When true, the renderer plays `${textureKey}:${animation}`. */
   animated?: boolean;
-  /** Animation name (must match one of the manifest's AnimSpec.name). Defaults to "idle". */
+  /** Animation name (must match a manifest AnimSpec.name). Defaults to "idle". */
   animation?: string;
-}
-
-export interface PathSegment {
-  id: string;
-  points: Array<{ x: number; y: number }>;
-  width: number;
-  style: 'main' | 'secondary' | 'trail' | 'plaza';
 }
 
 export interface BuildingPosition {
@@ -109,7 +97,6 @@ export interface MapConfig {
   baseTileset: string;
   terrain: Record<string, TerrainCell>;
   decorations: DecorationInstance[];
-  paths: PathSegment[];
   buildings: BuildingPosition[];
   npcs: NpcPlacement[];
   spawn?: SpawnPoint;
@@ -131,10 +118,9 @@ export interface TilesetManifest {
   rows: number;
 }
 
-/** Animation definition for a decoration spritesheet. frame indices are
- * 0-based into the sheet's frame grid. */
+/** Animation over a decoration spritesheet; indices are 0-based into its grid. */
 export interface AnimSpec {
-  name: string;         // "idle" | "walk" | "attack" | ...
+  name: string;
   start: number;
   end: number;
   frameRate?: number;   // default 10 at load time
@@ -146,21 +132,16 @@ export interface DecorationManifest {
   label: string;
   path: string;
   category: 'tree' | 'bush' | 'rock' | 'stump' | 'cloud' | 'house' | 'prop' | 'water-rock' | 'water' | 'effect';
-  /** UI group label — typically `folderPath.join('/')`. Kept for backward
-   * compat with existing palette code that reads `group`. */
   group: string;
-  /** Hierarchical path from the theme root, e.g. ["Factions","Knights","Buildings","Castle"].
-   * Optional — entries without a folder path render under the tree root as a flat group. */
+  /** Path from the theme root, e.g. ["Factions","Knights","Buildings","Castle"]. */
   folderPath?: string[];
   frameWidth?: number;
   frameHeight?: number;
   /** Derived from sheet dimensions / frame size. Only set for spritesheets. */
   frameCount?: number;
-  /** Number of columns in the sheet (sheetWidth / frameWidth). Lets the
-   * palette preview render multi-row atlases like Tree (4×3) or Bridge
-   * (3×4) without assuming a single-row layout. */
+  /** Columns in the sheet (sheetWidth / frameWidth). */
   sheetColumns?: number;
-  /** If present, Phaser animations named `${key}:${spec.name}` are registered at load time. */
+  /** If present, Phaser animations named `${key}:${spec.name}` are registered at load. */
   animations?: AnimSpec[];
   defaultScale: number;
 }

@@ -46,9 +46,5 @@ CLAUDE.local.md
 docs/superpowers/
 docs/plans/
 
-# User map slots (template.json is shipped; slots are per-user state)
-server/data/maps/slot-*.json
-server/data/maps/active-slot.json
-
 # Linear API key stored from the app. A live credential in plaintext — never commit.
 server/data/linear.json
