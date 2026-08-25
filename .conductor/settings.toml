@@ -1,0 +1,29 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+setup = "bun install"
+
+# Agent Quest binds the fixed ports documented in CLAUDE.md (server 4444,
+# client 4445), and the Vite dev server uses `strictPort`. Two workspaces
+# running at once would collide, so only one may hold the ports at a time.
+run_mode = "nonconcurrent"
+
+# `bun start` runs the server and client under `concurrently`, keeping both
+# in one process group so stopping the run script stops both.
+[scripts.run.dev]
+command = "bun start"
+default = true
+icon = "play"
+
+[scripts.run.test]
+command = "bun test"
+icon = "test-tube"
+
+# Verifies every bundled sprite referenced by the active theme exists on disk.
+[scripts.run.check-assets]
+command = "bun run check:assets"
+icon = "image"
+
+[[preview_urls]]
+name = "Village"
+url = "http://localhost:4445"
