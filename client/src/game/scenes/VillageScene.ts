@@ -4,7 +4,7 @@ import { Building } from '../entities/Building';
 import { HeroSprite } from '../entities/HeroSprite';
 import { BUILDING_DEFS, VILLAGE_GATE, WORLD_WIDTH, WORLD_HEIGHT, computeVillageAnnexes, getBuildingForActivity } from '../data/building-layout';
 import type { VillageAnnexes } from '../data/building-layout';
-import { TerrainRenderer } from '../terrain/TerrainRenderer';
+import { TerrainRenderer, PROCEDURAL_WATER_BOUNDS } from '../terrain/TerrainRenderer';
 import { renderMapConfig } from '../terrain/MapConfigRenderer';
 import { ensureAssetsLoaded } from '../data/asset-loader';
 import { setRoadNetworkFromDesire } from '../data/road-network';
@@ -13,6 +13,7 @@ import { buildPathTilemap } from '../data/path-tiles';
 import { renderPathTiles } from '../terrain/PathTileRenderer';
 import { generateScenery } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
+import { waterKeepOut } from '../data/water';
 import { NpcSprite } from '../entities/NpcSprite';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
@@ -514,8 +515,10 @@ export class VillageScene extends Phaser.Scene {
       // before anything is drawn.
       this.annexes = computeVillageAnnexes(mapConfig.buildings);
       const rendered = renderMapConfig(this, mapConfig, manifest);
-      // Water and other placed features are keep-out ground for the generator.
-      this.sceneryExclusions = rendered.featureBounds;
+      // Placed features are keep-out ground for the scenery generator, and so
+      // is the painted water: the lake is terrain tiles, not a feature, so
+      // nothing in `featureBounds` describes it.
+      this.sceneryExclusions = [...rendered.featureBounds, ...waterKeepOut(mapConfig.terrain)];
       this.spawnBuildings(mapConfig.buildings);
 
       // Apply hero scale from map settings
@@ -538,6 +541,7 @@ export class VillageScene extends Phaser.Scene {
         manifestStatus,
       });
       new TerrainRenderer(this).render();
+      this.sceneryExclusions = PROCEDURAL_WATER_BOUNDS.map((r) => ({ ...r }));
       this.spawnBuildings(null);
     }
 
