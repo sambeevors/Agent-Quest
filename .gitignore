@@ -52,3 +52,4 @@ server/data/linear.json
 # Conductor machine-local overrides. The shared .conductor/settings.toml is
 # committed; this sibling file is per-machine and must not be.
 .conductor/settings.local.toml
+.playwright-mcp/
