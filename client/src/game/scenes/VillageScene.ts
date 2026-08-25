@@ -954,9 +954,6 @@ export class VillageScene extends Phaser.Scene {
         hero.setActivity(agent.currentActivity);
         hero.setStatus(agent.status);
         hero.setErrorTimestamp(agent.lastErrorAt);
-        hero.updateDetail(agent.currentFile, agent.currentCommand);
-        hero.updateTask(agent.currentTask);
-        hero.setModel(agent.model);
         this.heroes.set(agent.id, hero);
         hero.setInteractiveForSelection(() => {
           eventBridge.emit('hero:clicked', agent.id);
@@ -964,12 +961,8 @@ export class VillageScene extends Phaser.Scene {
         this.addToSlot(buildingDef.id, agent.id);
         buildingsToReposition.add(buildingDef.id);
       } else {
-        // Always update detail text (file/command changes even without activity change)
-        existing.updateDetail(agent.currentFile, agent.currentCommand);
-        existing.updateTask(agent.currentTask);
         existing.setStatus(agent.status);
         existing.setErrorTimestamp(agent.lastErrorAt);
-        existing.setModel(agent.model);
 
         const currentBuildingId = this.heroBuildingMap.get(agent.id);
 

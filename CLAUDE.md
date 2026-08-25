@@ -25,7 +25,8 @@ Features this fork adds on top of upstream. Each is isolated in its own module w
 |---|---|---|
 | Cost tracking | `server/src/pricing/model-pricing.ts` — family-keyed USD rates; `AgentStateManager.addUsage` prices each deduped record against the model that produced it | `formatCost`/`isCostKnown` in `types/agent.ts`; shown in TopBar, DetailPanel, SessionReport |
 | Linear construction sites | `server/src/linear/` — key resolution (`linear-config.ts`), polling (`linear-provider.ts`), HTTP surface (`routes.ts`); `WsEvent` `linear:status` | `components/ConstructionPanel.tsx`, `components/LinearConnect.tsx`, `game/entities/ConstructionSite.ts` |
-| Hero names | — | `naming/hero-names.ts` — `heroNameFor(agentId)`; the primary label on the canvas and in every panel |
+| Hero names | — | `naming/hero-names.ts` — `heroNameFor(agentId)`; the only label on the canvas, and the primary one in every panel |
+| Hero chatter | — | `game/data/hero-chatter.ts` (lines + timing) drawn by `game/entities/ThoughtBubble.ts`; scheduled per hero in `HeroSprite` |
 
 Notes for anyone extending these:
 
@@ -35,6 +36,7 @@ Notes for anyone extending these:
 - **A new key is verified against the live API before it's persisted** — surfacing a bad key at submit time rather than on the next poll.
 - **Linear queries must stay cheap.** Fetching `projects × issues` exceeds Linear's 10k complexity ceiling and 400s. Read `progress` / `scope` / `*CountHistory` off the project instead.
 - **A hero's name is derived from its agent id, never stored.** `AgentState.name` still carries the session's real identity (slug, project folder, or subagent descriptor) and the Detail Panel shows it under the class; the fantasy name shown everywhere else is `heroNameFor(agent.id)`. Deriving it keeps a hero's name stable across reloads and server restarts — unlike `heroClass`/`heroColor`, which are round-robin counters in `AgentStateManager` and reshuffle on restart — and lets the Activity Feed name an agent it no longer tracks. The name-picking hash needs its avalanche step: session ids differ only in their tail, and without mixing the two table indices correlate badly (`hero-names.test.ts` pins the spread).
+- **The canvas carries the hero's name and nothing else.** Activity, model badge, current file and current prompt used to stack under every sprite, four rows deep, and the village read as a log file with trees. That detail all lives in the React panels (Party Bar, Activity Feed, Detail Panel), so the sprite says what the hero is *thinking* instead: a thought bubble every 14–36s, drawn from the pool for whatever it is doing, plus one on a fresh error. Two things the lines must keep — they speak in the register of the **building** the activity sends the hero to (the Forge hammers, the Alchemist brews) rather than naming the tool that got them there, and nothing in them is derived from session state, so a bubble can never go stale or leak a path into a screenshot. `hero-chatter.test.ts` pins both. The gold `waiting…` label went with the rest of the stack; a waiting hero now pulses its *name*'s alpha, which is the one status you need to spot from across the map.
 - **The construction yard is placed relative to the spawned buildings** (`computeVillageAnnexes`), not at fixed world coordinates, so it stays correct if a building moves.
 
 ## Generated map layers
