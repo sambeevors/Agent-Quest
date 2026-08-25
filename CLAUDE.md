@@ -25,6 +25,7 @@ Features this fork adds on top of upstream. Each is isolated in its own module w
 |---|---|---|
 | Cost tracking | `server/src/pricing/model-pricing.ts` — family-keyed USD rates; `AgentStateManager.addUsage` prices each deduped record against the model that produced it | `formatCost`/`isCostKnown` in `types/agent.ts`; shown in TopBar, DetailPanel, SessionReport |
 | Linear construction sites | `server/src/linear/` — key resolution (`linear-config.ts`), polling (`linear-provider.ts`), HTTP surface (`routes.ts`); `WsEvent` `linear:status` | `components/ConstructionPanel.tsx`, `components/LinearConnect.tsx`, `game/entities/ConstructionSite.ts` |
+| Hero names | — | `naming/hero-names.ts` — `heroNameFor(agentId)`; the primary label on the canvas and in every panel |
 
 Notes for anyone extending these:
 
@@ -33,6 +34,7 @@ Notes for anyone extending these:
 - **`LINEAR_API_KEY` beats the stored key** and disables the in-app controls, so a browser tab can't override an operator's explicit config.
 - **A new key is verified against the live API before it's persisted** — surfacing a bad key at submit time rather than on the next poll.
 - **Linear queries must stay cheap.** Fetching `projects × issues` exceeds Linear's 10k complexity ceiling and 400s. Read `progress` / `scope` / `*CountHistory` off the project instead.
+- **A hero's name is derived from its agent id, never stored.** `AgentState.name` still carries the session's real identity (slug, project folder, or subagent descriptor) and the Detail Panel shows it under the class; the fantasy name shown everywhere else is `heroNameFor(agent.id)`. Deriving it keeps a hero's name stable across reloads and server restarts — unlike `heroClass`/`heroColor`, which are round-robin counters in `AgentStateManager` and reshuffle on restart — and lets the Activity Feed name an agent it no longer tracks. The name-picking hash needs its avalanche step: session ids differ only in their tail, and without mixing the two table indices correlate badly (`hero-names.test.ts` pins the spread).
 - **The construction yard is placed relative to the spawned buildings** (`computeVillageAnnexes`), not at fixed world coordinates, so it stays correct if a building moves.
 
 ## Generated map layers

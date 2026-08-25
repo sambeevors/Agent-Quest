@@ -1,6 +1,7 @@
 import type { AgentState } from '../types/agent';
 import { isSubagentAgent } from '../types/agent';
 import type { ChimeKind } from './sound';
+import { heroNameFor } from '../naming/hero-names';
 
 /**
  * Per-agent snapshot we diff against to detect notification-worthy transitions.
@@ -66,7 +67,7 @@ export function computeAlerts(
     else if (enteredCompleted) category = 'completed';
 
     if (category !== null) {
-      alerts.push({ agentId: a.id, name: a.name, category });
+      alerts.push({ agentId: a.id, name: heroNameFor(a.id), category });
     }
   }
 

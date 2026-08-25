@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import type { AgentState } from '../types/agent';
 import { computeAlerts, type AgentSnapshot } from './transitions';
+import { heroNameFor } from '../naming/hero-names';
 
 function makeAgent(over: Partial<AgentState> = {}): AgentState {
   return {
@@ -38,7 +39,7 @@ describe('computeAlerts', () => {
   it('alerts when an agent enters waiting', () => {
     const prev = snap([makeAgent({ status: 'active' })]);
     const { alerts } = computeAlerts(prev, [makeAgent({ status: 'waiting' })]);
-    expect(alerts).toEqual([{ agentId: 'sess-1', name: 'hero', category: 'waiting' }]);
+    expect(alerts).toEqual([{ agentId: 'sess-1', name: heroNameFor('sess-1'), category: 'waiting' }]);
   });
 
   it('alerts when an agent enters completed', () => {

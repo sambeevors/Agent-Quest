@@ -28,22 +28,6 @@ export function isError(action: string, detail: string): boolean {
 }
 
 /**
- * Race fallback: a log entry can theoretically arrive before its agent:new.
- * Derive a readable name from the id so we don't show "agent-aside_" truncated.
- * Mirror the existing logic from ActivityFeed.tsx pre-redesign — innocuous if
- * the race never fires.
- */
-export function getAgentNameFallback(agentId: string): string {
-  if (agentId.startsWith('agent-')) {
-    const rest = agentId.slice('agent-'.length);
-    const m = rest.match(/^(.*?)-([a-f0-9]{16,})$/);
-    if (m !== null && m[1] !== undefined && m[1].length > 0) return m[1];
-    return rest.slice(0, 12);
-  }
-  return agentId.slice(0, 8);
-}
-
-/**
  * Resolve a detail path against an agent's cwd to an absolute path suitable
  * for vscode://file/. Returns null if not resolvable (relative + no cwd, or
  * a ~ path).

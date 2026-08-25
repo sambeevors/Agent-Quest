@@ -16,6 +16,7 @@ import { renderScenery } from '../terrain/SceneryRenderer';
 import { NpcSprite } from '../entities/NpcSprite';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
+import { heroNameFor } from '../../naming/hero-names';
 import type { AssetManifest, MapConfig, BuildingPosition, NpcPlacement } from '../data/map-config';
 import { SERVER_URL as API_BASE } from '../../config';
 import { getActiveTheme, rebaseSavedScale } from '../themes/registry';
@@ -937,7 +938,7 @@ export class VillageScene extends Phaser.Scene {
         const hero = new HeroSprite(
           this,
           agent.id,
-          agent.name,
+          heroNameFor(agent.id),
           agent.heroClass,
           agent.heroColor,
           this.heroSpawn.x,
