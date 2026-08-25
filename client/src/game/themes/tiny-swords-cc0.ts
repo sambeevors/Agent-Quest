@@ -107,6 +107,14 @@ function buildRoadTileset(scene: Phaser.Scene, source: CanvasImageSource, tile: 
   }
 }
 
+/**
+ * World scale for building art, against a doorway drawn at `REFERENCE_DOOR`.
+ * Picked so the village keeps the footprint it has always had; at this value a
+ * doorway comes out about 27px, a shade over a villager's height, so a hero
+ * standing at one looks like it could walk through.
+ */
+const BUILDING_SCALE = 0.38;
+
 // All CC0 units have dedicated sheets — no aliasing needed.
 const resolveUnit = (unit: UnitType): UnitType => unit;
 
@@ -224,19 +232,7 @@ export const tinySwordsCc0Theme: ThemeManifest = {
   name: 'Tiny Swords (CC0)',
   // Same frame size as the default theme (192 px) → same scale.
   heroScale: 0.55,
-  /**
-   * Chosen so the village keeps the footprint it had under the old per-building
-   * scales — the mean rendered height is unchanged — while the buildings' sizes
-   * relative to each other become the artist's again.
-   *
-   * Deliberately not the same number as scenery's or the heroes'. The eight
-   * buildings under `BuildingsCustom/` are drawn at about twice this pack's
-   * pixel density (their tavern is 273px tall where Tiny Swords' own house is
-   * 148), so the two families need different scales to render at the same size.
-   * Reconciling them properly means moving the heroes too, and that is a
-   * decision about how the village should read, not a scaling bug.
-   */
-  buildingScale: 0.38,
+  buildingScale: BUILDING_SCALE,
 
   getHeroPreload(): PreloadEntry[] {
     const entries: PreloadEntry[] = [];
@@ -296,6 +292,13 @@ export const tinySwordsCc0Theme: ThemeManifest = {
 
   getBuildingImage(id: string): string {
     return CC0_BUILDINGS[id] ?? `assets/buildings/${id}.png`;
+  },
+
+  getBuildingScale(id: string): number {
+    const door = DOOR_HEIGHT[id];
+    return door === undefined
+      ? BUILDING_SCALE
+      : BUILDING_SCALE * (REFERENCE_DOOR / door);
   },
 
   getStaticAssetPreload(): StaticAssetEntry[] {
@@ -379,14 +382,48 @@ export const tinySwordsCc0Theme: ThemeManifest = {
 };
 
 /**
- * Building artwork. All eight are drawn to a single world scale — compare the
- * doors across `BuildingsCustom/` and they match — so they are rendered at one
- * scale too, and the Alchemist towers over the Watchtower because that is how
- * they were drawn. The per-building table this replaces flattened that range:
- * it stretched the Castle 29% relative to its neighbours, and left the tallest
- * and shortest buildings barely a hand apart.
+ * Building artwork.
+ *
+ * These eight PNGs were drawn for this project rather than taken from the
+ * pack, and they are NOT all drawn at the same zoom. Measured on the doorways,
+ * the one human-scale feature every building has:
+ *
+ *   library 68 · tavern 70 · chapel 70 · watchtower 78   <- agree
+ *   castle 60 · arena 90 · forge 115 · alchemist 140      <- do not
+ *
+ * The Alchemist is drawn at roughly twice the Castle's scale. Rendering every
+ * file at one scale — the obvious reading of "respect the asset's size" —
+ * faithfully reproduces that, which is why it put enormous huts next to a
+ * miniature castle.
+ *
+ * `DOOR_HEIGHT` records those measurements and each building is scaled by how
+ * far its doorway sits from the reference. That is still a single world scale;
+ * the per-building numbers correct the source art rather than overrule it, so
+ * a doorway ends up the same size on every building and the castle is the
+ * widest thing in the village again. Redrawing the art at a consistent zoom
+ * would remove the need for the table.
  */
 const CUSTOM_BUILDINGS_BASE = 'assets/themes/tiny-swords-cc0/BuildingsCustom';
+
+/**
+ * Doorway height in each PNG, in that PNG's own pixels, read off the artwork to
+ * within a few px. A door is about two metres in any world, so this is what
+ * says how zoomed-in a drawing is — and these vary only because the drawings
+ * disagree with each other.
+ */
+export const DOOR_HEIGHT: Record<string, number> = {
+  library: 68,
+  tavern: 70,
+  chapel: 70,
+  watchtower: 78,
+  castle: 60,
+  arena: 90,
+  forge: 115,
+  alchemist: 140,
+};
+
+/** The zoom most of the set already agrees on, so most buildings barely move. */
+const REFERENCE_DOOR = 70;
 
 const CC0_BUILDINGS: Record<string, string> = {
   castle:     `${CUSTOM_BUILDINGS_BASE}/Castle.png`,

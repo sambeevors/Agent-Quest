@@ -452,11 +452,11 @@ export class TerrainRenderer {
 
   private drawShadows(): void {
     const g = this.scene.add.graphics(); g.setDepth(1.9);
-    const scale = getActiveTheme().buildingScale;
+    const theme = getActiveTheme();
     for (const b of BUILDING_DEFS) {
       // Off the building's own width, so a wide castle casts a wide shadow.
       const width = this.scene.textures.exists(b.imageKey)
-        ? this.scene.textures.get(b.imageKey).getSourceImage().width * scale
+        ? this.scene.textures.get(b.imageKey).getSourceImage().width * theme.getBuildingScale(b.id)
         : 100;
       g.fillStyle(0x1A2A10, 0.2);
       g.fillEllipse(b.x + 8, b.y + 55, width * 0.6, width * 0.16);

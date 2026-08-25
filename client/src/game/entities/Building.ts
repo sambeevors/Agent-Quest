@@ -16,8 +16,9 @@ export class Building {
 
     this.image = scene.add.image(def.x, def.y, def.imageKey);
     this.image.setOrigin(0.5, 1); // bottom-centre — the def's y IS the ground line
-    // One scale for every building, so each renders at the size it was drawn.
-    this.image.setScale(getActiveTheme().buildingScale);
+    // The theme decides; it corrects for building art drawn at differing zooms
+    // so that a doorway is the same size on every building.
+    this.image.setScale(getActiveTheme().getBuildingScale(def.id));
     this.image.setInteractive({ useHandCursor: true });
 
     // Click handler — emit the building id AND the pointer's screen-space

@@ -50,7 +50,11 @@ What the shipped `MapConfig` contributes: terrain tiles, building positions, spa
 
 Roads are **tiled from the ground tileset**, not painted over it, so a track meets the grass with the artist's own border rather than a procedural edge that never quite matches. The pack has only grass and beach sand, so `buildRoadTileset` in `themes/tiny-swords-cc0.ts` derives a packed-earth surface by recolouring the sand onto the brown ramp the pack already uses for its bridge and tree trunks (`SAND_TO_EARTH`). It is generated at load rather than shipped as a PNG so the recolour stays a readable table beside the palette it came from.
 
-**Sprites are scaled by family, never per asset.** `theme.buildingScale` covers all eight buildings and `SCENERY_SCALE` all four scenery kinds, so a PNG drawn twice as large renders twice as large. Per-asset scales are how the artist's intent gets quietly overruled — the previous table stretched the Castle 29% against its neighbours and inflated bushes 60% against the trees. The two constants differ because `BuildingsCustom/` is drawn at roughly twice the Tiny Swords pixel density; heroes are on a third scale again (`MapConfig.settings.heroScale`), which is a known inconsistency, not a licence to add more.
+**Sprite size comes from the artwork, and the unit is the doorway — not the file.** `SCENERY_SCALE` covers all four scenery kinds, so a 192px tree frame and a 64px mushroom frame render at the sizes they were drawn.
+
+Buildings need one more step, because the eight PNGs under `BuildingsCustom/` were drawn for this project at zooms that differ by a factor of two — measured on their doorways: `library 68 · tavern 70 · chapel 70 · watchtower 78` agree, `castle 60 · arena 90 · forge 115 · alchemist 140` do not. Scaling every file alike therefore produces enormous huts beside a miniature castle. `DOOR_HEIGHT` in the theme records the measurements and `getBuildingScale` divides them out, so a doorway ends up the same size on every building. **Those numbers correct the source art; they are not per-building size normalisation, which is the bug they replaced** (an earlier table stretched the Castle 29% against its neighbours and left the tallest and shortest buildings a hand apart). Redrawing the art at a consistent zoom would remove the need for the table; `tiny-swords-cc0.test.ts` pins the invariant either way.
+
+Heroes sit on a third scale again (`MapConfig.settings.heroScale`) — a known inconsistency, not a licence to add more.
 
 Invariants worth preserving:
 

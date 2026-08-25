@@ -111,11 +111,19 @@ export interface ThemeManifest {
    * All themes are required to provide imagery for every building id. */
   getBuildingImage(id: string): string;
   /**
-   * World scale for building art — one value for every building, so a PNG
-   * drawn twice as large renders twice as large. Per-building scales would
-   * flatten whatever size the artist drew.
+   * World scale for building art. The scale a building actually renders at is
+   * `getBuildingScale`, which starts here; this is exposed separately for
+   * anything that needs a representative figure without naming a building.
    */
   buildingScale: number;
+  /**
+   * Scale for one building's PNG. A theme whose building art is all drawn at
+   * the same zoom should return `buildingScale` for every id and let the PNG's
+   * own dimensions decide what looks big. It returns something else only to
+   * correct art that disagrees with itself — see the Tiny Swords theme, where
+   * the doorways range over a factor of two.
+   */
+  getBuildingScale(id: string): number;
   /** Decorations, decorative houses, trees, stumps — every static/sprite
    * asset BootScene used to hardcode. */
   getStaticAssetPreload(): StaticAssetEntry[];
