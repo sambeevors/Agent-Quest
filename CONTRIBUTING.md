@@ -12,7 +12,7 @@ Thanks for your interest — issues and pull requests are very welcome.
 ## Development setup
 
 ```bash
-git clone https://github.com/FulAppiOS/agent-quest.git
+git clone https://github.com/sambeevors/Agent-Quest.git
 cd agent-quest
 bun install
 bun start
