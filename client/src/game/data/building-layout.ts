@@ -60,52 +60,86 @@ export const CONSTRUCTION_PLOT_COUNT = 6;
 export interface VillageAnnexes {
   /** Plots for Linear construction sites, in placement order. */
   plots: Array<{ x: number; y: number }>;
+  /**
+   * Ground the hamlet stands on. Scenery inside this rect is suppressed so the
+   * settlement sits in a clearing instead of having trees grow through it.
+   */
+  clearing: { x: number; y: number; w: number; h: number };
 }
 
 /**
- * Place the construction yard RELATIVE to wherever the eight activity buildings
- * actually ended up.
+ * Lay out the Linear hamlet — its own settlement WEST of the main village,
+ * rather than plots wedged into the existing streets.
  *
- * It can't be fixed world coordinates: the map editor lets users move every
- * building, and a saved layout can be far more compact than the built-in one
- * (or sprawl in a different direction). Anchoring to the real bounding box
- * keeps the yard adjacent to the village on any map instead of stranding it in
- * the forest.
+ * It gets its own ground for two reasons. Slotting sites between the activity
+ * buildings put them on top of the village's roads and ate the space heroes
+ * walk through; and conceptually these are a different thing — projects, not
+ * agent activity — so reading them as a separate settlement across the fields
+ * is clearer than reading them as more village.
  *
- * The yard goes EAST as two columns — the side clear of the HTML overlays (the
- * Party Bar covers the upper-left, the Activity Feed the bottom).
+ * Positions are RELATIVE to wherever the activity buildings actually ended up,
+ * because the map editor lets users move every one of them. Anchoring to the
+ * real bounding box keeps the hamlet a consistent distance to the west on any
+ * map instead of stranding it in the forest or overlapping the village.
+ *
+ * The plots form a loose double row facing the village, which the desire-path
+ * generator then threads with its own lanes and a track back east.
  */
 export function computeVillageAnnexes(
   buildings: ReadonlyArray<{ x: number; y: number }>,
 ): VillageAnnexes {
-  // No buildings (shouldn't happen, but the scene can render a bare map) —
-  // fall back to the built-in layout's bounds so the annexes still land
-  // somewhere sensible.
+  // No buildings (the scene can render a bare map) — fall back to the built-in
+  // layout's bounds so the hamlet still lands somewhere sensible.
   const xs = buildings.length > 0 ? buildings.map((b) => b.x) : BUILDING_DEFS.map((b) => b.x);
   const ys = buildings.length > 0 ? buildings.map((b) => b.y) : BUILDING_DEFS.map((b) => b.y);
-  const maxX = Math.max(...xs);
+  const minX = Math.min(...xs);
   const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
 
-  // Two columns of three. The spacing is driven by LABEL width, not building
-  // width: the sprites are ~58px wide at render scale but a project name is
-  // several times that, so columns packed to the buildings would overlap
-  // their own captions.
-  const COL_GAP = 110;
-  const COL_SPACING = 150;
-  const ROW_SPACING = 115;
-  const ROW_OFFSET = 30;
+  /** Gap of open ground between the village edge and the hamlet. */
+  const SEPARATION = 300;
+  /** Spacing between the hamlet's two columns and its rows. */
+  const COL_SPACING = 165;
+  const ROW_SPACING = 135;
+  /**
+   * Sit the hamlet BELOW the village's midline. The Party Bar overlays the
+   * top-left of the viewport, and a settlement tucked under it is a settlement
+   * nobody can read.
+   */
+  const SOUTHWARD_BIAS = 90;
+  const centreY = (minY + maxY) / 2 + SOUTHWARD_BIAS;
+
+  // Right-hand column sits nearest the village; the hamlet grows westward.
+  const eastCol = clamp(minX - SEPARATION, 200, WORLD_WIDTH - 200);
+  const westCol = clamp(eastCol - COL_SPACING, 200, WORLD_WIDTH - 200);
 
   const plots: Array<{ x: number; y: number }> = [];
   for (let i = 0; i < CONSTRUCTION_PLOT_COUNT; i++) {
-    const col = i % 2;
     const row = Math.floor(i / 2);
+    // Stagger alternate rows so the hamlet reads as organic rather than
+    // gridded, and so labels on neighbouring plots do not line up and collide.
+    const stagger = row % 2 === 0 ? 0 : 26;
     plots.push({
-      x: clamp(maxX + COL_GAP + col * COL_SPACING, 0, WORLD_WIDTH - 80),
-      y: clamp(minY + ROW_OFFSET + row * ROW_SPACING, 80, WORLD_HEIGHT - 80),
+      x: (i % 2 === 0 ? eastCol : westCol) + stagger,
+      y: clamp(centreY - ROW_SPACING + row * ROW_SPACING, 200, WORLD_HEIGHT - 200),
     });
   }
 
-  return { plots };
+  // The clearing wraps the plots with room for their labels above and the
+  // lanes between them.
+  const px = plots.map((pt) => pt.x);
+  const py = plots.map((pt) => pt.y);
+  const MARGIN_X = 130;
+  const MARGIN_TOP = 190; // buildings and their labels are drawn upward from the door
+  const MARGIN_BOTTOM = 90;
+  const clearing = {
+    x: Math.min(...px) - MARGIN_X,
+    y: Math.min(...py) - MARGIN_TOP,
+    w: Math.max(...px) - Math.min(...px) + MARGIN_X * 2,
+    h: Math.max(...py) - Math.min(...py) + MARGIN_TOP + MARGIN_BOTTOM,
+  };
+
+  return { plots, clearing };
 }
 
 function clamp(v: number, lo: number, hi: number): number {

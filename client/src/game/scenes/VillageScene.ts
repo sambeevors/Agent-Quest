@@ -7,7 +7,11 @@ import type { VillageAnnexes } from '../data/building-layout';
 import { TerrainRenderer } from '../terrain/TerrainRenderer';
 import { renderMapConfig } from '../terrain/MapConfigRenderer';
 import { ensureAssetsLoaded } from '../data/asset-loader';
-import { buildRoadNetworkFromPaths, resetRoadNetwork } from '../data/road-network';
+import { setRoadNetworkFromDesire } from '../data/road-network';
+import { buildDesireNetwork, type DesireNode, type Rect } from '../data/desire-paths';
+import { renderDesirePaths } from '../terrain/DesirePathRenderer';
+import { generateScenery } from '../data/scenery';
+import { renderScenery } from '../terrain/SceneryRenderer';
 import { NpcSprite } from '../entities/NpcSprite';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
@@ -75,6 +79,18 @@ export class VillageScene extends Phaser.Scene {
   /** Construction-plot placement derived from the spawned buildings. Null pre-bootstrap. */
   private annexes: VillageAnnexes | null = null;
 
+  /** Rendered desire-path roads. Rebuilt whenever the set of buildings changes. */
+  private roadLayer: Phaser.GameObjects.Container | null = null;
+
+  /** Generated scenery sprites, regenerated alongside the roads. */
+  private scenerySprites: Phaser.GameObjects.Image[] = [];
+
+  /** Ground the generator must leave alone — water and other placed features. */
+  private sceneryExclusions: Rect[] = [];
+
+  /** World rect the camera fits, widened once the Linear hamlet is populated. */
+  private contentBounds: Phaser.Geom.Rectangle | null = null;
+
 
   /** Hero sprite scale — overridden by MapConfig settings if available. */
   /** Hero sprite scale — defaults to the active theme's baseline (0.5 for
@@ -126,7 +142,11 @@ export class VillageScene extends Phaser.Scene {
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
       this.fitCamera();
-      this.cameras.main.centerToBounds();
+      if (this.contentBounds !== null) {
+        this.cameras.main.centerOn(this.contentBounds.centerX, this.contentBounds.centerY);
+      } else {
+        this.cameras.main.centerToBounds();
+      }
     });
 
     // Drag to pan (mouse + touch, with threshold to avoid interfering with building clicks)
@@ -429,6 +449,12 @@ export class VillageScene extends Phaser.Scene {
       for (const site of this.constructionSites.values()) site.destroy();
       this.constructionSites.clear();
       this.sitePlots.clear();
+      this.roadLayer?.destroy();
+      this.roadLayer = null;
+      for (const sprite of this.scenerySprites) sprite.destroy();
+      this.scenerySprites = [];
+      this.sceneryExclusions = [];
+      this.contentBounds = null;
       this.annexes = null;
     };
     this.events.on('shutdown', cleanup);
@@ -482,11 +508,14 @@ export class VillageScene extends Phaser.Scene {
       console.log('[VillageScene] rendering SAVED map from /api/map');
       await ensureAssetsLoaded(this, manifest, mapConfig);
       try { if (!this.sys.isActive()) return; } catch { return; }
-      renderMapConfig(this, mapConfig, manifest);
+      // Annexes are derived from the saved building positions, which are known
+      // before anything is drawn — so the hamlet's clearing can be applied to
+      // the decoration pass rather than having to un-draw trees afterwards.
+      this.annexes = computeVillageAnnexes(mapConfig.buildings);
+      const rendered = renderMapConfig(this, mapConfig, manifest, [this.annexes.clearing]);
+      // Water and other placed features are keep-out ground for the generator.
+      this.sceneryExclusions = rendered.featureBounds;
       this.spawnBuildings(mapConfig.buildings);
-
-      // Build road network from editor paths so heroes follow painted roads
-      buildRoadNetworkFromPaths(mapConfig.paths, mapConfig.buildings);
 
       // Apply hero scale from map settings
       if (mapConfig.settings?.heroScale) {
@@ -510,13 +539,15 @@ export class VillageScene extends Phaser.Scene {
       });
       new TerrainRenderer(this).render();
       this.spawnBuildings(null);
-      resetRoadNetwork();
     }
 
-    // The construction yard is additive to whatever map was rendered — the
-    // editor has no concept of it, so plots are anchored to the spawned
-    // buildings rather than to fixed world coordinates.
-    this.annexes = computeVillageAnnexes(this.buildings.map((b) => ({ x: b.def.x, y: b.def.y })));
+    // The procedural branch has no saved positions to read ahead of time, so
+    // the hamlet is derived from the buildings that just spawned.
+    this.annexes ??= computeVillageAnnexes(this.buildings.map((b) => ({ x: b.def.x, y: b.def.y })));
+
+    // Roads are generated, not painted. Any `paths` in a saved MapConfig are
+    // ignored — see rebuildRoads().
+    this.rebuildRoads();
 
     // Buildings are now spawned — process any buffered updates
     this.buildingsReady = true;
@@ -529,6 +560,87 @@ export class VillageScene extends Phaser.Scene {
       const pending = this.pendingProjects;
       this.pendingProjects = null;
       this.handleLinearUpdate(pending);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Desire-path roads
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Regenerate and redraw the road network from whatever is currently standing.
+   *
+   * Called after the world boots and again whenever the Linear hamlet gains or
+   * loses a site, because a settlement that appears with no track to it looks
+   * abandoned. Any `paths` painted in the map editor are deliberately ignored:
+   * the whole point of generating roads is that they follow the buildings, and
+   * mixing a stale hand-drawn layer underneath would contradict them.
+   */
+  private rebuildRoads(): void {
+    const nodes: DesireNode[] = [];
+    const obstacles: Rect[] = [];
+
+    for (const b of this.buildings) {
+      nodes.push({ id: `b:${b.def.id}`, x: b.doorX, y: b.doorY });
+      obstacles.push(b.footprint);
+    }
+    for (const [id, site] of this.constructionSites) {
+      const door = site.door;
+      nodes.push({ id: `c:${id}`, x: door.x, y: door.y });
+      obstacles.push(site.footprint);
+    }
+    // The gate is where heroes arrive, so it needs a track even though nothing
+    // stands there.
+    nodes.push({ id: 'gate', x: this.heroSpawn.x, y: this.heroSpawn.y });
+
+    const network = buildDesireNetwork(nodes, obstacles);
+
+    this.roadLayer?.destroy();
+    this.roadLayer = renderDesirePaths(this, network);
+    setRoadNetworkFromDesire(network.waypoints, network.edges);
+
+    // Scenery is generated against the roads that were just laid, so it can
+    // never end up sitting on one.
+    for (const sprite of this.scenerySprites) sprite.destroy();
+    this.scenerySprites = renderScenery(this, generateScenery({
+      bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
+      buildings: obstacles,
+      roads: network.roads.map((r) => r.points),
+      exclusions: this.sceneryExclusions,
+    }));
+
+    this.updateContentBounds(nodes);
+  }
+
+  /**
+   * Track the world rect worth looking at and re-fit the camera when it grows.
+   *
+   * The hamlet sits well west of the village, so a view framed on the village
+   * alone would cut it off — but framing for it before any sites exist would
+   * zoom out over empty forest for no reason. Fitting to what's actually
+   * standing handles both.
+   */
+  private updateContentBounds(nodes: DesireNode[]): void {
+    if (nodes.length === 0) return;
+    const xs = nodes.map((n) => n.x);
+    const ys = nodes.map((n) => n.y);
+    const PAD = 190;
+    const next = new Phaser.Geom.Rectangle(
+      Math.min(...xs) - PAD,
+      Math.min(...ys) - PAD * 1.4, // extra headroom: buildings are drawn upward from their door
+      Math.max(...xs) - Math.min(...xs) + PAD * 2,
+      Math.max(...ys) - Math.min(...ys) + PAD * 2.2,
+    );
+
+    const changed = this.contentBounds === null
+      || Math.abs(next.width - this.contentBounds.width) > 1
+      || Math.abs(next.height - this.contentBounds.height) > 1
+      || Math.abs(next.x - this.contentBounds.x) > 1
+      || Math.abs(next.y - this.contentBounds.y) > 1;
+    this.contentBounds = next;
+    if (changed) {
+      this.fitCamera();
+      this.cameras.main.centerOn(next.centerX, next.centerY);
     }
   }
 
@@ -557,11 +669,13 @@ export class VillageScene extends Phaser.Scene {
     const byId = new Map(projects.map((p) => [p.id, p]));
 
     // Retire sites whose project is no longer in progress, freeing their plots.
+    let retired = false;
     for (const [id, site] of this.constructionSites) {
       if (byId.has(id)) continue;
       site.destroy();
       this.constructionSites.delete(id);
       this.sitePlots.delete(id);
+      retired = true;
     }
 
     // Update the sites that survived, in place.
@@ -573,26 +687,38 @@ export class VillageScene extends Phaser.Scene {
     // Fill free plots with new projects, most-built first (the list already
     // arrives sorted that way).
     const takenPlots = new Set(this.sitePlots.values());
+    let membershipChanged = false;
     for (const project of projects) {
       if (this.constructionSites.has(project.id)) continue;
       const plotIndex = annexes.plots.findIndex((_, i) => !takenPlots.has(i));
-      if (plotIndex === -1) break; // yard is full
+      if (plotIndex === -1) break; // hamlet is full
       const plot = annexes.plots[plotIndex]!;
       takenPlots.add(plotIndex);
       this.sitePlots.set(project.id, plotIndex);
       this.constructionSites.set(project.id, new ConstructionSite(this, project, plot, plotIndex));
+      membershipChanged = true;
     }
+
+    // Only regenerate when the hamlet actually gained or lost a building.
+    // Progress ticking on an existing site changes how it looks, not where the
+    // tracks run, and rebuilding on every poll would rewrite the whole road
+    // layer for nothing.
+    if (membershipChanged || retired) this.rebuildRoads();
   }
 
 
   /** Calculate zoom so the village area (~1100×700 centred at 1400,780) fills the viewport. */
+  /**
+   * Zoom so everything standing fits the viewport. Falls back to the built-in
+   * village footprint until `contentBounds` is known (i.e. before bootstrap).
+   */
   private fitCamera(): void {
     const cam = this.cameras.main;
-    const villageW = 1100;
-    const villageH = 700;
+    const villageW = this.contentBounds?.width ?? 1100;
+    const villageH = this.contentBounds?.height ?? 700;
     const zoomX = cam.width / villageW;
     const zoomY = cam.height / villageH;
-    cam.setZoom(Phaser.Math.Clamp(Math.min(zoomX, zoomY) * 0.85, this.minZoom(), this.maxZoom()));
+    cam.setZoom(Phaser.Math.Clamp(Math.min(zoomX, zoomY) * 0.95, this.minZoom(), this.maxZoom()));
   }
 
   /** Upper zoom bound. 1.5 was tuned for a 1:1 (CSS pixel) framebuffer; the
