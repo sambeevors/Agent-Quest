@@ -37,22 +37,25 @@ Notes for anyone extending these:
 
 ## Generated map layers
 
-Roads and scenery are **generated at runtime**, not read from the shipped map. Both are pure modules with unit tests, and both key off the buildings that actually spawned — so they stay correct when a building moves or a Linear project appears.
+Roads and scenery are **generated at runtime**, not read from the shipped map. All are pure modules with unit tests, and all key off the buildings that actually spawned — so they stay correct when a building moves or a Linear project appears.
 
-| Layer | Module | Renderer |
+| Layer | Modules | Renderer |
 |---|---|---|
-| Roads (desire paths) | `game/data/desire-paths.ts` | `game/terrain/DesirePathRenderer.ts` |
+| Roads (desire paths) | `game/data/desire-paths.ts` (routing) + `game/data/path-tiles.ts` (tiling) | `game/terrain/PathTileRenderer.ts` |
 | Scenery (trees/bushes/rocks/mushrooms) | `game/data/scenery.ts` | `game/terrain/SceneryRenderer.ts` |
 
 `VillageScene.rebuildRoads()` drives both; it re-runs when the Linear hamlet gains or loses a building.
 
 What the shipped `MapConfig` contributes: terrain tiles, building positions, spawn point, NPCs, settings, and **placed features** (water, mines, towers, the bridge). It carries no roads and no natural scatter — both are generated.
 
+Roads are **tiled from the ground tileset**, not painted over it, so a track meets the grass with the artist's own border rather than a procedural edge that never quite matches. The pack has only grass and beach sand, so `buildRoadTileset` in `themes/tiny-swords-cc0.ts` derives a packed-earth surface by recolouring the sand onto the brown ramp the pack already uses for its bridge and tree trunks (`SAND_TO_EARTH`). It is generated at load rather than shipped as a PNG so the recolour stays a readable table beside the palette it came from.
+
 Invariants worth preserving:
 
 - **No road may cross a building.** The routing graph heroes walk IS the road network, so this is also what stops heroes clipping. Two subtleties have already bitten here, both covered by regression tests in `desire-paths.test.ts`: a door sits inside its own building's *clearance ring*, so routes collide against that building's bare footprint rather than dropping it from the route entirely; and the organic wobble applied after routing is validated per *segment*, since a point just outside a corner can still be reached by a line through it.
 - **Nothing spawns on a road or against a wall.** Per-kind clearances live in `KIND_SPECS`; trees need far more room than mushrooms.
 - **Both generators are seeded and deterministic.** Scenery that reshuffles every reload is disorienting, and a road that moves under a walking hero is a bug.
+- **Don't close concave corners in the road grid.** A 16-tile edge set has no inner-corner tile, and filling the notch looks like the fix — but iterating that rule is a morphological closing: it eats the grass out of every space the network encloses and turns the village into one plaza. `makeTileable` fills only pinholes and diagonal-only touches, and `path-tiles.test.ts` guards a ring of roads around an open green.
 
 ## Commands
 

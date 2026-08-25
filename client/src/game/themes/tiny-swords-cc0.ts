@@ -22,6 +22,91 @@ import type { HeroPreview, HeroSpriteConfig, PreloadEntry, StaticAssetEntry, The
  * (author typo). Preserved verbatim so future pack updates diff cleanly.
  */
 
+/**
+ * Packed earth, derived from the pack's beach sand.
+ *
+ * Tiny Swords ships two ground surfaces — grass and sand — and roads want a
+ * third. Sand alone reads as a beach: it is the brightest thing on the map and
+ * pulls the eye off the village. Rather than invent a palette, the sand block
+ * is recoloured onto the ramp the pack already uses for every wooden and
+ * earthen thing in it — the bridge planks, the tree trunks — so the tracks look
+ * like they were drawn by the same hand as everything they run past.
+ *
+ * Each entry maps one sand tone to its earth counterpart, brightest first. The
+ * three anchors below are lifted verbatim from `Terrain/Bridge/Bridge_All.png`;
+ * the rest sit on the line between them. The pack's universal outline
+ * (#161C2E) is deliberately absent — it is left exactly as drawn.
+ */
+const SAND_TO_EARTH: ReadonlyArray<readonly [number, number]> = [
+  [0xFEFA9D, 0xF0DCA8], // specular
+  [0xF8F273, 0xE5C489], // highlight
+  [0xF1DA84, 0xDAB570], // base            <- pack's earth highlight
+  [0xDEC87E, 0xB48355], // mid             <- pack's earth base
+  [0xB29678, 0x866353], // shadow          <- pack's earth shadow
+  // The pebbles in the sand's scatter column, knocked back the same way.
+  [0xB2AF5E, 0x8E6B4A],
+  [0xAD9F6A, 0x9A7A54],
+  [0xA09365, 0x7E5C46],
+];
+
+/** Where each piece lands in the generated sheet. Six columns, four rows. */
+const ROAD_TILESET = {
+  tilesetKey: 'terrain-road-cc0',
+  columns: 6,
+  blockFrame: 0,   // 4x4 edge block, columns 0-3
+  gravelFrame: 4,  // recoloured pebbles
+  tuftFrame: 5,    // grass tufts, copied across untouched
+} as const;
+
+/** Column in `Tilemap_Flat` where each source piece lives. */
+const FLAT_SAND_COL = 5;
+const FLAT_PEBBLE_COL = 9;
+const FLAT_TUFT_COL = 4;
+
+/**
+ * Build the road tileset into a canvas texture and register its frames.
+ *
+ * Done at load time rather than shipped as a PNG so the recolour stays a
+ * readable table next to the palette it came from, and so it cannot drift if
+ * the upstream pack is updated.
+ */
+function buildRoadTileset(scene: Phaser.Scene, source: CanvasImageSource, tile: number): void {
+  const { tilesetKey, columns } = ROAD_TILESET;
+  if (scene.textures.exists(tilesetKey)) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = columns * tile;
+  canvas.height = 4 * tile;
+  const ctx = canvas.getContext('2d');
+  if (ctx === null) return;
+
+  // The 4x4 sand block, then its pebbles — everything that gets recoloured.
+  ctx.drawImage(source, FLAT_SAND_COL * tile, 0, 4 * tile, 4 * tile, 0, 0, 4 * tile, 4 * tile);
+  ctx.drawImage(source, FLAT_PEBBLE_COL * tile, 0, tile, tile, 4 * tile, 0, tile, tile);
+
+  const region = ctx.getImageData(0, 0, 5 * tile, 4 * tile);
+  const px = region.data;
+  const map = new Map(SAND_TO_EARTH);
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] === 0) continue;
+    const earth = map.get((px[i]! << 16) | (px[i + 1]! << 8) | px[i + 2]!);
+    if (earth === undefined) continue; // the outline, left as drawn
+    px[i] = (earth >> 16) & 0xFF;
+    px[i + 1] = (earth >> 8) & 0xFF;
+    px[i + 2] = earth & 0xFF;
+  }
+  ctx.putImageData(region, 0, 0);
+
+  // Grass tufts last, so the recolour doesn't turn the verge brown too.
+  ctx.drawImage(source, FLAT_TUFT_COL * tile, 0, tile, tile, 5 * tile, 0, tile, tile);
+
+  const texture = scene.textures.addCanvas(tilesetKey, canvas);
+  if (texture === null) return;
+  for (let frame = 0; frame < columns * 4; frame++) {
+    texture.add(frame, 0, (frame % columns) * tile, Math.floor(frame / columns) * tile, tile, tile);
+  }
+}
+
 // All CC0 units have dedicated sheets — no aliasing needed.
 const resolveUnit = (unit: UnitType): UnitType => unit;
 
@@ -189,9 +274,11 @@ export const tinySwordsCc0Theme: ThemeManifest = {
     tilesetKey: 'terrain-tileset-cc0',
     path: 'assets/themes/tiny-swords-cc0/Terrain/Ground/Tilemap_Flat.png',
     tileSize: 64,
-    // 10×4 grid — left half (cols 0-4) is grass, right half (cols 5-9) is
-    // sand. Frame 0 is the plain mid-green grass square used as ground fill.
+    // 10×4 grid holding two surfaces, each a 4×4 block of edge tiles: grass at
+    // columns 0-3, beach sand at columns 5-8. Column 4 is loose grass tufts and
+    // column 9 loose pebbles — the artist's own scatter for each surface.
     grassFrame: 0,
+    road: ROAD_TILESET,
   },
 
   getBuildingImage(id: string): string {
@@ -253,6 +340,15 @@ export const tinySwordsCc0Theme: ThemeManifest = {
   },
 
   postLoadHook(scene: Phaser.Scene): void {
+    // Derive the packed-earth road tiles from the ground tileset.
+    if (scene.textures.exists('terrain-tileset-cc0')) {
+      buildRoadTileset(
+        scene,
+        scene.textures.get('terrain-tileset-cc0').getSourceImage() as CanvasImageSource,
+        64,
+      );
+    }
+
     // Slice the tree atlas into 4 separate textures named tree-1..4 so
     // TerrainRenderer.drawForestTrees can pick them at random without
     // knowing we sourced them from a single sheet.

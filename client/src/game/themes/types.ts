@@ -59,6 +59,28 @@ export interface HeroPreview {
 /** Background tileset used by TerrainRenderer for the main village ground.
  * TerrainRenderer is mostly procedural (roads/forest/lake/noise) but the
  * base grass fill is drawn as a tiled sprite from one frame of a tileset. */
+/**
+ * The packed-earth surface roads are drawn from. Its tiles are not in the
+ * shipped pack — the pack has grass and beach sand and nothing between — so
+ * the theme derives them at load time and registers them under `tilesetKey`.
+ */
+export interface RoadTilesetConfig {
+  /** Phaser texture key the theme registers the generated tileset under. */
+  tilesetKey: string;
+  /** Columns in the generated sheet, needed to walk frame indices by row. */
+  columns: number;
+  /**
+   * Frame index of the top-left tile of the 4x4 block of edge tiles. Rows run
+   * top-edge / middle / bottom-edge / both; columns left / middle / right /
+   * both.
+   */
+  blockFrame: number;
+  /** Frame holding loose gravel, sprinkled over a road's surface. */
+  gravelFrame: number;
+  /** Frame holding grass tufts, sprinkled along a road's verge. */
+  tuftFrame: number;
+}
+
 export interface TerrainConfig {
   /** Phaser texture key under which the tileset is registered. */
   tilesetKey: string;
@@ -68,6 +90,8 @@ export interface TerrainConfig {
   tileSize: number;
   /** Frame index (row-major) of the "main grass" tile used as ground fill. */
   grassFrame: number;
+  /** Surface roads are tiled from. Absent means the theme cannot draw roads. */
+  road?: RoadTilesetConfig;
 }
 
 export interface ThemeManifest {

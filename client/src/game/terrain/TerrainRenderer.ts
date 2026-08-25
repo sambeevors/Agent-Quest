@@ -252,9 +252,9 @@ export class TerrainRenderer {
   //
   // Village roads are NOT painted here any more. They are generated as
   // desire paths from the buildings that actually get spawned (see
-  // game/data/desire-paths.ts) and drawn by DesirePathRenderer once the
-  // scene knows where everything stands — painting a second, independently
-  // derived road layer underneath would contradict them.
+  // game/data/desire-paths.ts) and tiled by PathTileRenderer once the scene
+  // knows where everything stands — painting a second, independently derived
+  // road layer underneath would contradict them.
   //
   // `onRoad()` above still consults the routing graph, so scattered decor
   // keeps clear of wherever the tracks end up running.

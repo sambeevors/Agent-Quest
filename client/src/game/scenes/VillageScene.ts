@@ -9,7 +9,8 @@ import { renderMapConfig } from '../terrain/MapConfigRenderer';
 import { ensureAssetsLoaded } from '../data/asset-loader';
 import { setRoadNetworkFromDesire } from '../data/road-network';
 import { buildDesireNetwork, type DesireNode, type Rect } from '../data/desire-paths';
-import { renderDesirePaths } from '../terrain/DesirePathRenderer';
+import { buildPathTilemap } from '../data/path-tiles';
+import { renderPathTiles } from '../terrain/PathTileRenderer';
 import { generateScenery } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
 import { NpcSprite } from '../entities/NpcSprite';
@@ -594,7 +595,21 @@ export class VillageScene extends Phaser.Scene {
     const network = buildDesireNetwork(nodes, obstacles);
 
     this.roadLayer?.destroy();
-    this.roadLayer = renderDesirePaths(this, network);
+    const terrain = getActiveTheme().terrain;
+    const road = terrain?.road;
+    if (terrain !== undefined && road !== undefined) {
+      const tilemap = buildPathTilemap(network, {
+        cell: terrain.tileSize / 2,
+        tilesetColumns: road.columns,
+        roadBlockFrame: road.blockFrame,
+        gravelFrame: road.gravelFrame,
+        tuftFrame: road.tuftFrame,
+        bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
+      });
+      this.roadLayer = renderPathTiles(this, tilemap, road.tilesetKey, terrain.tileSize);
+    } else {
+      this.roadLayer = null;
+    }
     setRoadNetworkFromDesire(network.waypoints, network.edges);
 
     // Scenery is generated against the roads that were just laid, so it can

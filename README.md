@@ -68,6 +68,8 @@ Trees, shrubs, rocks and mushrooms are scattered procedurally against the curren
 
 Both regenerate when the Linear hamlet gains or loses a building, so a new project arrives with lanes already running to it.
 
+The tracks are tiled from the ground tileset itself, not painted over it, so a road meets the grass with the pack's own hand-drawn border. The pack ships grass and beach sand and nothing between, so the theme recolours the sand onto the brown ramp it already uses for the bridge and the tree trunks — see `SAND_TO_EARTH` in `themes/tiny-swords-cc0.ts`.
+
 ### Construction sites (Linear)
 
 Connect a Linear account and every in-progress project becomes a building site in its own hamlet west of the village, connected back by generated lanes. The building rises out of its scaffolding as the project's issues close, and the site's caption shows `NN% · done/total`.
