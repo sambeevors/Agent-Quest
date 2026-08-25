@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Agent Quest — one-line installer for macOS.
-# Usage: curl -fsSL https://raw.githubusercontent.com/FulAppiOS/Agent-Quest/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/sambeevors/Agent-Quest/main/install.sh | bash
 set -euo pipefail
 
-REPO_URL="https://github.com/FulAppiOS/Agent-Quest.git"
+REPO_URL="https://github.com/sambeevors/Agent-Quest.git"
 DEFAULT_DIR="$HOME/agent-quest"
 MIN_BUN="1.1.0"
 
@@ -91,7 +91,7 @@ cat <<BANNER
 ${C_BLUE}Agent Quest${C_RESET} — a local dashboard for Claude Code and Codex agents
   License: MIT (open source, hobby project)
   Runs entirely on your machine — no API keys, no telemetry, no cloud
-  Source: https://github.com/FulAppiOS/Agent-Quest
+  Source: https://github.com/sambeevors/Agent-Quest
 
 This installer will:
   • Check/install Bun (via bun.sh official installer, if missing)

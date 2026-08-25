@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import type { AssetManifest, MapConfig } from '../../editor/types/map';
+import type { AssetManifest, MapConfig } from './map-config';
 
 /**
  * Ensure all textures referenced by a MapConfig (and the base tileset) are loaded

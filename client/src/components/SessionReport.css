@@ -107,3 +107,12 @@
 }
 .report-est { color: #777; font-size: 10px; }
 .report-tokens-note { margin-top: 5px; font-size: 10px; color: #777; }
+
+/* Cost sits below the token total, visually separated as a derived figure. */
+.report-econ-row.report-econ-cost {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(196, 163, 90, 0.25);
+  color: #C8E08A;
+}
+

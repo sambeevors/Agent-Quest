@@ -15,11 +15,10 @@ export class Building {
     this.def = def;
 
     this.image = scene.add.image(def.x, def.y, def.imageKey);
-    this.image.setOrigin(0.5, 1); // bottom-center — matches editor coordinate system
-    // Theme can override the default scale when its building PNG has a
-    // different native size than the BuildingDef baseline.
-    const themeScale = getActiveTheme().getBuildingScale?.(def.id);
-    this.image.setScale(themeScale ?? def.scale);
+    this.image.setOrigin(0.5, 1); // bottom-centre — the def's y IS the ground line
+    // The theme decides; it corrects for building art drawn at differing zooms
+    // so that a doorway is the same size on every building.
+    this.image.setScale(getActiveTheme().getBuildingScale(def.id));
     this.image.setInteractive({ useHandCursor: true });
 
     // Click handler — emit the building id AND the pointer's screen-space
@@ -71,5 +70,20 @@ export class Building {
       strokeThickness: 1,
       shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 2, fill: true },
     }).setOrigin(0.5, 0).setDepth(this.doorY + 0.1);
+  }
+
+  /**
+   * Ground plan used for road routing, in world space.
+   *
+   * NOT the sprite's bounding box: these are tall buildings drawn in
+   * three-quarter view, so most of the image is roof and upper wall that a
+   * path may happily pass behind. Only the lower band actually stands on the
+   * ground, so roads route around that and heroes can still walk behind the
+   * upper storeys — which is what makes the depth sorting read correctly.
+   */
+  get footprint(): { x: number; y: number; w: number; h: number } {
+    const w = this.image.displayWidth * 0.78;
+    const h = Math.max(24, this.image.displayHeight * 0.34);
+    return { x: this.def.x - w / 2, y: this.def.y - h, w, h };
   }
 }

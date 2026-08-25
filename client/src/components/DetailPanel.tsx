@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, displayActivity, type AgentState } from '../types/agent';
+import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, displayActivity, formatCost, isCostKnown, type AgentState } from '../types/agent';
 import { HeroAvatar } from './HeroAvatar';
 import { SessionReport } from './SessionReport';
 import { configDirLabel } from './configDirLabel';
@@ -139,6 +139,17 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
             <span className="detail-label">Tool Calls</span>
             <span className="detail-value detail-value--num">{agent.toolCalls.length}</span>
           </div>
+          {agent.cost > 0 && (
+            <div
+              className="detail-row"
+              title="Estimated at public list prices — excludes this session's subagents"
+            >
+              <span className="detail-label">Est. Cost</span>
+              <span className="detail-value detail-value--num detail-cost">
+                {isCostKnown(agent) ? '' : '≥ '}{formatCost(agent.cost)}
+              </span>
+            </div>
+          )}
           <div className="detail-row">
             <span className="detail-label">Profile</span>
             <span className="detail-value">{configDirLabel(agent.configDir)}</span>

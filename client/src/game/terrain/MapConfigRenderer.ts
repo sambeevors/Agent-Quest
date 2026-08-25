@@ -1,38 +1,40 @@
 import * as Phaser from 'phaser';
-import type { AssetManifest, MapConfig, PathSegment } from '../../editor/types/map';
-import { TILE_SIZE } from '../../editor/types/map';
+import type { AssetManifest, MapConfig } from '../data/map-config';
+import { TILE_SIZE } from '../data/map-config';
 
 /**
- * Renders a user-saved MapConfig into a Phaser scene. Used by VillageScene when
- * a custom map was built in the editor. When no MapConfig is present, the
- * scene falls back to the procedural TerrainRenderer instead.
+ * Renders the shipped village into a Phaser scene: its terrain tiles and its
+ * placed features (the lake, the mines, the bridge, the odd tower). When the
+ * map can't be fetched, VillageScene falls back to the procedural
+ * TerrainRenderer instead.
+ *
+ * What this deliberately does NOT draw is roads and natural scatter. Both are
+ * generated at runtime against the buildings that actually spawned — see
+ * `data/desire-paths.ts` and `data/scenery.ts` — so a stale hand-placed layer
+ * underneath would contradict them.
  */
 
-interface Containers {
-  base: Phaser.GameObjects.TileSprite;
-  terrain: Phaser.GameObjects.Container;
-  paths: Phaser.GameObjects.Container;
+export interface RenderedMap {
+  /**
+   * World-space bounds of every placed feature. The caller feeds these to the
+   * scenery generator as keep-out ground, so generated trees don't grow out of
+   * the middle of the lake.
+   */
+  featureBounds: Array<{ x: number; y: number; w: number; h: number }>;
 }
-
-const PATH_STYLES = {
-  main:      { fill: 0x7A6548, stroke: 0x4A3A24, strokeAlpha: 0.55, fillAlpha: 0.92 },
-  secondary: { fill: 0x8A7858, stroke: 0x5A4A2C, strokeAlpha: 0.5,  fillAlpha: 0.88 },
-  trail:     { fill: 0x5C4A30, stroke: 0x3A2A18, strokeAlpha: 0.55, fillAlpha: 0.9  },
-  plaza:     { fill: 0x7A6548, stroke: 0x5C4E3A, strokeAlpha: 0.6,  fillAlpha: 0.95 },
-} as const;
 
 export function renderMapConfig(
   scene: Phaser.Scene,
   map: MapConfig,
   manifest: AssetManifest,
-): Containers {
+): RenderedMap {
   const baseInfo = manifest.tilesets.find((t) => t.key === map.baseTileset) ?? manifest.tilesets[0];
   if (baseInfo === undefined) {
     throw new Error(`No tileset available for base rendering`);
   }
 
   // Base ground layer
-  const base = scene.add.tileSprite(
+  scene.add.tileSprite(
     map.world.width / 2,
     map.world.height / 2,
     map.world.width,
@@ -42,11 +44,6 @@ export function renderMapConfig(
   ).setDepth(-1000);
 
   const terrain = scene.add.container(0, 0).setDepth(-800);
-  const paths = scene.add.container(0, 0).setDepth(-400);
-  // Decorations are added directly to the scene (not wrapped in a container) so
-  // each sprite's Y-based depth can freely interleave with NPCs and heroes for
-  // correct perspective sorting. A container would collapse all decorations to
-  // a single depth slot, forcing them all above or below every moving entity.
 
   // Painted terrain cells
   for (const [key, cell] of Object.entries(map.terrain)) {
@@ -65,15 +62,11 @@ export function renderMapConfig(
     terrain.add(sprite);
   }
 
-  // Paths
-  for (const path of map.paths) {
-    drawPath(scene, paths, path);
-  }
-
-  // Decorations — added top-level so Y-sorting works against NPCs/heroes.
-  // Depth uses the sprite's *foot* Y (bottom edge), not its center: an NPC
-  // walking in front of a tree's trunk (NPC Y > tree foot Y) should cover the
-  // tree, while an NPC standing behind it (NPC Y < foot Y) stays hidden.
+  // Features — added top-level so Y-sorting works against NPCs/heroes. Depth
+  // uses the sprite's *foot* Y (bottom edge), not its centre: an NPC walking in
+  // front of a tower (NPC Y > foot Y) should cover it, while one standing
+  // behind it stays hidden.
+  const featureBounds: RenderedMap['featureBounds'] = [];
   for (const d of map.decorations) {
     if (!scene.textures.exists(d.textureKey)) continue;
     const needsSprite = d.frame !== undefined || d.animated === true;
@@ -88,46 +81,13 @@ export function renderMapConfig(
     }
     const footY = d.y + gameObj.displayHeight * 0.5;
     gameObj.setDepth(d.depth ?? footY);
+    featureBounds.push({
+      x: d.x - gameObj.displayWidth / 2,
+      y: d.y - gameObj.displayHeight / 2,
+      w: gameObj.displayWidth,
+      h: gameObj.displayHeight,
+    });
   }
 
-  return { base, terrain, paths };
-}
-
-function drawPath(
-  scene: Phaser.Scene,
-  container: Phaser.GameObjects.Container,
-  path: PathSegment,
-): void {
-  const style = PATH_STYLES[path.style];
-  if (path.points.length < 2) return;
-
-  const g = scene.add.graphics();
-  // outer stroke (shadow)
-  g.lineStyle(path.width + 6, style.stroke, style.strokeAlpha * 0.5);
-  drawPolyline(g, path.points);
-  // main fill
-  g.lineStyle(path.width, style.fill, style.fillAlpha);
-  drawPolyline(g, path.points);
-  // inner highlight
-  g.lineStyle(Math.max(2, path.width - 14), style.fill + 0x0a0a0a, Math.min(1, style.fillAlpha + 0.05));
-  drawPolyline(g, path.points);
-  // border
-  g.lineStyle(1.5, style.stroke, style.strokeAlpha);
-  drawPolyline(g, path.points);
-
-  container.add(g);
-}
-
-function drawPolyline(g: Phaser.GameObjects.Graphics, pts: Array<{ x: number; y: number }>): void {
-  if (pts.length < 2) return;
-  const first = pts[0];
-  if (first === undefined) return;
-  g.beginPath();
-  g.moveTo(first.x, first.y);
-  for (let i = 1; i < pts.length; i++) {
-    const p = pts[i];
-    if (p === undefined) continue;
-    g.lineTo(p.x, p.y);
-  }
-  g.strokePath();
+  return { featureBounds };
 }

@@ -71,42 +71,34 @@ export function resetRoadNetwork(): void {
   setRoadNetwork(DEFAULT_WAYPOINTS, DEFAULT_EDGES);
 }
 
+/**
+ * Adopt a generated desire-path network as the routing graph.
+ *
+ * This is what stops heroes clipping through buildings: the generator already
+ * routed every track around the footprints, so a hero that only ever walks
+ * these waypoints inherits that clearance for free. Falls back to the default
+ * graph for an empty network so heroes can always move somewhere.
+ */
+export function setRoadNetworkFromDesire(
+  waypoints: Point[],
+  edges: Array<[number, number]>,
+): void {
+  if (waypoints.length === 0) {
+    resetRoadNetwork();
+    return;
+  }
+  setRoadNetwork(waypoints, edges);
+}
+
 // ---------------------------------------------------------------------------
-// Build a dynamic road network from editor paths + building positions
+// Pathfinding (reads from active graph)
 // ---------------------------------------------------------------------------
 
-const MERGE_DIST = 15;
-/** How close a path endpoint must be to another path's segment to auto-connect. Euclidean px. */
-const STITCH_DIST = 40;
 /** Polyline legs longer than this get subdivided so heroes walk in small steps
  *  instead of teleporting across the whole segment in a single tween. */
 const SUBDIVIDE_ABOVE = 40;
 /** Target spacing between interpolated waypoints along a long leg. */
 const SUBDIVIDE_STEP = 25;
-
-function distEuclidean(a: Point, b: Point): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-/**
- * Perpendicular distance from point p to segment [a,b], and the clamped
- * parameter t ∈ [0,1] of the projection along the segment.
- */
-function projectOntoSegment(p: Point, a: Point, b: Point): { dist: number; t: number } {
-  const ax = b.x - a.x;
-  const ay = b.y - a.y;
-  const lenSq = ax * ax + ay * ay;
-  if (lenSq < 1e-6) return { dist: distEuclidean(p, a), t: 0 };
-  let t = ((p.x - a.x) * ax + (p.y - a.y) * ay) / lenSq;
-  t = Math.max(0, Math.min(1, t));
-  const projX = a.x + t * ax;
-  const projY = a.y + t * ay;
-  const dx = p.x - projX;
-  const dy = p.y - projY;
-  return { dist: Math.sqrt(dx * dx + dy * dy), t };
-}
 
 /**
  * Return the points to append after `a` to reach `b`, subdividing the segment
@@ -126,110 +118,6 @@ function interpolateSegment(a: Point, b: Point): Point[] {
   }
   return out;
 }
-
-/**
- * Construct a road-network graph from the editor's drawn paths and the
- * (possibly repositioned) building positions.  Each path polyline vertex
- * becomes a waypoint, consecutive vertices become edges, and each building
- * door is connected to the nearest path waypoint.
- *
- * Also auto-stitches path endpoints that are close to another path's segment
- * but don't share a vertex with it — keeps the routing graph connected when
- * users draw paths that visually meet but don't exactly touch.
- */
-export function buildRoadNetworkFromPaths(
-  paths: Array<{ points: Array<{ x: number; y: number }> }>,
-  buildings: Array<{ id: string; x: number; y: number }>,
-): void {
-  const waypoints: Point[] = [];
-  const edges: [number, number][] = [];
-
-  function addWaypoint(p: Point): number {
-    for (let i = 0; i < waypoints.length; i++) {
-      if (dist(waypoints[i]!, p) <= MERGE_DIST) return i;
-    }
-    waypoints.push(p);
-    return waypoints.length - 1;
-  }
-
-  // 1. Path polyline vertices → waypoints, consecutive pairs → edges.
-  //    Track which waypoints belong to each path so we can stitch endpoints later.
-  const pathWaypointIndices: number[][] = [];
-  for (const path of paths) {
-    const indices: number[] = [];
-    let prevIdx = -1;
-    for (const pt of path.points) {
-      const idx = addWaypoint({ x: pt.x, y: pt.y });
-      if (prevIdx !== -1 && prevIdx !== idx) {
-        edges.push([prevIdx, idx]);
-      }
-      indices.push(idx);
-      prevIdx = idx;
-    }
-    pathWaypointIndices.push(indices);
-  }
-
-  // 2. Stitch path endpoints (first / last vertex) to the nearest segment of any
-  //    OTHER path if their perpendicular distance is under STITCH_DIST.
-  //    Connect to the nearer of the two segment endpoints.
-  for (let pi = 0; pi < pathWaypointIndices.length; pi++) {
-    const indices = pathWaypointIndices[pi]!;
-    if (indices.length < 1) continue;
-    const endpointIdxs: number[] = [];
-    endpointIdxs.push(indices[0]!);
-    const last = indices[indices.length - 1]!;
-    if (last !== indices[0]) endpointIdxs.push(last);
-
-    for (const endIdx of endpointIdxs) {
-      const endP = waypoints[endIdx]!;
-      let best: { dist: number; nearestWp: number } | null = null;
-      for (let pj = 0; pj < pathWaypointIndices.length; pj++) {
-        if (pj === pi) continue;
-        const other = pathWaypointIndices[pj]!;
-        for (let k = 0; k < other.length - 1; k++) {
-          const aIdx = other[k]!;
-          const bIdx = other[k + 1]!;
-          if (aIdx === endIdx || bIdx === endIdx) continue;
-          const proj = projectOntoSegment(endP, waypoints[aIdx]!, waypoints[bIdx]!);
-          if (proj.dist < STITCH_DIST && (best === null || proj.dist < best.dist)) {
-            best = { dist: proj.dist, nearestWp: proj.t < 0.5 ? aIdx : bIdx };
-          }
-        }
-      }
-      if (best !== null && best.nearestWp !== endIdx) {
-        edges.push([endIdx, best.nearestWp]);
-      }
-    }
-  }
-
-  // 3. Building doors → waypoints, each connected to nearest path waypoint
-  const pathWaypointCount = waypoints.length;
-  for (const b of buildings) {
-    const doorPoint: Point = { x: b.x, y: b.y + 5 };
-    const doorIdx = addWaypoint(doorPoint);
-    let bestIdx = -1;
-    let bestDist = Infinity;
-    for (let i = 0; i < pathWaypointCount; i++) {
-      const d = dist(waypoints[i]!, doorPoint);
-      if (d < bestDist) { bestDist = d; bestIdx = i; }
-    }
-    if (bestIdx !== -1) {
-      edges.push([doorIdx, bestIdx]);
-    }
-  }
-
-  // If no paths at all, fall back to defaults so heroes can still move
-  if (waypoints.length === 0) {
-    resetRoadNetwork();
-    return;
-  }
-
-  setRoadNetwork(waypoints, edges);
-}
-
-// ---------------------------------------------------------------------------
-// Pathfinding (reads from active graph)
-// ---------------------------------------------------------------------------
 
 function dist(a: Point, b: Point): number {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);

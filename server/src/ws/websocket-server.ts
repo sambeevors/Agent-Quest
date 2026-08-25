@@ -1,5 +1,5 @@
 import type { ServerWebSocket } from 'bun';
-import type { WsEvent, AgentState } from '../types';
+import type { WsEvent, AgentState, LinearStatus } from '../types';
 
 export type WsClient = ServerWebSocket<{ id: string }>;
 
@@ -35,6 +35,15 @@ export class WebSocketServer {
 
   broadcastActivityLog(agentId: string, action: string, detail: string, timestamp: number): void {
     this.broadcast({ type: 'activity:log', agentId, action, detail, timestamp });
+  }
+
+  broadcastLinearStatus(status: LinearStatus): void {
+    this.broadcast({ type: 'linear:status', status });
+  }
+
+  /** Send one event to a single client — used to prime a freshly-connected socket. */
+  send(ws: WsClient, event: WsEvent): void {
+    ws.send(JSON.stringify(event));
   }
 
   get clientCount(): number {

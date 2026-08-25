@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AgentState } from '../types/agent';
+import type { AgentState, LinearStatus } from '../types/agent';
+import { formatCost, isCostKnown } from '../types/agent';
 import { eventBridge } from '../game/EventBridge';
 import { NotificationMenu, type NotificationEntry } from './NotificationMenu';
+import { ConstructionPanel } from './ConstructionPanel';
 import './TopBar.css';
 
 interface TopBarNotifications {
@@ -17,14 +19,22 @@ interface TopBarProps {
   agents: AgentState[];
   connected: boolean;
   notifications: TopBarNotifications;
+  linear: LinearStatus | null;
+  onLinearStatus: (status: LinearStatus) => void;
 }
 
-export function TopBar({ agents, connected, notifications }: TopBarProps) {
+export function TopBar({ agents, connected, notifications, linear, onLinearStatus }: TopBarProps) {
   const active = agents.filter((a) => a.status === 'active').length;
   const waiting = agents.filter((a) => a.status === 'waiting').length;
   const idle = agents.filter((a) => a.status === 'idle').length;
   const completed = agents.filter((a) => a.status === 'completed').length;
   const errors = agents.filter((a) => a.status === 'error').length;
+
+  // Fleet-wide spend across every session currently on the dashboard. Subagents
+  // are separate agents here, so their cost is included rather than folded into
+  // a parent — the total is what the whole visible fleet has burned.
+  const fleetCost = agents.reduce((sum, a) => sum + a.cost, 0);
+  const fleetCostKnown = agents.every(isCostKnown);
 
   const [nightOn, setNightOn] = useState(false);
   const [rainOn, setRainOn] = useState(false);
@@ -130,9 +140,18 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
               <span className="topbar-stat-label">Total:</span>
               <span className="topbar-stat-value">{agents.length}</span>
             </div>
+            {fleetCost > 0 && (
+              <div className="topbar-stat" title="Estimated spend across every session shown, at public list prices">
+                <span className="topbar-stat-label">Spend:</span>
+                <span className="topbar-stat-value cost">
+                  {fleetCostKnown ? '' : '≥ '}{formatCost(fleetCost)}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="topbar-effects">
+            <ConstructionPanel linear={linear} onLinearStatus={onLinearStatus} />
             <NotificationMenu
               entries={notifications.entries}
               unread={notifications.unread}
@@ -155,17 +174,6 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
             >
               {'\u{1F327}\u{FE0F}'}
             </button>
-            <a
-              className="topbar-effect-btn"
-              data-mobile-hide="true"
-              href="/?mode=editor"
-              target="_blank"
-              rel="noopener"
-              title="Open Map Editor"
-              style={{ textDecoration: 'none' }}
-            >
-              {'\u{1F5FA}\u{FE0F}'}
-            </a>
             <button
               className="topbar-effect-btn"
               onClick={() => eventBridge.emit('settings:open')}
