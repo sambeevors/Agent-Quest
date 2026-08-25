@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import type { BuildingDef } from '../data/building-layout';
 import { eventBridge } from '../EventBridge';
-import { addCrispText } from '../text';
+import { addCrispText, LABEL_FONT } from '../text';
 import { getActiveTheme } from '../themes/registry';
 
 export class Building {
@@ -49,12 +49,11 @@ export class Building {
 
     // Label above building — image top is at y - displayHeight (since origin is bottom)
     const labelY = def.y - this.image.displayHeight - 8;
-    const labelFont = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
     this.label = addCrispText(scene, def.x, labelY, def.label, {
-      fontSize: '15px',
+      fontSize: '17px',
       fontStyle: '600',
       color: '#F5E6C8',
-      fontFamily: labelFont,
+      fontFamily: LABEL_FONT,
       stroke: '#000000',
       strokeThickness: 2,
       shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 3, fill: true },
@@ -63,9 +62,9 @@ export class Building {
     // Subtitle (description) below the label — pushed 5px down to clear the
     // title's descenders and avoid muddiness in the overlap zone.
     addCrispText(scene, def.x, labelY + 5, def.activity, {
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#d8d8d8',
-      fontFamily: labelFont,
+      fontFamily: LABEL_FONT,
       stroke: '#000000',
       strokeThickness: 1,
       shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 2, fill: true },

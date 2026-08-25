@@ -84,3 +84,10 @@ function watchDpr(): void {
 if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   watchDpr();
 }
+
+/**
+ * In-world label face: the un-adjusted RuneScape (see `fonts.css`), so the
+ * `fontSize` beside it is a real px value. Its caps are shorter per em than the
+ * Inter and Fira Code they replaced, hence the ~15% bump at each call site.
+ */
+export const LABEL_FONT = '"RuneScape", ui-monospace, monospace';

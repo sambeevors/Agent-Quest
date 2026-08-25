@@ -63,6 +63,20 @@ Invariants worth preserving:
 - **Both generators are seeded and deterministic.** Scenery that reshuffles every reload is disorienting, and a road that moves under a walking hero is a bug.
 - **Don't close concave corners in the road grid.** A 16-tile edge set has no inner-corner tile, and filling the notch looks like the fix — but iterating that rule is a morphological closing: it eats the grass out of every space the network encloses and turns the village into one plaza. `makeTileable` fills only pinholes and diagonal-only touches, and `path-tiles.test.ts` guards a ring of roads around an open green.
 
+## Typography
+
+Everything the user reads — React panels and Phaser's in-world labels alike — is set in RuneScape (`client/public/assets/fonts/runescape.ttf`, declared in `client/src/fonts.css`).
+
+Two things about that file drive the setup. Its glyph bounds and advance widths are all multiples of 1/16 em, so it was drawn for 16px and has no other native size; and its lowercase is small for its em (x-height 0.375, cap 0.625), so it reads a third smaller than the Fira Code and Cinzel it replaced at the same declared size. Hence **two faces off the one file**:
+
+- `RuneScape UI` carries `size-adjust: 145.45%` and is what `--font-ui` / `--font-display` resolve to. 145.45% is 16/11, and 11px is the commonest size in these panels, so most of the UI lands on the font's native size without re-tuning ~140 `font-size` rules and the widths fitted to them. It is also the factor that matches x-height with Fira Code, which is why the fallbacks after it are unadjusted: they supply the glyphs RuneScape lacks (arrows, `≥`, `✓`) at the same optical size as the text around them.
+- `RuneScape` keeps the file's own metrics and is what Phaser uses via `LABEL_FONT` in `game/text.ts`. In-world sizes are chosen per call site, and they were stepped up ~15% when the font changed to hold the size each label was tuned to.
+
+Two consequences to keep in mind:
+
+- **The app mounts behind the font.** Phaser bakes each label into a canvas texture once and never re-renders it, so a label drawn before the font arrived would keep the fallback for the life of the scene. `main.tsx` awaits both faces (2s cap) before `createRoot`.
+- **Boot-screen paths and shell commands stay monospace.** They exist to be read character by character and pasted into a terminal, which a proportional pixel face with no case-distinct 0/O makes needlessly hard.
+
 ## Commands
 
 ```bash

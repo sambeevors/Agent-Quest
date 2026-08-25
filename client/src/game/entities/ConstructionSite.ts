@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import type { LinearProject } from '../../types/agent';
 import { eventBridge } from '../EventBridge';
-import { addCrispText } from '../text';
+import { addCrispText, LABEL_FONT } from '../text';
 
 /**
  * A Linear project rendered as a building under construction.
@@ -18,8 +18,6 @@ import { addCrispText } from '../text';
 
 /** Palette cycled across sites so adjacent projects are distinguishable. */
 const SITE_COLORS = ['blue', 'yellow', 'red', 'purple'] as const;
-
-const LABEL_FONT = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
 
 /**
  * Fallback native size of the theme's house sprites. Only used if the texture
@@ -76,7 +74,7 @@ export class ConstructionSite {
 
     const labelY = plot.y - this.frameH * scale - 8;
     this.nameLabel = addCrispText(scene, plot.x, labelY, truncate(project.name), {
-      fontSize: '11px',
+      fontSize: '13px',
       fontStyle: '600',
       color: project.color ?? '#F5E6C8',
       fontFamily: LABEL_FONT,
@@ -86,7 +84,7 @@ export class ConstructionSite {
     }).setOrigin(0.5, 1).setDepth(plot.y + 0.2);
 
     this.progressLabel = addCrispText(scene, plot.x, labelY + 3, '', {
-      fontSize: '10px',
+      fontSize: '12px',
       color: '#d8d8d8',
       fontFamily: LABEL_FONT,
       stroke: '#000000',

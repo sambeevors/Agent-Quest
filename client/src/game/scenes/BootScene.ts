@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBridge } from '../EventBridge';
 import { BUILDING_DEFS } from '../data/building-layout';
-import { addCrispText } from '../text';
+import { addCrispText, LABEL_FONT } from '../text';
 import { getActiveTheme } from '../themes/registry';
 import { groupMissingByCategory } from '../data/asset-diagnostics';
 import { sceneRenderScale } from '../dpr';
@@ -112,9 +112,9 @@ export class BootScene extends Phaser.Scene {
 
       const headline = `Bundled asset pack is missing ${n} file${n === 1 ? '' : 's'}.`;
       this.statusText = addCrispText(this, cx, statusY, headline, {
-        fontSize: '16px',
+        fontSize: '18px',
         color: '#f0d89a',
-        fontFamily: 'monospace',
+        fontFamily: LABEL_FONT,
         align: 'center',
         wordWrap: { width: Math.min(vw * 0.8, 640) },
       }).setOrigin(0.5);
@@ -126,9 +126,9 @@ export class BootScene extends Phaser.Scene {
         .map((c) => `  • ${c.label}: ${c.count}`)
         .join('\n');
       const summary = addCrispText(this, cx, statusY + 28, summaryLines, {
-        fontSize: '13px',
+        fontSize: '15px',
         color: '#e8c880',
-        fontFamily: 'monospace',
+        fontFamily: LABEL_FONT,
         align: 'left',
       }).setOrigin(0.5, 0);
 
@@ -141,6 +141,8 @@ export class BootScene extends Phaser.Scene {
       const sampleLines =
         samples.map((p) => `  ${p}`).join('\n') +
         (overflow > 0 ? `\n  …and ${overflow} more` : '');
+      // Paths and the git command below stay monospace: they are read
+      // character by character and pasted into a terminal.
       const sample = addCrispText(this, cx, summary.y + summary.displayHeight + 16, sampleLines, {
         fontSize: '11px',
         color: '#8ea0b4',
@@ -161,9 +163,9 @@ export class BootScene extends Phaser.Scene {
       }).setOrigin(0.5, 0);
 
       const primary = addCrispText(this, cx, hint.y + hint.displayHeight + 24, '↻  Reload page', {
-          fontSize: '16px',
+          fontSize: '18px',
           color: '#1a1a2e',
-          fontFamily: 'monospace',
+          fontFamily: LABEL_FONT,
           backgroundColor: '#c4a35a',
           padding: { x: 18, y: 10 },
         })
@@ -176,9 +178,9 @@ export class BootScene extends Phaser.Scene {
     }
 
     this.statusText = addCrispText(this, cx, statusY, 'Connecting to server...', {
-      fontSize: '18px',
+      fontSize: '20px',
       color: '#888888',
-      fontFamily: 'monospace',
+      fontFamily: LABEL_FONT,
     }).setOrigin(0.5);
 
     this.onConnected = () => {
