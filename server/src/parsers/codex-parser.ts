@@ -12,8 +12,7 @@ import type {
   CodexReasoning,
   CodexWebSearchEnd,
 } from './codex-types';
-
-const GIT_COMMAND_PATTERN = /\bgit\s+(commit|push|merge|rebase|cherry-pick)\b/;
+import { GIT_COMMAND_PATTERN, classifyBashCommand } from './bash-activity';
 
 /** Parse one line of a Codex rollout JSONL file. `null` when the line is noise or malformed. */
 export function parseCodexLine(raw: string, sessionId: string, sessionCwd: string): ParsedEvent | null {
@@ -80,11 +79,16 @@ export function parseCodexLine(raw: string, sessionId: string, sessionCwd: strin
         : '';
       const parsedFirst = Array.isArray(p.parsed_cmd) && p.parsed_cmd.length > 0 ? p.parsed_cmd[0] : undefined;
 
-      let activity: AgentActivity = 'bash';
+      let activity: AgentActivity;
       if (GIT_COMMAND_PATTERN.test(command)) {
         activity = 'git';
       } else if (parsedFirst?.type === 'read' || parsedFirst?.type === 'search' || parsedFirst?.type === 'list_files') {
+        // Codex classifies the command for us; trust it when it's there.
         activity = 'reading';
+      } else {
+        // No `parsed_cmd` (older rollouts, or a shape Codex didn't classify) —
+        // fall back to the same shell classifier the Claude parser uses.
+        activity = classifyBashCommand(command);
       }
 
       const tc: ToolCall = {
