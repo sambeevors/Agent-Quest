@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   z-index: 100;
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-ui);
 }
 
 .tutorial-modal {
@@ -59,7 +59,7 @@
 }
 
 .tutorial-title {
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-display);
   color: #C4A35A;
   font-size: 20px;
   font-weight: 700;
@@ -87,7 +87,7 @@
 }
 
 .tutorial-section-label {
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-display);
   color: #C4A35A;
   font-size: 11px;
   letter-spacing: 1.2px;
@@ -146,7 +146,7 @@
 
 .tutorial-legend-v {
   color: #C4A35A;
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-display);
   font-weight: 600;
   white-space: nowrap;
 }

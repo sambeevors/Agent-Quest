@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { WORLD_WIDTH, WORLD_HEIGHT, BUILDING_DEFS, VILLAGE_GATE, PLAZA, NPC_VILLAGE, CITY_CLEAR } from '../data/building-layout';
 import { getRoadSegments } from '../data/road-network';
-import { addCrispText } from '../text';
+import { addCrispText, LABEL_FONT } from '../text';
 import { getActiveTheme } from '../themes/registry';
 
 function createRng(seed: number): () => number {
@@ -445,7 +445,7 @@ export class TerrainRenderer {
     p.fillStyle(0x6B4E2E, 0.95); p.fillRect(sx - 1.5, sy - 18, 3, 22);
     p.fillStyle(0x8B7A5A, 0.95); p.fillRect(sx - 22, sy - 14, 44, 10);
     p.lineStyle(1, 0x3A2A18, 0.8); p.strokeRect(sx - 22, sy - 14, 44, 10);
-    addCrispText(this.scene, sx, sy - 9, 'Mossvale', { fontSize: '10px', color: '#F5E6C8', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(sy + 0.6);
+    addCrispText(this.scene, sx, sy - 9, 'Mossvale', { fontSize: '11px', color: '#F5E6C8', fontFamily: LABEL_FONT }).setOrigin(0.5).setDepth(sy + 0.6);
   }
 
   // --- shadows ---------------------------------------------------------
@@ -474,7 +474,7 @@ export class TerrainRenderer {
     g.lineStyle(4, 0x6B4E2E, 0.85); g.beginPath(); g.arc(gx, gy - 20, 44, Math.PI, 0, false); g.strokePath();
     g.fillStyle(0xC4A35A, 0.75); g.fillCircle(gx - 8, gy - 4, 3); g.fillCircle(gx + 8, gy - 4, 3);
     addCrispText(this.scene, gx, gy - 36, 'Village Gate', {
-      fontSize: '14px', color: '#C4A35A', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2,
+      fontSize: '16px', color: '#C4A35A', fontFamily: LABEL_FONT, stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5, 1).setDepth(1);
   }
 
@@ -508,7 +508,7 @@ export class TerrainRenderer {
       g.fillStyle(0x6B4E2E, 0.95); g.fillRect(s.x - 1.5, s.y - 18, 3, 22);
       g.fillStyle(0x8B7A5A, 0.95); g.fillRect(s.x - 22, s.y - 14, 44, 10);
       g.lineStyle(1, 0x3A2A18, 0.8); g.strokeRect(s.x - 22, s.y - 14, 44, 10);
-      addCrispText(this.scene, s.x, s.y - 9, s.label, { fontSize: '10px', color: '#F5E6C8', fontFamily: 'monospace' })
+      addCrispText(this.scene, s.x, s.y - 9, s.label, { fontSize: '11px', color: '#F5E6C8', fontFamily: LABEL_FONT })
         .setOrigin(0.5).setDepth(s.y + 0.6);
     }
   }

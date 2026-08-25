@@ -84,3 +84,15 @@ function watchDpr(): void {
 if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   watchDpr();
 }
+
+/**
+ * Face for in-world labels — building names, hero names, activity lines.
+ *
+ * This is the un-adjusted RuneScape face (see `fonts.css`): the `fontSize`
+ * passed alongside it is the real px value, nothing scales it underneath.
+ * RuneScape's caps measure 0.625em against the ~0.72em of the Inter and Fira
+ * Code these labels used to be set in, so a label that keeps its old px value
+ * reads about a sixth smaller — the sizes at each call site were stepped up to
+ * hold the size they were tuned to.
+ */
+export const LABEL_FONT = '"RuneScape", ui-monospace, monospace';

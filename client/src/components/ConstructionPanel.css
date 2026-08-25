@@ -67,7 +67,7 @@
 }
 
 .construction-pop-title {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-size: 15px;
 }
 
@@ -84,7 +84,7 @@
   border: 1px solid rgba(196, 163, 90, 0.25);
   border-radius: 4px;
   color: #C8E08A;
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-ui);
   font-size: 10px;
   word-break: break-all;
 }
@@ -218,7 +218,7 @@
 
 .linear-connect-note code {
   color: #C8E08A;
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-ui);
 }
 
 .linear-connect-row {
@@ -241,7 +241,7 @@
   border: 1px solid rgba(196, 163, 90, 0.3);
   border-radius: 4px;
   color: #F5E6C8;
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-ui);
   font-size: 11px;
 }
 

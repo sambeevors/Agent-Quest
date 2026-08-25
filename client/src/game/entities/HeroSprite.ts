@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { HERO_COLOR_SPRITE_BASE, HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, type HeroClass, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
 import { getActiveTheme } from '../themes/registry';
 import { findRoadPath, type Point } from '../data/road-network';
-import { addCrispText } from '../text';
+import { addCrispText, LABEL_FONT } from '../text';
 
 const MOVE_SPEED = 150;
 /** Ground distance covered by one full run-cycle. Keeps legs synced to travel. */
@@ -185,9 +185,9 @@ export class HeroSprite {
     const nameColor = HERO_LABEL_COLOR[heroColor] ?? '#DDDDDD';
     this.nameBaseColor = nameColor;
     this.nameText = addCrispText(scene, x, y + this.nameOffsetY, name, {
-      fontSize: '14px',
+      fontSize: '16px',
       color: nameColor,
-      fontFamily: 'monospace',
+      fontFamily: LABEL_FONT,
       stroke: '#000000',
       strokeThickness: 3,
     }).setOrigin(0.5);
@@ -196,9 +196,9 @@ export class HeroSprite {
     // the name to visually distinguish child heroes from parent sessions.
     if (isSubagent) {
       this.subagentText = addCrispText(scene, x, y + this.subagentOffsetY, 'subagent', {
-        fontSize: '9px',
+        fontSize: '10px',
         color: '#9AA4B0',
-        fontFamily: 'monospace',
+        fontFamily: LABEL_FONT,
         fontStyle: 'italic',
         stroke: '#000000',
         strokeThickness: 2,
@@ -210,27 +210,27 @@ export class HeroSprite {
 
     // Activity label below hero
     this.activityText = addCrispText(scene, x, y + this.activityOffsetY, 'idle', {
-      fontSize: '12px',
+      fontSize: '13px',
       color: ACTIVITY_COLOR.idle,
-      fontFamily: 'monospace',
+      fontFamily: LABEL_FONT,
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5);
 
     // Detail label (file/command) below activity
     this.detailText = addCrispText(scene, x, y + this.detailOffsetY, '', {
-      fontSize: '11px',
+      fontSize: '12px',
       color: '#AABBCC',
-      fontFamily: 'monospace',
+      fontFamily: LABEL_FONT,
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5);
 
     // Task label (current user prompt) below detail
     this.taskText = addCrispText(scene, x, y + this.taskOffsetY, '', {
-      fontSize: '10px',
+      fontSize: '11px',
       color: '#9FB7D4',
-      fontFamily: 'monospace',
+      fontFamily: LABEL_FONT,
       fontStyle: 'italic',
       stroke: '#000000',
       strokeThickness: 2,
@@ -420,9 +420,9 @@ export class HeroSprite {
         this._y + this.subagentOffsetY,
         this.source.toUpperCase(),
         {
-          fontSize: '9px',
+          fontSize: '10px',
           color: SOURCE_BADGE_COLOR[this.source],
-          fontFamily: 'monospace',
+          fontFamily: LABEL_FONT,
           stroke: '#000000',
           strokeThickness: 2,
         },
@@ -484,9 +484,9 @@ export class HeroSprite {
         this._y + this.activityOffsetY,
         badge.short,
         {
-          fontSize: '11px',
+          fontSize: '12px',
           color: badge.color,
-          fontFamily: 'monospace',
+          fontFamily: LABEL_FONT,
           fontStyle: 'bold',
           stroke: '#000000',
           strokeThickness: 2,
