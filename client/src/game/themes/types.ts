@@ -110,10 +110,12 @@ export interface ThemeManifest {
   /** PNG path for a functional building (id from BUILDING_DEFS).
    * All themes are required to provide imagery for every building id. */
   getBuildingImage(id: string): string;
-  /** Optional per-building scale override. When absent, the default
-   * from BUILDING_DEFS is used. Needed when the theme's native building
-   * sizes differ from the default pack. */
-  getBuildingScale?(id: string): number | undefined;
+  /**
+   * World scale for building art — one value for every building, so a PNG
+   * drawn twice as large renders twice as large. Per-building scales would
+   * flatten whatever size the artist drew.
+   */
+  buildingScale: number;
   /** Decorations, decorative houses, trees, stumps — every static/sprite
    * asset BootScene used to hardcode. */
   getStaticAssetPreload(): StaticAssetEntry[];

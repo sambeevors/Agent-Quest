@@ -224,6 +224,19 @@ export const tinySwordsCc0Theme: ThemeManifest = {
   name: 'Tiny Swords (CC0)',
   // Same frame size as the default theme (192 px) → same scale.
   heroScale: 0.55,
+  /**
+   * Chosen so the village keeps the footprint it had under the old per-building
+   * scales — the mean rendered height is unchanged — while the buildings' sizes
+   * relative to each other become the artist's again.
+   *
+   * Deliberately not the same number as scenery's or the heroes'. The eight
+   * buildings under `BuildingsCustom/` are drawn at about twice this pack's
+   * pixel density (their tavern is 273px tall where Tiny Swords' own house is
+   * 148), so the two families need different scales to render at the same size.
+   * Reconciling them properly means moving the heroes too, and that is a
+   * decision about how the village should read, not a scaling bug.
+   */
+  buildingScale: 0.38,
 
   getHeroPreload(): PreloadEntry[] {
     const entries: PreloadEntry[] = [];
@@ -282,11 +295,7 @@ export const tinySwordsCc0Theme: ThemeManifest = {
   },
 
   getBuildingImage(id: string): string {
-    return CC0_BUILDINGS[id]?.path ?? `assets/buildings/${id}.png`;
-  },
-
-  getBuildingScale(id: string): number | undefined {
-    return CC0_BUILDINGS[id]?.scale;
+    return CC0_BUILDINGS[id] ?? `assets/buildings/${id}.png`;
   },
 
   getStaticAssetPreload(): StaticAssetEntry[] {
@@ -370,34 +379,22 @@ export const tinySwordsCc0Theme: ThemeManifest = {
 };
 
 /**
- * CC0 building mapping. The pack ships only Castle / House / Tower / Goblin
- * House, so we reuse each artwork across multiple activities by varying
- * the color (House_Blue as Library, House_Red as Forge…) and repurposing
- * the Goblin House for the ramshackle Alchemist feel.
- *
- * Scale overrides:
- *   - Castle is 320×256 native, Tower_Blue is 128×256 native; scales
- *     below are chosen against those sizes.
- *   - Tower_Red → arena is rendered at 0.55 (larger than other towers)
- *     because the sprite silhouette is narrower than a purpose-built
- *     arena — the extra size compensates.
- *   - All four Houses (library/forge/tavern/chapel) share a 128×192
- *     native size but get different scales (0.85 / 0.65 / 0.75 / 0.55)
- *     on purpose, to give a visual hierarchy where library is the
- *     biggest and chapel the smallest.
+ * Building artwork. All eight are drawn to a single world scale — compare the
+ * doors across `BuildingsCustom/` and they match — so they are rendered at one
+ * scale too, and the Alchemist towers over the Watchtower because that is how
+ * they were drawn. The per-building table this replaces flattened that range:
+ * it stretched the Castle 29% relative to its neighbours, and left the tallest
+ * and shortest buildings barely a hand apart.
  */
 const CUSTOM_BUILDINGS_BASE = 'assets/themes/tiny-swords-cc0/BuildingsCustom';
 
-const CC0_BUILDINGS: Record<string, { path: string; scale: number }> = {
-  // User-authored custom builds — detailed silhouettes replace all eight
-  // activity buildings. Scales chosen to approximate the previous rendered
-  // footprint; tune per-building in the editor Inspector.
-  castle:     { path: `${CUSTOM_BUILDINGS_BASE}/Castle.png`,       scale: 0.45 },
-  library:    { path: `${CUSTOM_BUILDINGS_BASE}/Library.png`,      scale: 0.40 },
-  forge:      { path: `${CUSTOM_BUILDINGS_BASE}/Forge.png`,        scale: 0.40 },
-  tavern:     { path: `${CUSTOM_BUILDINGS_BASE}/Tavern.png`,       scale: 0.40 },
-  chapel:     { path: `${CUSTOM_BUILDINGS_BASE}/Chapel.png`,       scale: 0.35 },
-  watchtower: { path: `${CUSTOM_BUILDINGS_BASE}/Tower.png`,        scale: 0.35 },
-  arena:      { path: `${CUSTOM_BUILDINGS_BASE}/Arena.png`,        scale: 0.35 },
-  alchemist:  { path: `${CUSTOM_BUILDINGS_BASE}/Alchemist.png`,    scale: 0.35 },
+const CC0_BUILDINGS: Record<string, string> = {
+  castle:     `${CUSTOM_BUILDINGS_BASE}/Castle.png`,
+  library:    `${CUSTOM_BUILDINGS_BASE}/Library.png`,
+  forge:      `${CUSTOM_BUILDINGS_BASE}/Forge.png`,
+  tavern:     `${CUSTOM_BUILDINGS_BASE}/Tavern.png`,
+  chapel:     `${CUSTOM_BUILDINGS_BASE}/Chapel.png`,
+  watchtower: `${CUSTOM_BUILDINGS_BASE}/Tower.png`,
+  arena:      `${CUSTOM_BUILDINGS_BASE}/Arena.png`,
+  alchemist:  `${CUSTOM_BUILDINGS_BASE}/Alchemist.png`,
 };

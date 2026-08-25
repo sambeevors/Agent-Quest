@@ -121,6 +121,29 @@ describe('generateScenery', () => {
     }
   });
 
+  test('scales every kind alike, so native art size decides what looks big', () => {
+    // A tree frame is 192px and a mushroom's 64px. Scaling both the same is
+    // what makes the tree three times the mushroom — which is how the pack
+    // drew them. A per-kind scale would silently overrule the artist.
+    const byKind = new Map<string, number[]>();
+    for (const i of generateScenery(opts())) {
+      const list = byKind.get(i.kind) ?? [];
+      list.push(i.scale);
+      byKind.set(i.kind, list);
+    }
+    expect(byKind.size).toBeGreaterThan(1);
+    const ranges = [...byKind.values()].map((v) => [Math.min(...v), Math.max(...v)]);
+    for (const [lo, hi] of ranges) {
+      expect(lo).toBeCloseTo(ranges[0]![0]!, 1);
+      expect(hi).toBeCloseTo(ranges[0]![1]!, 1);
+    }
+  });
+
+  test('varies size a little within a kind, so a stand of trees is not stamped', () => {
+    const trees = generateScenery(opts()).filter((i) => i.kind === 'tree').map((t) => t.scale);
+    expect(new Set(trees).size).toBeGreaterThan(5);
+  });
+
   test('emits only variants that exist for each kind', () => {
     const maxVariant: Record<string, number> = { tree: 4, bush: 3, rock: 5, mushroom: 3 };
     for (const i of generateScenery(opts())) {

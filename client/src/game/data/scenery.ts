@@ -44,36 +44,53 @@ interface KindSpec {
   roadClearance: number;
   /** Minimum gap between two items of this kind, px. */
   spacing: number;
-  scaleMin: number;
-  scaleMax: number;
 }
 
 /**
- * Per-kind placement rules. Trees are the big offenders — their canopy is
- * several times the size of their trunk, so they need real distance from
- * anything. Small props are allowed close to a road edge, which is exactly
- * where they look best.
+ * World scale for scenery art. One value for every kind, because the pack draws
+ * all of it to one scale: measured on the artwork rather than the frame, a tree
+ * is 174px tall, a bush 42 and a mushroom 19. Rendering all three at
+ * `SCENERY_SCALE` is what makes the tree nine times the mushroom, as drawn. The
+ * per-kind scales this replaces did the opposite — bushes were inflated by 60%
+ * against the trees, so a shrub read as a sapling.
+ *
+ * The value is the old tree scale, so the thing that dominates the view is
+ * unchanged and everything else falls into its true place beside it.
+ *
+ * It is NOT the scale buildings use, and can't be: the buildings under
+ * `BuildingsCustom/` are drawn at roughly twice this pack's pixel density (a
+ * tavern there is 273px tall where Tiny Swords' own house is 148), so one
+ * number cannot serve both. See `buildingScale` in the theme.
+ */
+const SCENERY_SCALE = 0.55;
+
+/** Per-item size variation, so a stand of trees isn't stamped from one mould. */
+const SCALE_JITTER = 0.15;
+
+/**
+ * Per-kind placement rules — how much room each kind needs, and how likely it
+ * is to appear. Size is deliberately not among them; see `SCENERY_SCALE`.
+ *
+ * Trees are the big offenders: their canopy is several times the size of their
+ * trunk, so they need real distance from anything. Small props are allowed
+ * close to a road edge, which is exactly where they look best.
  */
 const KIND_SPECS: Record<SceneryKind, KindSpec> = {
   tree: {
     variants: 4, weightDense: 70, weightOpen: 8,
     buildingClearance: 46, roadClearance: 52, spacing: 54,
-    scaleMin: 0.46, scaleMax: 0.68,
   },
   bush: {
     variants: 3, weightDense: 14, weightOpen: 34,
     buildingClearance: 26, roadClearance: 30, spacing: 44,
-    scaleMin: 0.5, scaleMax: 0.8,
   },
   rock: {
     variants: 5, weightDense: 10, weightOpen: 34,
     buildingClearance: 24, roadClearance: 26, spacing: 46,
-    scaleMin: 0.45, scaleMax: 0.75,
   },
   mushroom: {
     variants: 3, weightDense: 6, weightOpen: 24,
     buildingClearance: 20, roadClearance: 22, spacing: 38,
-    scaleMin: 0.4, scaleMax: 0.6,
   },
 };
 
@@ -283,7 +300,7 @@ export function generateScenery(opts: SceneryOptions): SceneryItem[] {
         variant: 1 + Math.floor(rng() * spec.variants),
         x: p.x,
         y: p.y,
-        scale: spec.scaleMin + rng() * (spec.scaleMax - spec.scaleMin),
+        scale: SCENERY_SCALE * (1 + (rng() * 2 - 1) * SCALE_JITTER),
         flipX: rng() < 0.5,
       });
     }

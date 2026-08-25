@@ -15,11 +15,9 @@ export class Building {
     this.def = def;
 
     this.image = scene.add.image(def.x, def.y, def.imageKey);
-    this.image.setOrigin(0.5, 1); // bottom-center — matches editor coordinate system
-    // Theme can override the default scale when its building PNG has a
-    // different native size than the BuildingDef baseline.
-    const themeScale = getActiveTheme().getBuildingScale?.(def.id);
-    this.image.setScale(themeScale ?? def.scale);
+    this.image.setOrigin(0.5, 1); // bottom-centre — the def's y IS the ground line
+    // One scale for every building, so each renders at the size it was drawn.
+    this.image.setScale(getActiveTheme().buildingScale);
     this.image.setInteractive({ useHandCursor: true });
 
     // Click handler — emit the building id AND the pointer's screen-space
