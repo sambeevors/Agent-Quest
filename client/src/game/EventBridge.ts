@@ -1,7 +1,13 @@
 type Listener = (...args: unknown[]) => void;
 
 /** Events whose last payload is replayed to new subscribers (fixes React↔Phaser boot race). */
-const STICKY_EVENTS = new Set(['ws:connected', 'ws:disconnected', 'agents:updated']);
+const STICKY_EVENTS = new Set([
+  'ws:connected', 'ws:disconnected', 'agents:updated',
+  // Linear projects arrive once per poll (minutes apart) — without stickiness a
+  // scene that boots between polls would show no construction sites until the
+  // next one landed.
+  'linear:updated',
+]);
 
 class EventBridge {
   private listeners = new Map<string, Set<Listener>>();

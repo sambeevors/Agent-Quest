@@ -18,7 +18,7 @@ import { useAgentNotifications, type ToastPayload } from './hooks/useAgentNotifi
 import './App.css';
 
 export default function App() {
-  const { agents, activityLog, connected, configDirs } = useAgentState();
+  const { agents, activityLog, connected, configDirs, linear, setLinear } = useAgentState();
   const { selectedAgentId, selectAgent } = useSelectedAgent();
   const [selectedBuilding, setSelectedBuilding] = useState<{
     id: string;
@@ -162,6 +162,12 @@ export default function App() {
     eventBridge.emit('agents:updated', agents);
   }, [agents]);
 
+  // Construction sites are driven from the same Linear payload the panel uses,
+  // so the map and the list can never disagree.
+  useEffect(() => {
+    eventBridge.emit('linear:updated', linear?.projects ?? []);
+  }, [linear]);
+
   useEffect(() => {
     eventBridge.emit('selection:changed', selectedAgentId);
   }, [selectedAgentId]);
@@ -182,6 +188,8 @@ export default function App() {
           <TopBar
             agents={agents}
             connected={connected}
+            linear={linear}
+            onLinearStatus={setLinear}
             notifications={{
               entries: notifications,
               unread: notifUnread,

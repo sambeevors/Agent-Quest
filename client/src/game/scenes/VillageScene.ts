@@ -2,13 +2,15 @@ import * as Phaser from 'phaser';
 import { eventBridge } from '../EventBridge';
 import { Building } from '../entities/Building';
 import { HeroSprite } from '../entities/HeroSprite';
-import { BUILDING_DEFS, VILLAGE_GATE, WORLD_WIDTH, WORLD_HEIGHT, getBuildingForActivity } from '../data/building-layout';
+import { BUILDING_DEFS, VILLAGE_GATE, WORLD_WIDTH, WORLD_HEIGHT, computeVillageAnnexes, getBuildingForActivity } from '../data/building-layout';
+import type { VillageAnnexes } from '../data/building-layout';
 import { TerrainRenderer } from '../terrain/TerrainRenderer';
 import { renderMapConfig } from '../terrain/MapConfigRenderer';
 import { ensureAssetsLoaded } from '../data/asset-loader';
 import { buildRoadNetworkFromPaths, resetRoadNetwork } from '../data/road-network';
 import { NpcSprite } from '../entities/NpcSprite';
-import type { AgentState } from '../../types/agent';
+import { ConstructionSite } from '../entities/ConstructionSite';
+import type { AgentState, LinearProject } from '../../types/agent';
 import type { AssetManifest, MapConfig, BuildingPosition, NpcPlacement } from '../../editor/types/map';
 import { SERVER_URL as API_BASE } from '../../config';
 import { getActiveTheme, rebaseSavedScale } from '../themes/registry';
@@ -60,6 +62,19 @@ export class VillageScene extends Phaser.Scene {
 
   /** Decorative NPCs placed via the map editor. */
   private editorNpcs: NpcSprite[] = [];
+
+  /** Linear construction sites, keyed by project id. */
+  private constructionSites = new Map<string, ConstructionSite>();
+  /** Which plot index each site occupies, so a site never migrates or collides. */
+  private sitePlots = new Map<string, number>();
+  private onLinearUpdated: ((projects: unknown) => void) | null = null;
+  private onConstructionFocus: ((projectId: unknown) => void) | null = null;
+  /** Projects received before the world was ready — replayed once it is. */
+  private pendingProjects: LinearProject[] | null = null;
+
+  /** Construction-plot placement derived from the spawned buildings. Null pre-bootstrap. */
+  private annexes: VillageAnnexes | null = null;
+
 
   /** Hero sprite scale — overridden by MapConfig settings if available. */
   /** Hero sprite scale — defaults to the active theme's baseline (0.5 for
@@ -314,6 +329,26 @@ export class VillageScene extends Phaser.Scene {
     };
     eventBridge.on('agents:updated', this.onAgentsUpdated);
 
+    // Linear projects → construction sites. Buffered until bootstrapWorld()
+    // finishes, same as agent updates, since both need the world to exist.
+    this.onLinearUpdated = (projects: unknown) => {
+      try { if (!this.sys.isActive()) return; } catch { return; }
+      if (!Array.isArray(projects)) return;
+      this.handleLinearUpdate(projects as LinearProject[]);
+    };
+    eventBridge.on('linear:updated', this.onLinearUpdated);
+
+    // Pan to a construction site when the panel asks for it.
+    this.onConstructionFocus = (projectId: unknown) => {
+      if (typeof projectId !== 'string') return;
+      try { if (!this.sys.isActive()) return; } catch { return; }
+      const site = this.constructionSites.get(projectId);
+      if (site === undefined) return;
+      const { x, y } = site.position;
+      this.cameras.main.pan(x, y, 600, 'Sine.easeInOut');
+    };
+    eventBridge.on('construction:focus', this.onConstructionFocus);
+
     // Pan the camera to a hero when the Activity Feed requests it
     // (user clicks an agent sprite in the feed).
     this.onCameraFollow = (agentId: unknown) => {
@@ -383,6 +418,18 @@ export class VillageScene extends Phaser.Scene {
       this.heroBuildingMap.clear();
       for (const npc of this.editorNpcs) npc.destroy();
       this.editorNpcs = [];
+      if (this.onLinearUpdated !== null) {
+        eventBridge.off('linear:updated', this.onLinearUpdated);
+        this.onLinearUpdated = null;
+      }
+      if (this.onConstructionFocus !== null) {
+        eventBridge.off('construction:focus', this.onConstructionFocus);
+        this.onConstructionFocus = null;
+      }
+      for (const site of this.constructionSites.values()) site.destroy();
+      this.constructionSites.clear();
+      this.sitePlots.clear();
+      this.annexes = null;
     };
     this.events.on('shutdown', cleanup);
     this.events.on('destroy', cleanup);
@@ -466,14 +513,77 @@ export class VillageScene extends Phaser.Scene {
       resetRoadNetwork();
     }
 
-    // Buildings are now spawned — process any buffered agent updates
+    // The construction yard is additive to whatever map was rendered — the
+    // editor has no concept of it, so plots are anchored to the spawned
+    // buildings rather than to fixed world coordinates.
+    this.annexes = computeVillageAnnexes(this.buildings.map((b) => ({ x: b.def.x, y: b.def.y })));
+
+    // Buildings are now spawned — process any buffered updates
     this.buildingsReady = true;
     if (this.pendingAgentUpdate !== null) {
       const pending = this.pendingAgentUpdate;
       this.pendingAgentUpdate = null;
       this.handleAgentUpdate(pending);
     }
+    if (this.pendingProjects !== null) {
+      const pending = this.pendingProjects;
+      this.pendingProjects = null;
+      this.handleLinearUpdate(pending);
+    }
   }
+
+  // ---------------------------------------------------------------------------
+  // Linear construction sites
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Reconcile the construction yard against the latest project list: update
+   * sites that persist, tear down ones whose project is gone, raise new ones on
+   * whichever plots are free. Projects beyond the available plots aren't placed
+   * — the panel still lists every one of them.
+   *
+   * A site KEEPS its plot for as long as its project is in progress, even when
+   * the sort order shifts underneath it. Re-deriving the plot from the list
+   * index each poll would make buildings hop around the map whenever one
+   * project overtook another, and would let two sites claim the same plot.
+   */
+  private handleLinearUpdate(projects: LinearProject[]): void {
+    const annexes = this.annexes;
+    if (!this.buildingsReady || annexes === null) {
+      this.pendingProjects = projects;
+      return;
+    }
+
+    const byId = new Map(projects.map((p) => [p.id, p]));
+
+    // Retire sites whose project is no longer in progress, freeing their plots.
+    for (const [id, site] of this.constructionSites) {
+      if (byId.has(id)) continue;
+      site.destroy();
+      this.constructionSites.delete(id);
+      this.sitePlots.delete(id);
+    }
+
+    // Update the sites that survived, in place.
+    for (const [id, site] of this.constructionSites) {
+      const project = byId.get(id);
+      if (project !== undefined) site.update(project);
+    }
+
+    // Fill free plots with new projects, most-built first (the list already
+    // arrives sorted that way).
+    const takenPlots = new Set(this.sitePlots.values());
+    for (const project of projects) {
+      if (this.constructionSites.has(project.id)) continue;
+      const plotIndex = annexes.plots.findIndex((_, i) => !takenPlots.has(i));
+      if (plotIndex === -1) break; // yard is full
+      const plot = annexes.plots[plotIndex]!;
+      takenPlots.add(plotIndex);
+      this.sitePlots.set(project.id, plotIndex);
+      this.constructionSites.set(project.id, new ConstructionSite(this, project, plot, plotIndex));
+    }
+  }
+
 
   /** Calculate zoom so the village area (~1100×700 centred at 1400,780) fills the viewport. */
   private fitCamera(): void {
