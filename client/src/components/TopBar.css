@@ -275,3 +275,10 @@
     transition: none;
   }
 }
+
+/* Fleet-wide spend estimate — muted gold so it reads as informational rather
+   than as another status count. */
+.topbar-stat-value.cost {
+  color: #C8E08A;
+  font-variant-numeric: tabular-nums;
+}

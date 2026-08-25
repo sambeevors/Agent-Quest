@@ -1,6 +1,7 @@
 import type { AgentSource, AgentState, HeroClass, HeroColor } from '../types';
 import { HERO_CLASSES, HERO_COLORS } from '../types';
 import type { ParsedEvent } from '../parsers/session-parser';
+import { costFor } from '../pricing/model-pricing';
 
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit']);
 
@@ -466,6 +467,9 @@ export class AgentStateManager {
       currentCommand: event.command,
       tokenUsage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       cost: 0,
+      // Starts true and is only ever cleared: a session with no usage at all
+      // has a legitimately-known cost of $0.
+      costKnown: true,
       sessionStart: event.timestamp,
       toolCalls: [...event.toolCalls],
       errors: [],
@@ -504,6 +508,20 @@ export class AgentStateManager {
     agent.tokenUsage.output += event.usage.output;
     agent.tokenUsage.cacheRead += event.usage.cacheRead;
     agent.tokenUsage.cacheWrite += event.usage.cacheWrite;
+
+    // Price the record against the model that produced IT, not the agent's
+    // current model — a session that switches mid-run (Opus → Sonnet) must bill
+    // each turn at the rate that actually applied. Fall back to the agent's
+    // last-known model for lines whose JSONL predates `message.model`.
+    const model = event.model ?? agent.model;
+    const recordCost = costFor(model, event.usage);
+    if (recordCost === null) {
+      // An unpriced model makes the whole session total a lower bound; the UI
+      // marks it so a partial figure is never read as complete.
+      agent.costKnown = false;
+    } else {
+      agent.cost += recordCost;
+    }
   }
 
   private updateAgent(agent: AgentState, event: ParsedEvent): void {

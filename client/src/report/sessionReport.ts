@@ -1,14 +1,18 @@
 import type { AgentActivity, AgentState } from '../types/agent';
+import { isCostKnown } from '../types/agent';
 
 /**
  * Per-session "report card" derived purely from an AgentState. Kept as a pure
  * function so it's testable and DB-ready: the same shape can later be produced
  * from persisted events instead of the live snapshot, without touching the UI.
  *
- * We report token COUNTS (exact, from the JSONL) but deliberately NOT a dollar
- * cost: pricing changes with every model generation and would need constant
- * maintenance, and per-session token totals here don't include the session's
- * subagents (each is its own agent), so a cost figure would mislead anyway.
+ * Token COUNTS are exact (straight from the JSONL). The dollar figure is an
+ * ESTIMATE the server computes at public list prices (see
+ * `server/src/pricing/model-pricing.ts`) and carries two caveats the UI must
+ * keep visible: it excludes the session's subagents, which are separate agents
+ * here, and it is list-price arithmetic rather than a subscription bill.
+ * `costKnown` goes false when an unpriced model contributed, making the number
+ * a lower bound.
  */
 
 export interface ActivitySlice {
@@ -26,6 +30,10 @@ export interface SessionReport {
   errorCount: number;
   hasTokens: boolean;
   tokens: { input: number; output: number; cacheRead: number; cacheWrite: number; total: number };
+  /** Estimated USD for this session alone, excluding its subagents. */
+  cost: number;
+  /** False when an unpriced model contributed — `cost` is then a lower bound. */
+  costKnown: boolean;
   source: AgentState['source'];
   model?: string;
 }
@@ -74,6 +82,8 @@ export function computeSessionReport(agent: AgentState): SessionReport {
     errorCount: agent.errors.length,
     hasTokens: total > 0,
     tokens: { input: tu.input, output: tu.output, cacheRead: tu.cacheRead, cacheWrite: tu.cacheWrite, total },
+    cost: agent.cost,
+    costKnown: isCostKnown(agent),
     source: agent.source,
     model: agent.model,
   };

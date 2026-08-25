@@ -86,7 +86,14 @@ export interface AgentState {
   currentFile?: string;
   currentCommand?: string;
   tokenUsage: { input: number; output: number; cacheRead: number; cacheWrite: number };
+  /** Estimated USD spend for this session at public list prices. Excludes its subagents. */
   cost: number;
+  /**
+   * False once any usage was billed against a model with no published rate,
+   * making `cost` a lower bound. Optional so a client running against an older
+   * server still renders; `isCostKnown()` treats a missing flag as known.
+   */
+  costKnown?: boolean;
   sessionStart: number;
   toolCalls: ToolCall[];
   errors: string[];
@@ -180,6 +187,22 @@ export function modelBadge(model: string | undefined): ModelBadge | null {
   };
 }
 
+/** Whether a session's dollar cost is a complete figure or a lower bound. */
+export function isCostKnown(agent: Pick<AgentState, 'costKnown'>): boolean {
+  return agent.costKnown !== false;
+}
+
+/**
+ * Format a USD estimate for display. Sub-cent amounts get more decimals so a
+ * cheap session reads as "$0.004" rather than a misleading "$0.00".
+ */
+export function formatCost(usd: number): string {
+  if (usd === 0) return '$0.00';
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  if (usd < 100) return `$${usd.toFixed(2)}`;
+  return `$${Math.round(usd).toLocaleString()}`;
+}
+
 export interface ActivityLogEntry {
   agentId: string;
   action: string;
@@ -187,9 +210,39 @@ export interface ActivityLogEntry {
   timestamp: number;
 }
 
+// --- Linear construction sites ---
+
+export interface LinearProject {
+  id: string;
+  name: string;
+  state: string;
+  /** Issue completion ratio, 0..1. */
+  progress: number;
+  completedIssues: number;
+  totalIssues: number;
+  color?: string;
+  targetDate?: string;
+  url: string;
+}
+
+export interface LinearStatus {
+  /** False when no API key is configured — the UI then offers the connect form. */
+  connected: boolean;
+  /** Where the active key came from. `null` when none is configured. */
+  keySource: 'env' | 'stored' | null;
+  /** Last 4 characters of the active key. The key itself is never sent here. */
+  keyHint?: string;
+  /** True when `LINEAR_API_KEY` fixes the key — the UI hides its controls. */
+  envManaged: boolean;
+  projects: LinearProject[];
+  lastSyncedAt: number | null;
+  error?: string;
+}
+
 export type WsEvent =
   | { type: 'agent:update'; agent: AgentState }
   | { type: 'agent:new'; agent: AgentState }
   | { type: 'agent:complete'; id: string }
   | { type: 'activity:log'; agentId: string; action: string; detail: string; timestamp: number }
-  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] };
+  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] }
+  | { type: 'linear:status'; status: LinearStatus };

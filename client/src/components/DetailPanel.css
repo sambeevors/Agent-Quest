@@ -465,3 +465,5 @@
   background: rgba(255, 107, 107, 0.14);
   border-color: rgba(255, 107, 107, 0.5);
 }
+
+.detail-value--num.detail-cost { color: #C8E08A; }

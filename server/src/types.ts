@@ -46,7 +46,14 @@ export interface AgentState {
   currentFile?: string;
   currentCommand?: string;
   tokenUsage: { input: number; output: number; cacheRead: number; cacheWrite: number };
+  /** Estimated USD spend for this session at public list prices. Excludes its subagents. */
   cost: number;
+  /**
+   * False once any usage was billed against a model the pricing table doesn't
+   * know, making `cost` a lower bound. The UI shows a "≥" marker rather than
+   * presenting a partial total as complete.
+   */
+  costKnown: boolean;
   sessionStart: number;   // timestamp ms
   toolCalls: ToolCall[];
   errors: string[];
@@ -119,10 +126,55 @@ export interface JsonlLine {
   };
 }
 
+// --- Linear construction sites ---
+/**
+ * An in-progress Linear project, rendered in the village as a construction site
+ * that completes as its issues close. Only projects the configured API key can
+ * see are ever fetched.
+ */
+export interface LinearProject {
+  id: string;
+  name: string;
+  /** Project state as Linear reports it (e.g. `started`, `planned`). */
+  state: string;
+  /** Completion ratio, 0..1 — Linear's own `progress` field, which honours workspace estimate rules. */
+  progress: number;
+  completedIssues: number;
+  totalIssues: number;
+  /** Linear's hex accent color for the project, when set (e.g. `#5E6AD2`). */
+  color: string | undefined;
+  /** Target date as an ISO date string, when set. */
+  targetDate: string | undefined;
+  /** Deep link into the Linear app. */
+  url: string;
+}
+
+/** Everything the client needs to render (or explain the absence of) construction sites. */
+export interface LinearStatus {
+  /** False when no API key is configured — the UI then offers the connect form. */
+  connected: boolean;
+  /** Where the active key came from. `null` when none is configured. */
+  keySource: 'env' | 'stored' | null;
+  /**
+   * Last 4 characters of the active key, so a user can tell WHICH key is in
+   * use. The key itself is never sent to the client.
+   */
+  keyHint: string | undefined;
+  /** True when `LINEAR_API_KEY` fixes the key — the UI then hides the controls. */
+  envManaged: boolean;
+  /** Populated only when connected; sorted with work-in-progress first. */
+  projects: LinearProject[];
+  /** Last successful fetch (ms), or null if none has succeeded yet. */
+  lastSyncedAt: number | null;
+  /** Human-readable reason the last sync failed, when it did. */
+  error: string | undefined;
+}
+
 // --- WebSocket event types ---
 export type WsEvent =
   | { type: 'agent:update'; agent: AgentState }
   | { type: 'agent:new'; agent: AgentState }
   | { type: 'agent:complete'; id: string }
   | { type: 'activity:log'; agentId: string; action: string; detail: string; timestamp: number }
-  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] };
+  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] }
+  | { type: 'linear:status'; status: LinearStatus };

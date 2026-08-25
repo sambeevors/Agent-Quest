@@ -843,6 +843,70 @@ describe('AgentStateManager', () => {
     });
   });
 
+  describe('cost accumulation', () => {
+    test('prices usage against the model on the event', () => {
+      const mgr = new AgentStateManager();
+      // 1M input on Opus = $5.
+      mgr.processEvent(makeEvent({
+        model: 'claude-opus-5',
+        usage: { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 },
+        usageMessageId: 'm1',
+      }));
+      const agent = mgr.getAgent('sess-1')!;
+      expect(agent.cost).toBeCloseTo(5, 6);
+      expect(agent.costKnown).toBe(true);
+    });
+
+    test('bills each turn at the model that produced it across a mid-session switch', () => {
+      const mgr = new AgentStateManager();
+      mgr.processEvent(makeEvent({
+        model: 'claude-opus-5',
+        usage: { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 },
+        usageMessageId: 'm1',
+      }));
+      mgr.processEvent(makeEvent({
+        model: 'claude-haiku-4-5',
+        usage: { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 },
+        usageMessageId: 'm2',
+      }));
+      // $5 on Opus + $1 on Haiku — not 2× either rate.
+      expect(mgr.getAgent('sess-1')!.cost).toBeCloseTo(6, 6);
+    });
+
+    test('does not double-count cost for repeated lines of one message', () => {
+      const mgr = new AgentStateManager();
+      const ev = {
+        model: 'claude-opus-5',
+        usage: { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 },
+        usageMessageId: 'm1',
+      };
+      mgr.processEvent(makeEvent(ev));
+      mgr.processEvent(makeEvent(ev));
+      expect(mgr.getAgent('sess-1')!.cost).toBeCloseTo(5, 6);
+    });
+
+    test('marks cost unknown when a model has no published rate', () => {
+      const mgr = new AgentStateManager();
+      mgr.processEvent(makeEvent({
+        model: 'some-unlisted-model',
+        usage: { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 },
+        usageMessageId: 'm1',
+      }));
+      const agent = mgr.getAgent('sess-1')!;
+      expect(agent.costKnown).toBe(false);
+      // Unpriced usage contributes nothing rather than being silently zero-rated.
+      expect(agent.cost).toBe(0);
+    });
+
+    test('a session with no usage at all has a known cost of zero', () => {
+      const mgr = new AgentStateManager();
+      mgr.processEvent(makeEvent());
+      expect(mgr.getAgent('sess-1')!.cost).toBe(0);
+      expect(mgr.getAgent('sess-1')!.costKnown).toBe(true);
+    });
+
+  });
+
   describe('waiting → completed correctness', () => {
     test('a waiting agent ages to completed past the completed threshold (refreshAll)', () => {
       const mgr = new AgentStateManager({ idleThresholdMs: 5 * 60_000, completedThresholdMs: 30 * 60_000 });

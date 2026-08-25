@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { AgentActivity, AgentState } from '../types/agent';
+import { formatCost } from '../types/agent';
 import { computeSessionReport } from '../report/sessionReport';
 import { configDirLabel } from './configDirLabel';
 import './SessionReport.css';
@@ -87,8 +88,16 @@ export function SessionReport({ agent }: { agent: AgentState }) {
             <div className="report-econ-row"><span>Cache read</span><span>{formatNum(r.tokens.cacheRead)}</span></div>
             <div className="report-econ-row"><span>Cache write</span><span>{formatNum(r.tokens.cacheWrite)}</span></div>
             <div className="report-econ-row report-econ-total"><span>Total tokens</span><span>{formatNum(r.tokens.total)}</span></div>
+            <div className="report-econ-row report-econ-cost">
+              <span>Est. cost</span>
+              <span>{r.costKnown ? '' : '≥ '}{formatCost(r.cost)}</span>
+            </div>
           </div>
-          <div className="report-muted report-tokens-note">Tokens for this session only — its subagents are tracked separately.</div>
+          <div className="report-muted report-tokens-note">
+            Tokens for this session only — its subagents are tracked separately.
+            Cost is estimated at public list prices, not a subscription bill.
+            {!r.costKnown && ' Part of this session ran on a model with no published rate, so the figure is a lower bound.'}
+          </div>
         </>
       ) : r.source === 'claude' ? (
         <>
