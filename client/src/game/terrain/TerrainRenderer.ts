@@ -30,6 +30,17 @@ const LAKE_CX = 640, LAKE_CY = 920, LAKE_RX = 140, LAKE_RY = 85;
 // Small forest pond NE
 const POND_CX = 2090, POND_CY = 420, POND_RX = 70, POND_RY = 42;
 
+/**
+ * Bounding rects of the water this renderer draws, for the scenery generator
+ * to treat as keep-out ground. The shipped map gets the same treatment from
+ * its terrain grid (see `data/water.ts`); this is the fallback's equivalent,
+ * so a forest doesn't grow out of the lake when `/api/map` is unreachable.
+ */
+export const PROCEDURAL_WATER_BOUNDS: ReadonlyArray<{ x: number; y: number; w: number; h: number }> = [
+  { x: LAKE_CX - LAKE_RX, y: LAKE_CY - LAKE_RY, w: LAKE_RX * 2, h: LAKE_RY * 2 },
+  { x: POND_CX - POND_RX, y: POND_CY - POND_RY, w: POND_RX * 2, h: POND_RY * 2 },
+];
+
 const ROAD_W_MAIN = 56;
 const ROAD_W_SEC = 38;
 
