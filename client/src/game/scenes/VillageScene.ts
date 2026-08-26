@@ -16,6 +16,7 @@ import { renderScenery } from '../terrain/SceneryRenderer';
 import { waterKeepOut } from '../data/water';
 import { Critter } from '../entities/Critter';
 import { ArenaFighters } from '../entities/ArenaFighters';
+import { FarmWork } from '../entities/FarmWork';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
 import { heroNameFor } from '../../naming/hero-names';
@@ -91,6 +92,10 @@ export class VillageScene extends Phaser.Scene {
 
   /** The arena's resident goblin and skeleton — spar while a hero is inside. */
   private arenaFighters: ArenaFighters | null = null;
+
+  /** The farm's work roster — stations its heroes on the crops and moves
+   *  them from bed to bed. Owns the farm's positions outright. */
+  private farmWork: FarmWork | null = null;
 
   /**
    * Heroes that have finished walking to their station. An assigned hero is
@@ -467,6 +472,8 @@ export class VillageScene extends Phaser.Scene {
       this.sitePlots.clear();
       this.arenaFighters?.destroy();
       this.arenaFighters = null;
+      this.farmWork?.destroy();
+      this.farmWork = null;
       this.arrived.clear();
       this.roadLayer?.destroy();
       this.roadLayer = null;
@@ -565,6 +572,7 @@ export class VillageScene extends Phaser.Scene {
     // The arena's cast stands inside the enclosure that just spawned; created
     // here (after heroScale is settled) so the fighters match hero size.
     this.setupArenaFighters();
+    this.setupFarmWork();
 
     // Roads are generated, not painted. Any `paths` in a saved MapConfig are
     // ignored — see rebuildRoads().
@@ -593,6 +601,23 @@ export class VillageScene extends Phaser.Scene {
     const interior = arena?.interiorWorldRect() ?? null;
     if (npcs === undefined || interior === null) return;
     this.arenaFighters = new ArenaFighters(this, npcs, interior, this.heroScale);
+  }
+
+  /** Place (or re-place) the farm's work roster over its tilled beds. */
+  private setupFarmWork(): void {
+    this.farmWork?.destroy();
+    this.farmWork = null;
+    const beds = this.buildings.find((b) => b.def.id === 'farm')?.cropWorldPoints() ?? null;
+    if (beds === null) return;
+    this.farmWork = new FarmWork(
+      this,
+      beds,
+      (heroId) => this.heroes.get(heroId),
+      (heroId) => {
+        this.arrived.add(heroId);
+        this.refreshOccupancy('farm');
+      },
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -903,9 +928,12 @@ export class VillageScene extends Phaser.Scene {
    * Grid positions INSIDE an enclosure's interior rect — heroes walk in
    * through the gate and stand on the floor rather than gathering at the
    * door. The arena's heroes keep to the west side, because the goblin and
-   * skeleton they spar with hold the east; the farm centres its workers among
-   * the crop rows. Positions clamp to the rect so a crowd compresses against
-   * the fence instead of standing in it.
+   * skeleton they spar with hold the east. Positions clamp to the rect so a
+   * crowd compresses against the fence instead of standing in it.
+   *
+   * The farm reaches this only as a fallback, under a theme whose art
+   * declares no crop beds; normally `FarmWork` stations its heroes on the
+   * beds themselves.
    */
   private calcInteriorPositions(
     rect: { x: number; y: number; w: number; h: number },
@@ -963,6 +991,15 @@ export class VillageScene extends Phaser.Scene {
     const slots = this.buildingSlots.get(buildingId);
     if (slots === undefined || slots.length === 0) return;
 
+    // The farm's heroes don't stand on a grid — they work the beds. Its
+    // roster decides where each one goes and when it moves on. (Departures
+    // reach the roster through the sweep in handleAgentUpdate, which runs
+    // even when the last farmer leaves and there is nothing left to lay out.)
+    if (buildingId === 'farm' && this.farmWork !== null) {
+      this.farmWork.setWorkers(slots);
+      return;
+    }
+
     const buildingDef = BUILDING_DEFS.find((b) => b.id === buildingId);
     if (buildingDef === undefined) return;
 
@@ -1007,8 +1044,8 @@ export class VillageScene extends Phaser.Scene {
    * direction it walked in. A hero freezing mid-stride tends to end up with
    * its back to the anvil it is supposedly hammering, so the arena's heroes
    * face the fighters they spar with and everyone else faces the door they
-   * are working at. The farm is the exception: its waterers stand among crop
-   * rows that surround them, so there is nothing to turn towards.
+   * are working at. The farm is the exception: its heroes stand on the beds
+   * they water, so there is nothing to turn towards.
    */
   private stationFocusX(buildingId: string, doorX: number, isEnclosure: boolean): number | null {
     if (buildingId === 'arena') return this.arenaFighters?.focusX() ?? null;
@@ -1140,5 +1177,6 @@ export class VillageScene extends Phaser.Scene {
     for (const building of this.buildings) {
       this.refreshOccupancy(building.def.id);
     }
+    this.farmWork?.setWorkers(this.buildingSlots.get('farm') ?? []);
   }
 }

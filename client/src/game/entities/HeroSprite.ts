@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { HERO_COLOR_SPRITE_BASE, HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroClass, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
 import { getActiveTheme } from '../themes/registry';
-import { findRoadPath, type Point } from '../data/road-network';
+import { directPath, findRoadPath, type Point } from '../data/road-network';
 import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
@@ -481,6 +481,19 @@ export class HeroSprite {
    * never if another moveTo supersedes this one first.
    */
   moveTo(targetX: number, targetY: number, activity: AgentActivity, onArrive?: () => void): void {
+    this.walk(findRoadPath({ x: this._x, y: this._y }, { x: targetX, y: targetY }), activity, onArrive);
+  }
+
+  /**
+   * Walk in a straight line instead of routing through the road graph. Only
+   * for moves inside an enclosure, where there is nothing to route around and
+   * the graph would send the hero out of the gate and back.
+   */
+  walkDirect(targetX: number, targetY: number, activity: AgentActivity, onArrive?: () => void): void {
+    this.walk(directPath({ x: this._x, y: this._y }, { x: targetX, y: targetY }), activity, onArrive);
+  }
+
+  private walk(path: Point[], activity: AgentActivity, onArrive?: () => void): void {
     this.currentActivity = activity;
 
     // Cancel existing move
@@ -489,8 +502,6 @@ export class HeroSprite {
       this.moveTween = null;
     }
     this.arrivalCallback = onArrive ?? null;
-
-    const path = findRoadPath({ x: this._x, y: this._y }, { x: targetX, y: targetY });
 
     // Remove the first point (current position)
     if (path.length > 1) {
@@ -506,6 +517,11 @@ export class HeroSprite {
 
     this.moving = true;
     this.moveAlongPath(path);
+  }
+
+  /** Distance from the sprite's centre to its feet — where it stands. */
+  get footOffset(): number {
+    return this.sprite.displayHeight / 2;
   }
 
   private notifyArrival(): void {

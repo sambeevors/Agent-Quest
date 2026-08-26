@@ -167,6 +167,14 @@ export interface ThemeManifest {
    */
   getBuildingInterior?(id: string): readonly [number, number, number, number] | null;
   /**
+   * Points of interest inside an enclosure, in the building image's own
+   * pixels: the centre of every tilled bed in the farm, so a hero can work a
+   * crop rather than stand anywhere on the soil. Baked from the same
+   * constants that paint the beds, so the two can't drift. Null for
+   * buildings that have none.
+   */
+  getBuildingCrops?(id: string): ReadonlyArray<readonly [number, number]> | null;
+  /**
    * The arena's resident sparring partners — NPC sprites the scene places
    * inside the arena's interior. They idle when the yard is empty and fight
    * while a hero is stationed there (ambience driven by real state, like

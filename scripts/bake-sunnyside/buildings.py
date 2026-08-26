@@ -299,6 +299,30 @@ def build_arena(kit: Kit):
     return img, ground, 18, (16, 22, 96, 38)
 
 
+# The farm's tilled beds, in the ground layer's own 16px coords: three rows of
+# five, sunflowers at the back, then pumpkins, then cauliflowers, with walking
+# gaps between the rows. build_farm paints from these and the bake exports the
+# bed CENTRES, so the scene can send a farmer to stand on a crop and water it
+# rather than anywhere inside the fence.
+FARM_CROP_ROWS = ("sunflower_04", "pumpkin_04", "cauliflower_04")
+FARM_CROP_COLS = 5
+FARM_BED_ORIGIN = (16, 20)  # top-left of the back row's first bed
+FARM_BED_PITCH = (19, 22)  # bed spacing, x then y
+FARM_BED_SIZE = (16, 12)  # Elements/Crops/soil_01.png
+
+
+def farm_bed_centres() -> list[tuple[int, int]]:
+    """Centre of every tilled bed, row by row, in the farm image's 16px coords."""
+    ox, oy = FARM_BED_ORIGIN
+    px, py = FARM_BED_PITCH
+    bw, bh = FARM_BED_SIZE
+    return [
+        (ox + col * px + bw // 2, oy + row * py + bh // 2)
+        for row in range(len(FARM_CROP_ROWS))
+        for col in range(FARM_CROP_COLS)
+    ]
+
+
 def build_farm(kit: Kit):
     # Fenced smallholding: three tilled rows (sunflowers at the back, then
     # pumpkins, then cauliflowers) with walking gaps between them. Heroes come
@@ -323,12 +347,11 @@ def build_farm(kit: Kit):
     ground = canvas(img.width, img.height)
     paste(ground, _earth_rect(kit, cols, rows), 0, 0)
     soil = kit.src.image("Elements/Crops/soil_01.png")  # 16x12
-    crop_rows = ["sunflower_04", "pumpkin_04", "cauliflower_04"]
-    for row, crop_name in enumerate(crop_rows):
+    for row, crop_name in enumerate(FARM_CROP_ROWS):
         plant = kit.src.image(f"Elements/Crops/{crop_name}.png")
-        y = 20 + row * 22
-        for col in range(5):
-            x = 16 + col * 19
+        y = FARM_BED_ORIGIN[1] + row * FARM_BED_PITCH[1]
+        for col in range(FARM_CROP_COLS):
+            x = FARM_BED_ORIGIN[0] + col * FARM_BED_PITCH[0]
             paste(ground, soil, x, y)
             paste(ground, plant, x + (soil.width - plant.width) // 2, y + soil.height - plant.height - 1)
     return img, ground, 18, (14, 20, 100, 56)
@@ -412,7 +435,7 @@ def build_scaffold(kit: Kit) -> Image.Image:
 
 def bake_buildings(src: Sources, out_dir: Path) -> dict:
     kit = Kit(src)
-    meta: dict = {"doorHeight": {}, "size": {}, "chimney": {}, "interior": {}}
+    meta: dict = {"doorHeight": {}, "size": {}, "chimney": {}, "interior": {}, "crops": {}}
     for name, recipe in BUILDING_RECIPES.items():
         img, door_h, chimney = recipe(kit)
         baked = upscale(img)
@@ -430,6 +453,9 @@ def bake_buildings(src: Sources, out_dir: Path) -> dict:
         meta["doorHeight"][name] = door_h * SCALE
         meta["size"][name] = [baked.width, baked.height]
         meta["interior"][name] = [v * SCALE for v in interior]
+    # Where the farm's crops stand, for heroes to work row by row. Baked from
+    # the same constants that paint the beds, so a recipe change moves both.
+    meta["crops"]["farm"] = [[x * SCALE, y * SCALE] for x, y in farm_bed_centres()]
     for color in SITE_COLORS:
         save_png(upscale(build_site_house(kit, color)), out_dir / "buildings" / f"house-{color}.png")
     save_png(upscale(build_scaffold(kit)), out_dir / "buildings" / "site-scaffold.png")

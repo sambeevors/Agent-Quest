@@ -176,6 +176,16 @@ export function findRoadPath(from: Point, to: Point): Point[] {
   return out;
 }
 
+/**
+ * A straight walk from `from` to `to`, subdivided the same way road legs are.
+ * For moves INSIDE an enclosure — a farmer stepping to the next bed — where
+ * routing through the graph would march the hero out of the gate to the
+ * nearest waypoint and back in again.
+ */
+export function directPath(from: Point, to: Point): Point[] {
+  return [{ x: from.x, y: from.y }, ...interpolateSegment(from, to)];
+}
+
 /** Exposed so TerrainRenderer can paint roads along the same network. */
 export function getRoadSegments(): Array<{ a: Point; b: Point; main: boolean }> {
   const mainEdges = new Set(['0-1', '1-2', '2-3']);

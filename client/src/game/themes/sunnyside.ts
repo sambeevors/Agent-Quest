@@ -168,6 +168,10 @@ export const sunnysideTheme: ThemeManifest = {
     return (SUNNYSIDE_SHEET.buildings.interior as Record<string, readonly [number, number, number, number]>)[id] ?? null;
   },
 
+  getBuildingCrops(id: string): ReadonlyArray<readonly [number, number]> | null {
+    return (SUNNYSIDE_SHEET.buildings.crops as Record<string, ReadonlyArray<readonly [number, number]>>)[id] ?? null;
+  },
+
   getArenaNpcs(): ArenaNpcSpec[] {
     // Both sheets share the hero frame format and face right natively; the
     // scene flips them to face the heroes' side of the yard.

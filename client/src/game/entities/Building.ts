@@ -135,6 +135,20 @@ export class Building {
   }
 
   /**
+   * The enclosure's points of interest in world space — the farm's tilled
+   * beds. Same image-pixel → world conversion as interiorWorldRect, so the
+   * beds stay under the crops however the building is scaled or moved.
+   */
+  cropWorldPoints(): Array<{ x: number; y: number }> | null {
+    const crops = getActiveTheme().getBuildingCrops?.(this.def.id);
+    if (crops == null || crops.length === 0) return null;
+    const scale = this.image.scaleX;
+    const left = this.def.x - this.image.displayWidth / 2;
+    const top = this.def.y - this.image.displayHeight;
+    return crops.map(([cx, cy]) => ({ x: left + cx * scale, y: top + cy * scale }));
+  }
+
+  /**
    * Ground plan used for road routing, in world space.
    *
    * NOT the sprite's bounding box: these are tall buildings drawn in
