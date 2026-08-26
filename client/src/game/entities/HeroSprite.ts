@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { HERO_COLOR_SPRITE_BASE, HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroClass, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
 import { getActiveTheme } from '../themes/registry';
 import { findRoadPath, type Point } from '../data/road-network';
-import { addCrispText, LABEL_FONT } from '../text';
+import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
 
@@ -395,11 +395,14 @@ export class HeroSprite {
     // behind it because his center-y is well above the building's foot-y.
     const footY = this._y + this.sprite.displayHeight * 0.5;
     this.sprite.setDepth(footY + 0.5);
-    this.nameText.setDepth(footY + 0.6);
-    if (this.subagentText !== null) this.subagentText.setDepth(footY + 0.6);
-    if (this.sourceText !== null) this.sourceText.setDepth(footY + 0.6);
-    this.bubble.setDepth(footY + 0.7);
     if (this.selectionHalo !== null) this.selectionHalo.setDepth(footY + 0.4);
+    // Labels sort in their own band above the world (see HERO_LABEL_DEPTH),
+    // keyed by foot y so the near hero's name still covers the far one's.
+    const labelDepth = HERO_LABEL_DEPTH + footY / 10000;
+    this.nameText.setDepth(labelDepth);
+    if (this.subagentText !== null) this.subagentText.setDepth(labelDepth);
+    if (this.sourceText !== null) this.sourceText.setDepth(labelDepth);
+    this.bubble.setDepth(labelDepth + 0.00005);
   }
 
   /**
