@@ -31,15 +31,18 @@ STATIC_TILES = {
 }
 
 # Pieces whose artwork ignores the tile grid: name -> (x, y, w, h) in raw
-# pixels. The five grey rocks overlap tile boundaries in the sheet, so any
+# pixels. The grey rocks overlap tile boundaries in the sheet, so any
 # grid-aligned crop drags a neighbouring rock's edge in as a stray sliver —
 # these rects are the connected-component bboxes of each rock, found by scan.
+# Beware the sprite at tile (46,20) just left of the row: it is a stone
+# MONUMENT pedestal, not a rock — cropped in as a "rock" it scatters strange
+# grey structures all over the woods.
 STATIC_PX = {
-    "rock-1": (736, 320, 32, 27),
-    "rock-2": (787, 340, 26, 25),
-    "rock-3": (820, 343, 24, 22),
-    "rock-4": (855, 349, 18, 16),
-    "rock-5": (883, 355, 10, 10),
+    "rock-1": (787, 340, 26, 25),  # large, speckled
+    "rock-2": (820, 343, 24, 22),
+    "rock-3": (855, 349, 18, 16),
+    "rock-4": (883, 355, 10, 10),  # pebble
+    "rock-5": (787, 468, 26, 25),  # large, plain face
 }
 
 # Static foliage from Elements/ strips: name -> path. Frame 0 only — see the

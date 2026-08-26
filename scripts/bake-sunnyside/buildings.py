@@ -316,25 +316,26 @@ def build_farm(kit: Kit):
 
 
 def build_castle(kit: Kit):
-    # Curtain wall (two full-width rows) between two battlement towers, wooden
-    # gate at the centre, knight statue standing in front.
-    img = canvas(96, 64)
-    wall_top = kit.tiles(9, 15)
-    wall_face = kit.tiles(9, 16)
-    for x in range(0, 96, 16):
-        paste(img, wall_top, x, 32)
-        paste(img, wall_face, x, 48)
-    tower = kit.tiles(44, 20, 2, 2)
-    paste(img, tower, 0, 26)
-    paste(img, tower, 64, 26)
-    dark_rect(img, 40, 44, 55, 63)
-    gate = kit.piece("shutter_tan")
-    paste(img, gate, 40, 52)
-    statue = kit.tiles(44, 18, 2, 2).crop((0, 0, 32, 26))
-    sb = statue.getbbox()
-    statue = statue.crop(sb)
-    paste(img, statue, 20, 62 - statue.height)
-    return img, 16, (16, 24)
+    # A keep: two glass-spired towers (hall_open cap over a storey shaft)
+    # flanking a central blue-roofed hall — all real architecture from the
+    # modular sheet. (The previous curtain-wall composition used the
+    # tileset's grey monument tiles as "towers", which read as strange
+    # pedestals, not a castle.)
+    img = canvas(110, 100)
+    house = kit.piece("house_small")  # blue roof = the royal colour
+    dark_rect(img, 28 + 19, 55 + 31, 28 + 34, 55 + 43)
+    paste(img, house, 28, 55)
+    storey = kit.piece("storey")
+    # The pack bakes a grass baseline into each piece's bottom rows — fine at
+    # ground level, a floating green stripe when the piece sits mid-tower.
+    cap = kit.piece("hall_open").crop((0, 0, 30, 49))
+    for tx in (0, 80):
+        paste(img, storey, tx, 55)
+        # Back the cap's open arch so the gallery reads as depth, not as a
+        # hole showing the meadow through the tower.
+        dark_rect(img, tx + 7, 40, tx + 23, 57)
+        paste(img, cap, tx, 9)
+    return img, 13, (55, 57)
 
 
 def build_watchtower(kit: Kit):

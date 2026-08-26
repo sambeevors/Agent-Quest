@@ -102,7 +102,7 @@ const DOOR_HEIGHT: Record<string, number> = {
   tavern: 52,
   alchemist: 48,
   farm: 72,
-  castle: 64,
+  castle: 52,
   watchtower: 48,
   arena: 72,
 };

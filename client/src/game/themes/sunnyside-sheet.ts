@@ -105,7 +105,7 @@ export const SUNNYSIDE_SHEET = {
       "forge": 52,
       "tavern": 52,
       "alchemist": 48,
-      "castle": 64,
+      "castle": 52,
       "watchtower": 48,
       "arena": 72,
       "farm": 72
@@ -128,8 +128,8 @@ export const SUNNYSIDE_SHEET = {
         248
       ],
       "castle": [
-        384,
-        256
+        440,
+        400
       ],
       "watchtower": [
         144,
@@ -162,8 +162,8 @@ export const SUNNYSIDE_SHEET = {
         32
       ],
       "castle": [
-        64,
-        96
+        220,
+        228
       ],
       "watchtower": [
         72,
