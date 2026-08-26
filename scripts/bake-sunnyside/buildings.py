@@ -57,9 +57,15 @@ DOOR_DARK = (32, 28, 44, 255)
 # piece connects to (N/E/S/W). Horizontal runs are post-and-rail; vertical
 # runs are a post with a thin pale rail — the pack's own farm scenes ring
 # their paddocks with exactly these tiles.
+#
+# EVERY piece here must come from the one autotile set laid out as a cross at
+# (38..42, 1..4). The tileset also carries a shorter free-standing rail pair at
+# (38..39, 0) whose rail sits two pixels higher in the tile; borrowing the
+# straight run from there is what left the corners of the arena and farm not
+# meeting their rails.
 FENCE = {
-    "h_end_w": (38, 0),  # connects E — west end of a horizontal run
-    "h_mid": (39, 0),  # E+W
+    "h_end_w": (38, 2),  # connects E — west end of a horizontal run
+    "h_mid": (39, 2),  # E+W
     "h_end_e": (42, 2),  # W — east end
     "v_end_n": (40, 1),  # S — north end of a vertical run
     "v_mid": (40, 3),  # N+S
@@ -285,27 +291,37 @@ def build_arena(kit: Kit):
     sword = kit.gm("spr_deco_sword_floor")
     paste(img, sword, 98, 24)
 
+    # Earth over the whole footprint, fence included — a yard's fence stands
+    # ON the packed ground, and stopping the dirt inside the rail left a ring
+    # of lawn between the floor and the posts.
     ground = canvas(cols * TILE, rows * TILE)
-    paste(ground, _earth_rect(kit, cols - 2, rows - 2), TILE, TILE - 4)
+    paste(ground, _earth_rect(kit, cols, rows), 0, 0)
     return img, ground, 18, (16, 22, 96, 38)
 
 
 def build_farm(kit: Kit):
     # Fenced smallholding: three tilled rows (sunflowers at the back, then
-    # pumpkins, then cauliflowers) with walking gaps between them, water
-    # barrel and bucket just inside the corner. Heroes come in through the
-    # gate and work the land (watering animation).
-    cols, rows = 8, 6  # 128x96
-    img = _fence_ring(kit, cols, rows, gate_cols={3, 4})
+    # pumpkins, then cauliflowers) with walking gaps between them. Heroes come
+    # in through the gate and work the land (watering animation).
+    #
+    # The water barrel and bucket stand OUTSIDE, on the grass beside the gate:
+    # inside the yard they overlapped the back crop row, and a prop that
+    # crosses a plant reads as breakage rather than clutter.
+    cols, rows = 8, 6  # fence ring, 128x96
+    prop_rows = 1  # grass verge below the gate for the watering kit
+    img = canvas(cols * TILE, (rows + prop_rows) * TILE)
+    paste(img, _fence_ring(kit, cols, rows, gate_cols={3, 4}), 0, 0)
+    verge = (rows + prop_rows) * TILE
     barrel = kit.gm("spr_deco_barrel_water")
-    paste(img, barrel, 6, 34 - barrel.height)
+    paste(img, barrel, 20, verge - barrel.height)
     bucket = kit.gm("spr_deco_bucket")
-    paste(img, bucket, 20, 33 - bucket.height)
+    paste(img, bucket, 37, verge - bucket.height)
 
-    # Tilled ground under the whole yard, same packed earth as the arena —
-    # a smallholding is worked soil, not lawn with stripes of crop in it.
-    ground = canvas(cols * TILE, rows * TILE)
-    paste(ground, _earth_rect(kit, cols - 2, rows - 2), TILE, TILE - 4)
+    # Earth over the whole yard, fence included (see build_arena) — a
+    # smallholding is worked soil, not lawn with stripes of crop in it. The
+    # verge below the gate stays grass, so the fence still reads as a boundary.
+    ground = canvas(img.width, img.height)
+    paste(ground, _earth_rect(kit, cols, rows), 0, 0)
     soil = kit.src.image("Elements/Crops/soil_01.png")  # 16x12
     crop_rows = ["sunflower_04", "pumpkin_04", "cauliflower_04"]
     for row, crop_name in enumerate(crop_rows):

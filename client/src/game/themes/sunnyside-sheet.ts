@@ -141,7 +141,7 @@ export const SUNNYSIDE_SHEET = {
       ],
       "farm": [
         512,
-        384
+        448
       ]
     },
     "chimney": {
