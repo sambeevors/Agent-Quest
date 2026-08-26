@@ -14,6 +14,7 @@ import { renderPathTiles } from '../terrain/PathTileRenderer';
 import { generateScenery } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
 import { waterKeepOut } from '../data/water';
+import { Critter } from '../entities/Critter';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
 import { heroNameFor } from '../../naming/hero-names';
@@ -82,7 +83,13 @@ export class VillageScene extends Phaser.Scene {
   private roadLayer: Phaser.GameObjects.Container | null = null;
 
   /** Generated scenery sprites, regenerated alongside the roads. */
-  private scenerySprites: Phaser.GameObjects.Image[] = [];
+  private scenerySprites: Phaser.GameObjects.GameObject[] = [];
+
+  /** Wandering ambient animals (meadow critters + lake ducks). */
+  private critters: Critter[] = [];
+
+  /** Water keep-out rects — also where the ducks live. */
+  private waterRects: Rect[] = [];
 
   /** Ground the generator must leave alone — water and other placed features. */
   private sceneryExclusions: Rect[] = [];
@@ -511,7 +518,8 @@ export class VillageScene extends Phaser.Scene {
       // Placed features are keep-out ground for the scenery generator, and so
       // is the painted water: the lake is terrain tiles, not a feature, so
       // nothing in `featureBounds` describes it.
-      this.sceneryExclusions = [...rendered.featureBounds, ...waterKeepOut(mapConfig.terrain)];
+      this.waterRects = waterKeepOut(mapConfig.terrain);
+      this.sceneryExclusions = [...rendered.featureBounds, ...this.waterRects];
       this.spawnBuildings(mapConfig.buildings);
 
       // Apply hero scale from map settings
@@ -529,7 +537,8 @@ export class VillageScene extends Phaser.Scene {
         manifestStatus,
       });
       new TerrainRenderer(this).render();
-      this.sceneryExclusions = PROCEDURAL_WATER_BOUNDS.map((r) => ({ ...r }));
+      this.waterRects = PROCEDURAL_WATER_BOUNDS.map((r) => ({ ...r }));
+      this.sceneryExclusions = this.waterRects.map((r) => ({ ...r }));
       this.spawnBuildings(null);
     }
 
@@ -608,7 +617,7 @@ export class VillageScene extends Phaser.Scene {
     // Scenery is generated against the roads that were just laid, so it can
     // never end up sitting on one.
     for (const sprite of this.scenerySprites) sprite.destroy();
-    this.scenerySprites = renderScenery(this, generateScenery({
+    const items = generateScenery({
       bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
       buildings: obstacles,
       roads: network.roads.map((r) => r.points),
@@ -618,9 +627,61 @@ export class VillageScene extends Phaser.Scene {
       exclusions: this.annexes === null
         ? this.sceneryExclusions
         : [...this.sceneryExclusions, this.annexes.clearing],
-    }));
+    });
+    // Animals become moving critters rather than static scatter — the
+    // generator still owns WHERE they live (clearances, spacing, seed).
+    this.scenerySprites = renderScenery(this, items.filter((i) => i.kind !== 'animal'));
+    this.spawnCritters(items.filter((i) => i.kind === 'animal'));
 
     this.updateContentBounds(nodes);
+  }
+
+  /**
+   * Wandering ambience: meadow critters at the scenery generator's animal
+   * placements, plus ducks paddling on each big enough body of water. Ducks
+   * are seeded off their rect's geometry so the same lake always keeps the
+   * same flock.
+   */
+  private spawnCritters(animals: ReturnType<typeof generateScenery>): void {
+    for (const c of this.critters) c.destroy();
+    this.critters = [];
+    for (const a of animals) {
+      this.critters.push(new Critter(this, {
+        textureKey: `animal-${a.variant}`,
+        x: a.x,
+        y: a.y,
+        scale: a.scale,
+        roamRadius: 50,
+      }));
+    }
+    // waterKeepOut rects reach ~24px past the shoreline onto land, so the
+    // inset has to clear that margin AND keep a body's width of open water.
+    const SHORE_INSET = 88;
+    for (const r of this.waterRects) {
+      const inner = {
+        x: r.x + SHORE_INSET,
+        y: r.y + SHORE_INSET,
+        w: r.w - SHORE_INSET * 2,
+        h: r.h - SHORE_INSET * 2,
+      };
+      if (inner.w < 64 || inner.h < 64) continue;
+      const count = Math.max(1, Math.min(3, Math.floor((inner.w * inner.h) / 150_000)));
+      let seed = (Math.round(r.x) * 73856093) ^ (Math.round(r.y) * 19349663) ^ Math.round(r.w * 7);
+      const rand = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 0xffffffff;
+      };
+      for (let i = 0; i < count; i++) {
+        this.critters.push(new Critter(this, {
+          textureKey: 'duck',
+          x: inner.x + rand() * inner.w,
+          y: inner.y + rand() * inner.h,
+          scale: 0.45,
+          roamRadius: 120,
+          bounds: inner,
+        }));
+      }
+    }
   }
 
   /**

@@ -36,11 +36,11 @@ export function renderScenery(
     if (!scene.textures.exists(key)) continue;
 
     const animKey = `${key}-anim`;
+    const animFrames = scene.anims.exists(animKey) ? scene.anims.get(animKey).frames.length : 0;
     let sprite: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite;
-    if (scene.anims.exists(animKey)) {
+    if (animFrames > 0) {
       const s = scene.add.sprite(item.x, item.y, key);
-      const anim = scene.anims.get(animKey);
-      const phase = (Math.abs(Math.round(item.x * 31 + item.y * 17)) % anim.frames.length);
+      const phase = Math.abs(Math.round(item.x * 31 + item.y * 17)) % animFrames;
       s.play({ key: animKey, startFrame: phase });
       sprite = s;
     } else {

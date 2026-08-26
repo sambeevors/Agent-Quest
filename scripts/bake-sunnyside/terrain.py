@@ -23,6 +23,36 @@ from PIL import Image
 
 from common import TILE, Sources, crop_tiles, paste, save_png, upscale
 
+# The pack draws its grass in two alternating base greens (a 16px checker in
+# the source scenes). At the 64px world grid that checker reads as glitchy
+# square patches wherever a decorated variant lands on a plain tile, so every
+# baked grass tile is normalised to the plain green.
+GRASS_BASE = (95, 193, 76)
+GRASS_ALT = (99, 199, 77)
+
+
+def normalise_grass(img):
+    out = img.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            if a > 0 and (r, g, b) == GRASS_ALT:
+                px[x, y] = (*GRASS_BASE, a)
+    return out
+
+
+def grass_decal(img):
+    """Strip the grass background from a decorated tile, leaving the decal."""
+    out = normalise_grass(img)
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            if a > 0 and (r, g, b) == GRASS_BASE:
+                px[x, y] = (0, 0, 0, 0)
+    return out
+
 TILESET_PATH = "Tileset/spr_tileset_sunnysideworld_16px.png"
 
 # Tile coordinates in the 16px sheet (tx, ty).
@@ -65,7 +95,10 @@ def _strip_border(tile: Image.Image, side: str) -> Image.Image:
 def build_road_sheet(ts: Image.Image) -> Image.Image:
     fill = crop_tiles(ts, *EARTH_FILL)
     gravel = crop_tiles(ts, *EARTH_GRAVEL)
-    tuft = crop_tiles(ts, *GRASS_TUFT)
+    # The tuft accent is drawn over whatever grass tile is underneath, so it
+    # must be a transparent decal — an opaque grass square would stamp a
+    # visibly different green onto decorated cells.
+    tuft = grass_decal(crop_tiles(ts, *GRASS_TUFT))
     top = crop_tiles(ts, *BORDER_TOP)
 
     # edgeIndex order from path-tiles.ts: 0 = edge on the "before" side is
@@ -92,7 +125,7 @@ def build_grass_sheet(ts: Image.Image) -> Image.Image:
     frames = [GRASS_PLAIN, *GRASS_VARIANTS, GRASS_TUFT]
     sheet = Image.new("RGBA", (TILE * len(frames), TILE))
     for i, (tx, ty) in enumerate(frames):
-        paste(sheet, crop_tiles(ts, tx, ty), i * TILE, 0)
+        paste(sheet, normalise_grass(crop_tiles(ts, tx, ty)), i * TILE, 0)
     return sheet
 
 
@@ -107,7 +140,7 @@ def build_meadow(ts: Image.Image) -> Image.Image:
     img = Image.new("RGBA", (TILE * 4, TILE * 4))
     for y, row in enumerate(layout):
         for x, (tx, ty) in enumerate(row):
-            paste(img, crop_tiles(ts, tx, ty), x * TILE, y * TILE)
+            paste(img, normalise_grass(crop_tiles(ts, tx, ty)), x * TILE, y * TILE)
     return img
 
 

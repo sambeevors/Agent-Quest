@@ -105,8 +105,8 @@ export const SUNNYSIDE_SHEET = {
       "forge": 52,
       "tavern": 52,
       "alchemist": 48,
-      "chapel": 48,
-      "castle": 60,
+      "chapel": 52,
+      "castle": 64,
       "watchtower": 48,
       "arena": 60
     },
@@ -120,7 +120,7 @@ export const SUNNYSIDE_SHEET = {
         208
       ],
       "tavern": [
-        272,
+        280,
         216
       ],
       "alchemist": [
@@ -128,12 +128,12 @@ export const SUNNYSIDE_SHEET = {
         248
       ],
       "chapel": [
-        168,
-        376
+        224,
+        256
       ],
       "castle": [
         384,
-        208
+        256
       ],
       "watchtower": [
         144,
@@ -141,7 +141,7 @@ export const SUNNYSIDE_SHEET = {
       ],
       "arena": [
         288,
-        188
+        192
       ]
     },
     "chimney": {
@@ -150,8 +150,8 @@ export const SUNNYSIDE_SHEET = {
         32
       ],
       "forge": [
-        176,
-        12
+        164,
+        36
       ],
       "tavern": [
         56,
@@ -162,12 +162,12 @@ export const SUNNYSIDE_SHEET = {
         32
       ],
       "chapel": [
-        84,
-        16
+        108,
+        8
       ],
       "castle": [
         64,
-        8
+        96
       ],
       "watchtower": [
         72,
@@ -175,7 +175,7 @@ export const SUNNYSIDE_SHEET = {
       ],
       "arena": [
         108,
-        40
+        28
       ]
     }
   },
@@ -236,10 +236,20 @@ export const SUNNYSIDE_SHEET = {
         "frameWidth": 64,
         "frameHeight": 64
       },
-      "animal-6": {
+      "duck": {
         "frames": 4,
         "frameWidth": 64,
         "frameHeight": 64
+      },
+      "tree-3": {
+        "frames": 4,
+        "frameWidth": 128,
+        "frameHeight": 136
+      },
+      "tree-4": {
+        "frames": 4,
+        "frameWidth": 112,
+        "frameHeight": 172
       }
     }
   },

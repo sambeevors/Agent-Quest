@@ -175,9 +175,8 @@ export const sunnysideTheme: ThemeManifest = {
       { key: 'house-yellow', path: `${BASE}/buildings/house-yellow.png` },
       { key: 'house-red', path: `${BASE}/buildings/house-red.png` },
       { key: 'house-purple', path: `${BASE}/buildings/house-purple.png` },
-      // Static scenery.
-      { key: 'tree-3', path: `${BASE}/scenery/tree-3.png` },
-      { key: 'tree-4', path: `${BASE}/scenery/tree-4.png` },
+      // Static scenery. (All four tree variants are animated and preloaded
+      // from the bake's animated metadata below.)
       { key: 'bush-1', path: `${BASE}/scenery/bush-1.png` },
       { key: 'bush-2', path: `${BASE}/scenery/bush-2.png` },
       { key: 'bush-3', path: `${BASE}/scenery/bush-3.png` },
@@ -223,7 +222,8 @@ export const sunnysideTheme: ThemeManifest = {
         scene.anims.create({
           key: `${key}-anim`,
           frames: scene.anims.generateFrameNumbers(key, { start: 0, end: spec.frames - 1 }),
-          frameRate: 4,
+          // Trees sway lazily; small creatures and blinking mushrooms tick faster.
+          frameRate: key.startsWith('tree') ? 3 : 5,
           repeat: -1,
         });
       }

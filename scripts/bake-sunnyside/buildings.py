@@ -144,12 +144,11 @@ def build_library(kit: Kit):
     paste(img, house, 3, 5)
     shutter = kit.piece("shutter_blue")
     paste(img, shutter, 3 + 35, 5 + 55 - 12)
-    sign = kit.piece("sign_small").resize((16, 6), Image.NEAREST)
-    paste(img, sign, 12, 48)
+    # A little book pile on the ground beside the door — never on the roof.
     book1 = kit.gm("spr_deco_book_01")
     book2 = kit.gm("spr_deco_book_02")
-    paste(img, book1, 13, 48 - book1.height)
-    paste(img, book2, 21, 48 - book2.height)
+    paste(img, book1, 57, 60 - book1.height)
+    paste(img, book2, 64, 60 - book2.height)
     return img, 16, (46, 8)
 
 
@@ -158,28 +157,24 @@ def build_forge(kit: Kit):
     house = kit.piece("house_small", "red")  # door hole x[19,34] y[31,43]
     dark_rect(img, 0 + 19, 6 + 31, 0 + 34, 6 + 43)
     paste(img, house, 0, 6)
-    vent = kit.piece("vent_b")
-    paste(img, vent, 40, 2)
+    vent = kit.piece("vent_b")  # chimney sits ON the right roof slope
+    paste(img, vent, 37, 9)
     anvil = kit.gm("spr_deco_anvil")
-    paste(img, anvil, 57, 50 - anvil.height)
-    barrel = kit.gm("spr_deco_barrel_open")
-    paste(img, barrel, 57 - barrel.width - 2, 50 - barrel.height)
-    return img, 13, (44, 3)
+    paste(img, anvil, 49, 51 - anvil.height)
+    return img, 13, (41, 9)
 
 
 def build_tavern(kit: Kit):
-    img = canvas(68, 54)
+    img = canvas(70, 54)
     house = kit.piece("house_small", "orange")  # door hole x[19,34] y[31,43]
     dark_rect(img, 0 + 19, 8 + 31, 0 + 34, 8 + 43)
     paste(img, house, 0, 8)
-    sign = kit.piece("sign_small").resize((14, 6), Image.NEAREST)
-    paste(img, sign, 38, 33)
-    mug = kit.gm("spr_deco_mug_02")
-    paste(img, mug, 41, 26)
     barrel = kit.gm("spr_deco_barrel_closed")
     paste(img, barrel, 55, 52 - barrel.height)
+    mug = kit.gm("spr_deco_mug_02")
+    paste(img, mug, 58, 52 - barrel.height - mug.height + 1)
     barrel2 = kit.gm("spr_deco_barrel_open")
-    paste(img, barrel2, 58, 40 - barrel2.height)
+    paste(img, barrel2, 2, 52 - barrel2.height)
     return img, 13, (14, 11)
 
 
@@ -195,34 +190,37 @@ def build_alchemist(kit: Kit):
 
 
 def build_chapel(kit: Kit):
-    img = canvas(42, 94)
-    tower = kit.piece("tower_tall", "purple")  # legs gap y[70,80] within piece
-    dark_rect(img, 6 + 6, 11 + 68, 6 + 23, 11 + 80)
-    paste(img, tower, 6, 11)
-    cap = kit.piece("porch_roof", "purple")
-    paste(img, cap, 6, 2)
-    return img, 12, (21, 4)
+    # Purple-roofed hall with a belfry on the ridge. The belfry pastes FIRST
+    # so its base hides behind the roof and only the turret rises above it.
+    img = canvas(56, 64)
+    belfry = kit.piece("tower_top_c", "purple")
+    paste(img, belfry, 17, 0)
+    house = kit.piece("house_small", "purple")  # door hole x[19,34] y[31,43]
+    dark_rect(img, 1 + 19, 20 + 31, 1 + 34, 20 + 43)
+    paste(img, house, 1, 20)
+    return img, 13, (27, 2)
 
 
 def build_castle(kit: Kit):
-    img = canvas(96, 52)
+    # Curtain wall (two full-width rows) between two battlement towers, wooden
+    # gate at the centre, knight statue standing in front.
+    img = canvas(96, 64)
     wall_top = kit.tiles(9, 15)
     wall_face = kit.tiles(9, 16)
-    wall_col = kit.tiles(13, 15)
-    for x in (32, 48):
-        paste(img, wall_top, x, 20)
-        paste(img, wall_face, x, 36)
-    for x in (0, 16, 64, 80):
-        paste(img, wall_col, x, 36)
+    for x in range(0, 96, 16):
+        paste(img, wall_top, x, 32)
+        paste(img, wall_face, x, 48)
     tower = kit.tiles(44, 20, 2, 2)
-    paste(img, tower, 0, 4)
-    paste(img, tower, 64, 4)
-    dark_rect(img, 40, 36, 55, 51)
+    paste(img, tower, 0, 26)
+    paste(img, tower, 64, 26)
+    dark_rect(img, 40, 44, 55, 63)
     gate = kit.piece("shutter_tan")
-    paste(img, gate, 40, 40)
-    statue = kit.tiles(44, 18, 2, 2)
-    paste(img, statue.crop((0, 0, 32, 26)), 12, 26)
-    return img, 15, (16, 2)
+    paste(img, gate, 40, 52)
+    statue = kit.tiles(44, 18, 2, 2).crop((0, 0, 32, 26))
+    sb = statue.getbbox()
+    statue = statue.crop(sb)
+    paste(img, statue, 20, 62 - statue.height)
+    return img, 16, (16, 24)
 
 
 def build_watchtower(kit: Kit):
@@ -237,17 +235,19 @@ def build_watchtower(kit: Kit):
 
 
 def build_arena(kit: Kit):
-    img = canvas(72, 47)
+    img = canvas(72, 48)
     front = kit.piece("barn_front", "green")  # arch hole x[19,34] y[8,23]
-    roof = kit.piece("house_small", "green").crop((0, 0, 54, 16))
-    dark_rect(img, 0 + 19, 23 + 8, 0 + 34, 23 + 23)
-    paste(img, front, 0, 23)
-    paste(img, roof, 0, 9)
+    dark_rect(img, 0 + 19, 24 + 8, 0 + 34, 24 + 23)
+    paste(img, front, 0, 24)
+    # Full roof (ridge to eaves) sits over the front's top with a 2px lap so
+    # the junction is the roof's own eave trim, not a bare wall band.
+    roof = kit.piece("house_small", "green").crop((0, 0, 54, 20))
+    paste(img, roof, 0, 6)
     swords = kit.gm("spr_deco_barrel_swords")
-    paste(img, swords, 57, 45 - swords.height)
+    paste(img, swords, 57, 47 - swords.height)
     sword = kit.gm("spr_deco_sword_floor")
-    paste(img, sword, 2, 45 - sword.height)
-    return img, 15, (27, 10)
+    paste(img, sword, 58, 24)
+    return img, 15, (27, 7)
 
 
 BUILDING_RECIPES = {

@@ -106,7 +106,7 @@ const KIND_SPECS: Record<SceneryKind, KindSpec> = {
     buildingClearance: 48, roadClearance: 44, spacing: 200,
   },
   animal: {
-    variants: 6, weightDense: 1, weightOpen: 8,
+    variants: 5, weightDense: 1, weightOpen: 8,
     buildingClearance: 56, roadClearance: 40, spacing: 240,
   },
 };

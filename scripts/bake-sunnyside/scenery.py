@@ -17,8 +17,6 @@ TILESET = "Tileset/spr_tileset_sunnysideworld_16px.png"
 
 # Static pieces cut from the tileset: name -> (tx, ty, tw, th)
 STATIC_TILES = {
-    "tree-3": (49, 3, 2, 2),  # apple tree
-    "tree-4": (52, 6, 1, 2),  # pine
     "bush-1": (27, 1, 1, 1),
     "bush-2": (28, 4, 1, 1),
     "bush-3": (29, 3, 1, 1),
@@ -36,6 +34,11 @@ STATIC_TILES = {
 
 # Animated strips from Elements/: name -> (path, frame count). Frame size is
 # measured (the strips vary — tree_02 is 28x43 while tree_01 is 32x34).
+# Trees deliberately come ONLY from these animated strips: the tileset's
+# static trees sit flush against their neighbours, so any crop either clips
+# the canopy or drags a stranger in — and a forest where some trees sway and
+# some are frozen reads as broken anyway. Variants 3/4 are palette-shifted
+# copies of 1/2, so every tree moves.
 ANIMATED = {
     "tree-1": ("Elements/Plants/spr_deco_tree_01_strip4.png", 4),
     "tree-2": ("Elements/Plants/spr_deco_tree_02_strip4.png", 4),
@@ -43,12 +46,14 @@ ANIMATED = {
     "mushroom-2": ("Elements/Plants/spr_deco_mushroom_blue_01_strip4.png", 4),
     "mushroom-3": ("Elements/Plants/spr_deco_mushroom_blue_02_strip4.png", 4),
     "mushroom-4": ("Elements/Plants/spr_deco_mushroom_blue_03_strip4.png", 4),
+    # Land critters (animal-1..5) wander the meadow; the duck is its own key
+    # and lives on the water.
     "animal-1": ("Elements/Animals/spr_deco_chicken_01_strip4.png", 4),
     "animal-2": ("Elements/Animals/spr_deco_cow_strip4.png", 4),
     "animal-3": ("Elements/Animals/spr_deco_sheep_01_strip4.png", 4),
     "animal-4": ("Elements/Animals/spr_deco_pig_01_strip4.png", 4),
-    "animal-5": ("Elements/Animals/spr_deco_duck_01_strip4.png", 4),
-    "animal-6": ("Elements/Animals/spr_deco_bird_01_strip4.png", 4),
+    "animal-5": ("Elements/Animals/spr_deco_bird_01_strip4.png", 4),
+    "duck": ("Elements/Animals/spr_deco_duck_01_strip4.png", 4),
 }
 
 # Crop patches: soil tile + a grown crop, composed 2x2 soil with 4 plants.
@@ -57,6 +62,20 @@ CROP_PATCHES = {
     "crop-2": "sunflower_04",
     "crop-3": "cabbage_04",
 }
+
+
+def _shift_foliage(img: Image.Image) -> Image.Image:
+    """Darker, slightly warmer copy of a tree strip (greens only)."""
+    out = img.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            if g > r and g > b:  # foliage pixel
+                px[x, y] = (min(255, int(r * 0.92 + 10)), int(g * 0.82), int(b * 0.80), a)
+    return out
 
 
 def bake_scenery(src: Sources, out_dir: Path) -> dict:
@@ -76,6 +95,19 @@ def bake_scenery(src: Sources, out_dir: Path) -> dict:
             raise AssertionError(f"{name}: {strip.size} not divisible into {frames} frames")
         save_png(upscale(strip), out_dir / "scenery" / f"{name}.png")
         meta["animated"][name] = {
+            "frames": frames,
+            "frameWidth": strip.width // frames * 4,
+            "frameHeight": strip.height * 4,
+        }
+
+    # Darker-foliage copies of the two animated trees, so a wood has variety
+    # without any frozen trees.
+    for src_name, dst_name in (("tree-1", "tree-3"), ("tree-2", "tree-4")):
+        path, frames = ANIMATED[src_name]
+        strip = src.image(path)
+        dark = _shift_foliage(strip)
+        save_png(upscale(dark), out_dir / "scenery" / f"{dst_name}.png")
+        meta["animated"][dst_name] = {
             "frames": frames,
             "frameWidth": strip.width // frames * 4,
             "frameHeight": strip.height * 4,

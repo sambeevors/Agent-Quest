@@ -160,7 +160,7 @@ describe('generateScenery', () => {
   test('emits only variants that exist for each kind', () => {
     const maxVariant: Record<string, number> = {
       tree: 4, bush: 3, rock: 5, mushroom: 4,
-      flower: 3, stump: 2, crop: 3, animal: 6,
+      flower: 3, stump: 2, crop: 3, animal: 5,
     };
     for (const i of generateScenery(opts())) {
       expect(i.variant).toBeGreaterThanOrEqual(1);
