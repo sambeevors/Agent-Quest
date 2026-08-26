@@ -67,6 +67,8 @@ export class HeroSprite {
   private _x: number;
   private _y: number;
   private moveTween: Phaser.Tweens.Tween | null = null;
+  /** Fired once the current walk reaches its destination; a new moveTo drops it. */
+  private arrivalCallback: (() => void) | null = null;
   private waitingTween: Phaser.Tweens.Tween | null = null;
   private chatterTimer: Phaser.Time.TimerEvent | null = null;
   private lastChatterLine: string | null = null;
@@ -449,7 +451,23 @@ export class HeroSprite {
     }
   }
 
-  moveTo(targetX: number, targetY: number, activity: AgentActivity): void {
+  /**
+   * Turn the hero to look at a world x — the direction it holds while parked.
+   * Motion overrides it, so this is only meaningful once the hero has arrived
+   * (the arena stations its heroes facing the fighters they spar with).
+   */
+  faceTowards(worldX: number): void {
+    const dx = worldX - this._x;
+    if (Math.abs(dx) < 1) return;
+    this.sprite.setFlipX((dx < 0) !== this.facesLeft);
+  }
+
+  /**
+   * Walk to (targetX, targetY) along the road network. `onArrive` fires when
+   * the hero is actually standing there — immediately if it already is, and
+   * never if another moveTo supersedes this one first.
+   */
+  moveTo(targetX: number, targetY: number, activity: AgentActivity, onArrive?: () => void): void {
     this.currentActivity = activity;
 
     // Cancel existing move
@@ -457,6 +475,7 @@ export class HeroSprite {
       this.moveTween.stop();
       this.moveTween = null;
     }
+    this.arrivalCallback = onArrive ?? null;
 
     const path = findRoadPath({ x: this._x, y: this._y }, { x: targetX, y: targetY });
 
@@ -468,6 +487,7 @@ export class HeroSprite {
     if (path.length === 0) {
       this.moving = false;
       this.playStationary();
+      this.notifyArrival();
       return;
     }
 
@@ -475,10 +495,17 @@ export class HeroSprite {
     this.moveAlongPath(path);
   }
 
+  private notifyArrival(): void {
+    const cb = this.arrivalCallback;
+    this.arrivalCallback = null;
+    cb?.();
+  }
+
   private moveAlongPath(path: Point[]): void {
     if (path.length === 0) {
       this.moving = false;
       this.playStationary();
+      this.notifyArrival();
       return;
     }
 
@@ -535,6 +562,7 @@ export class HeroSprite {
   }
 
   destroy(): void {
+    this.arrivalCallback = null;
     if (this.moveTween !== null) {
       this.moveTween.stop();
     }

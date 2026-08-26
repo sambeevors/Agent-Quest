@@ -92,6 +92,14 @@ export class VillageScene extends Phaser.Scene {
   /** The arena's resident goblin and skeleton — spar while a hero is inside. */
   private arenaFighters: ArenaFighters | null = null;
 
+  /**
+   * Heroes that have finished walking into the arena. A hero assigned to the
+   * arena is still crossing the village for a second or two, and the fighters
+   * must not start swinging at nobody — so sparring keys off arrival, not off
+   * the slot assignment.
+   */
+  private arenaArrivals = new Set<string>();
+
   /** Water keep-out rects — also where the ducks live. */
   private waterRects: Rect[] = [];
 
@@ -458,6 +466,7 @@ export class VillageScene extends Phaser.Scene {
       this.sitePlots.clear();
       this.arenaFighters?.destroy();
       this.arenaFighters = null;
+      this.arenaArrivals.clear();
       this.roadLayer?.destroy();
       this.roadLayer = null;
       for (const sprite of this.scenerySprites) sprite.destroy();
@@ -945,6 +954,7 @@ export class VillageScene extends Phaser.Scene {
       }
       this.heroBuildingMap.delete(heroId);
     }
+    this.arenaArrivals.delete(heroId);
     return oldBuildingId;
   }
 
@@ -966,15 +976,43 @@ export class VillageScene extends Phaser.Scene {
       ? this.calcInteriorPositions(interior, slots.length, buildingId)
       : this.calcGridPositions(doorX, doorY, slots.length);
 
+    const isArena = buildingId === 'arena';
+
     for (let i = 0; i < slots.length; i++) {
-      const hero = this.heroes.get(slots[i]!);
+      const heroId = slots[i]!;
+      const hero = this.heroes.get(heroId);
       if (hero === undefined) continue;
       const pos = positions[i]!;
 
       hero.gridBaseX = pos.x;
       hero.gridBaseY = pos.y;
-      hero.moveTo(pos.x, pos.y, hero.currentActivity);
+      if (isArena) {
+        // A hero heading for (or shuffling within) the yard isn't sparring
+        // yet — the fighters wait for it to actually get there. A hero
+        // already standing on its spot arrives synchronously inside moveTo,
+        // so the flag is back before the sweep below reads it.
+        this.arenaArrivals.delete(heroId);
+        hero.moveTo(pos.x, pos.y, hero.currentActivity, () => {
+          this.arenaArrivals.add(heroId);
+          const focusX = this.arenaFighters?.focusX();
+          if (focusX !== undefined && focusX !== null) hero.faceTowards(focusX);
+          this.refreshArenaFighting();
+        });
+      } else {
+        hero.moveTo(pos.x, pos.y, hero.currentActivity);
+      }
     }
+
+    if (isArena) this.refreshArenaFighting();
+  }
+
+  /**
+   * Meaningful ambience, same contract as chimney smoke: the goblin and
+   * skeleton spar only while a hero is standing in the yard with them.
+   */
+  private refreshArenaFighting(): void {
+    const slots = this.buildingSlots.get('arena') ?? [];
+    this.arenaFighters?.setFighting(slots.some((id) => this.arenaArrivals.has(id)));
   }
 
   // ---------------------------------------------------------------------------
@@ -1090,9 +1128,8 @@ export class VillageScene extends Phaser.Scene {
       building.setSmoking(slots !== undefined && slots.length > 0);
     }
 
-    // Same contract for the arena's cast: the goblin and skeleton spar only
-    // while a hero is actually in the yard.
-    const arenaSlots = this.buildingSlots.get('arena');
-    this.arenaFighters?.setFighting(arenaSlots !== undefined && arenaSlots.length > 0);
+    // Same contract for the arena's cast — a hero that has left (or died)
+    // stops the fight even though no arrival callback will fire for it.
+    this.refreshArenaFighting();
   }
 }

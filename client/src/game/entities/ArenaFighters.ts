@@ -9,8 +9,10 @@ import type { ArenaNpcSpec } from '../themes/types';
  *
  * What makes them MEANINGFUL ambience (see CLAUDE.md) is their animation:
  * they idle while the yard is empty and fight only while at least one hero
- * is stationed inside — the same real-state contract as chimney smoke. They
- * carry no session-derived detail beyond that single occupied bit.
+ * has actually walked in and squared up — the same real-state contract as
+ * chimney smoke, but gated on arrival rather than on the slot assignment, so
+ * they aren't swinging at a hero still crossing the village. They carry no
+ * session-derived detail beyond that single occupied bit.
  */
 
 /** Where each fighter stands, as fractions of the interior rect. */
@@ -47,6 +49,17 @@ export class ArenaFighters {
       sprite.play(this.animKey(spec, 'idle'));
       this.sprites.push({ sprite, spec });
     });
+  }
+
+  /**
+   * World x the cast occupies (mean of the standing spots), so a hero parked
+   * in the yard can turn to face them rather than assume a side. Null when
+   * the theme ships no fighters.
+   */
+  focusX(): number | null {
+    if (this.sprites.length === 0) return null;
+    const sum = this.sprites.reduce((acc, { sprite }) => acc + sprite.x, 0);
+    return sum / this.sprites.length;
   }
 
   /** Switch the cast between idling and sparring. Idempotent. */
