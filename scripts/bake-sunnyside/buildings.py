@@ -302,7 +302,10 @@ def build_farm(kit: Kit):
     bucket = kit.gm("spr_deco_bucket")
     paste(img, bucket, 20, 33 - bucket.height)
 
+    # Tilled ground under the whole yard, same packed earth as the arena —
+    # a smallholding is worked soil, not lawn with stripes of crop in it.
     ground = canvas(cols * TILE, rows * TILE)
+    paste(ground, _earth_rect(kit, cols - 2, rows - 2), TILE, TILE - 4)
     soil = kit.src.image("Elements/Crops/soil_01.png")  # 16x12
     crop_rows = ["sunflower_04", "pumpkin_04", "cauliflower_04"]
     for row, crop_name in enumerate(crop_rows):
