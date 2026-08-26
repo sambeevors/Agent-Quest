@@ -93,12 +93,13 @@ export class VillageScene extends Phaser.Scene {
   private arenaFighters: ArenaFighters | null = null;
 
   /**
-   * Heroes that have finished walking into the arena. A hero assigned to the
-   * arena is still crossing the village for a second or two, and the fighters
-   * must not start swinging at nobody — so sparring keys off arrival, not off
-   * the slot assignment.
+   * Heroes that have finished walking to their station. An assigned hero is
+   * still crossing the village for a second or two, and until it gets there
+   * the building is not occupied — no smoke over a cold forge, no fighters
+   * swinging at nobody. Every occupancy tell keys off arrival, never off the
+   * slot assignment.
    */
-  private arenaArrivals = new Set<string>();
+  private arrived = new Set<string>();
 
   /** Water keep-out rects — also where the ducks live. */
   private waterRects: Rect[] = [];
@@ -466,7 +467,7 @@ export class VillageScene extends Phaser.Scene {
       this.sitePlots.clear();
       this.arenaFighters?.destroy();
       this.arenaFighters = null;
-      this.arenaArrivals.clear();
+      this.arrived.clear();
       this.roadLayer?.destroy();
       this.roadLayer = null;
       for (const sprite of this.scenerySprites) sprite.destroy();
@@ -954,7 +955,7 @@ export class VillageScene extends Phaser.Scene {
       }
       this.heroBuildingMap.delete(heroId);
     }
-    this.arenaArrivals.delete(heroId);
+    this.arrived.delete(heroId);
     return oldBuildingId;
   }
 
@@ -976,7 +977,7 @@ export class VillageScene extends Phaser.Scene {
       ? this.calcInteriorPositions(interior, slots.length, buildingId)
       : this.calcGridPositions(doorX, doorY, slots.length);
 
-    const isArena = buildingId === 'arena';
+    const focusX = this.stationFocusX(buildingId, doorX, interior !== null);
 
     for (let i = 0; i < slots.length; i++) {
       const heroId = slots[i]!;
@@ -986,33 +987,44 @@ export class VillageScene extends Phaser.Scene {
 
       hero.gridBaseX = pos.x;
       hero.gridBaseY = pos.y;
-      if (isArena) {
-        // A hero heading for (or shuffling within) the yard isn't sparring
-        // yet — the fighters wait for it to actually get there. A hero
-        // already standing on its spot arrives synchronously inside moveTo,
-        // so the flag is back before the sweep below reads it.
-        this.arenaArrivals.delete(heroId);
-        hero.moveTo(pos.x, pos.y, hero.currentActivity, () => {
-          this.arenaArrivals.add(heroId);
-          const focusX = this.arenaFighters?.focusX();
-          if (focusX !== undefined && focusX !== null) hero.faceTowards(focusX);
-          this.refreshArenaFighting();
-        });
-      } else {
-        hero.moveTo(pos.x, pos.y, hero.currentActivity);
-      }
+      // Arrival is cleared by removeFromSlot, which runs when a hero changes
+      // building — the only case where it genuinely isn't there. Heroes
+      // already at this building are just shuffling to make room for a new
+      // arrival and stay counted, or the chimney would puff out every time
+      // the building gained a hero.
+      hero.moveTo(pos.x, pos.y, hero.currentActivity, () => {
+        this.arrived.add(heroId);
+        if (focusX !== null) hero.faceTowards(focusX);
+        this.refreshOccupancy(buildingId);
+      });
     }
 
-    if (isArena) this.refreshArenaFighting();
+    this.refreshOccupancy(buildingId);
   }
 
   /**
-   * Meaningful ambience, same contract as chimney smoke: the goblin and
-   * skeleton spar only while a hero is standing in the yard with them.
+   * What a hero stationed here turns to look at, or null to keep the
+   * direction it walked in. A hero freezing mid-stride tends to end up with
+   * its back to the anvil it is supposedly hammering, so the arena's heroes
+   * face the fighters they spar with and everyone else faces the door they
+   * are working at. The farm is the exception: its waterers stand among crop
+   * rows that surround them, so there is nothing to turn towards.
    */
-  private refreshArenaFighting(): void {
-    const slots = this.buildingSlots.get('arena') ?? [];
-    this.arenaFighters?.setFighting(slots.some((id) => this.arenaArrivals.has(id)));
+  private stationFocusX(buildingId: string, doorX: number, isEnclosure: boolean): number | null {
+    if (buildingId === 'arena') return this.arenaFighters?.focusX() ?? null;
+    return isEnclosure ? null : doorX;
+  }
+
+  /**
+   * Drive a building's ambience from whether a hero is actually standing at
+   * it: smoke from its chimney, and in the arena the goblin and skeleton
+   * squaring up. Both stop the moment the last hero leaves.
+   */
+  private refreshOccupancy(buildingId: string): void {
+    const slots = this.buildingSlots.get(buildingId) ?? [];
+    const occupied = slots.some((id) => this.arrived.has(id));
+    this.buildings.find((b) => b.def.id === buildingId)?.setSmoking(occupied);
+    if (buildingId === 'arena') this.arenaFighters?.setFighting(occupied);
   }
 
   // ---------------------------------------------------------------------------
@@ -1120,16 +1132,13 @@ export class VillageScene extends Phaser.Scene {
       this.repositionBuilding(buildingId);
     }
 
-    // Chimney smoke marks an occupied building — meaningful ambience: it
-    // rises while at least one hero is stationed inside and stops the moment
-    // the last one leaves.
+    // Ambience marks an occupied building — meaningful state: the chimney
+    // smokes (and the arena's cast spars) while a hero stands there, and
+    // stops the moment the last one leaves. Arrivals raise it via their own
+    // callback; this sweep is what lowers it, since a hero that walked off or
+    // vanished fires no arrival for the building it left.
     for (const building of this.buildings) {
-      const slots = this.buildingSlots.get(building.def.id);
-      building.setSmoking(slots !== undefined && slots.length > 0);
+      this.refreshOccupancy(building.def.id);
     }
-
-    // Same contract for the arena's cast — a hero that has left (or died)
-    // stops the fight even though no arrival callback will fire for it.
-    this.refreshArenaFighting();
   }
 }

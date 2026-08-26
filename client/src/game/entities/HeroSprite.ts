@@ -71,6 +71,8 @@ export class HeroSprite {
   private arrivalCallback: (() => void) | null = null;
   private waitingTween: Phaser.Tweens.Tween | null = null;
   private chatterTimer: Phaser.Time.TimerEvent | null = null;
+  /** A thought the timer raised while the hero was walking — said on arrival. */
+  private chatterPending = false;
   private lastChatterLine: string | null = null;
   private lastErrorAt: number | undefined;
   private idleKey: string;
@@ -352,7 +354,15 @@ export class HeroSprite {
     if (this.chatterTimer !== null) this.chatterTimer.remove();
     this.chatterTimer = this.scene.time.delayedCall(nextChatterDelay(), () => {
       this.chatterTimer = null;
-      this.speak(this.chatterMood());
+      // A hero on the road holds its tongue. The lines speak in the register
+      // of the BUILDING the hero is stationed at, and the activity flips at
+      // dispatch — so one said mid-walk would ring an anvil the hero is still
+      // half a village away from. It lands on arrival instead.
+      if (this.moving) {
+        this.chatterPending = true;
+      } else {
+        this.speak(this.chatterMood());
+      }
       this.scheduleChatter();
     });
   }
@@ -496,6 +506,12 @@ export class HeroSprite {
   }
 
   private notifyArrival(): void {
+    if (this.chatterPending) {
+      this.chatterPending = false;
+      // Now in the right building, so the register is finally correct.
+      this.speak(this.chatterMood());
+      this.scheduleChatter();
+    }
     const cb = this.arrivalCallback;
     this.arrivalCallback = null;
     cb?.();
