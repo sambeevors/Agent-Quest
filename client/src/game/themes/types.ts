@@ -57,6 +57,16 @@ export interface HeroSpriteConfig {
   extraAnims?: Record<string, { frameIndices: number[]; frameRate: number }>;
 }
 
+/** One arena NPC: which texture it uses and how it idles and fights. Frame
+ * indices address the texture's spritesheet directly (row-major). */
+export interface ArenaNpcSpec {
+  textureKey: string;
+  /** Natively-left-facing art is flipped so it faces right by default. */
+  facesLeft: boolean;
+  idle: { frameIndices: number[]; frameRate: number };
+  attack: { frameIndices: number[]; frameRate: number };
+}
+
 /** Static preview of a hero's idle sheet — used by React UI (PartyBar). */
 export interface HeroPreview {
   /** URL relative to the public root (leading slash). */
@@ -147,6 +157,22 @@ export interface ThemeManifest {
    * id. Themes without smoke omit the method entirely.
    */
   getChimneyAnchor?(id: string): readonly [number, number] | null;
+  /**
+   * For buildings heroes physically enter (fenced enclosures like the arena
+   * and the farm): the [x, y, w, h] region of the building image, in its own
+   * pixels, where stationed heroes may stand. Null for ordinary buildings,
+   * whose heroes gather at the door instead. An enclosure additionally ships
+   * a `<imageKey>-ground` texture (its floor), drawn beneath the y-sorted
+   * world so heroes walk over it while the fence still overlaps their feet.
+   */
+  getBuildingInterior?(id: string): readonly [number, number, number, number] | null;
+  /**
+   * The arena's resident sparring partners — NPC sprites the scene places
+   * inside the arena's interior. They idle when the yard is empty and fight
+   * while a hero is stationed there (ambience driven by real state, like
+   * chimney smoke). Absent when the theme has no arena cast.
+   */
+  getArenaNpcs?(): ArenaNpcSpec[];
   /** Optional post-load hook, called from BootScene.create() after the
    * Phaser loader has finished. Useful for canvas-based slicing: e.g.
    * turn one combined tree atlas into 4 separate `tree-1..4` textures. */

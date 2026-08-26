@@ -15,6 +15,7 @@ import { generateScenery } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
 import { waterKeepOut } from '../data/water';
 import { Critter } from '../entities/Critter';
+import { ArenaFighters } from '../entities/ArenaFighters';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
 import { heroNameFor } from '../../naming/hero-names';
@@ -87,6 +88,9 @@ export class VillageScene extends Phaser.Scene {
 
   /** Wandering ambient animals (meadow critters + lake ducks). */
   private critters: Critter[] = [];
+
+  /** The arena's resident goblin and skeleton — spar while a hero is inside. */
+  private arenaFighters: ArenaFighters | null = null;
 
   /** Water keep-out rects — also where the ducks live. */
   private waterRects: Rect[] = [];
@@ -452,6 +456,8 @@ export class VillageScene extends Phaser.Scene {
       for (const site of this.constructionSites.values()) site.destroy();
       this.constructionSites.clear();
       this.sitePlots.clear();
+      this.arenaFighters?.destroy();
+      this.arenaFighters = null;
       this.roadLayer?.destroy();
       this.roadLayer = null;
       for (const sprite of this.scenerySprites) sprite.destroy();
@@ -546,6 +552,10 @@ export class VillageScene extends Phaser.Scene {
     // the hamlet is derived from the buildings that just spawned.
     this.annexes ??= computeVillageAnnexes(this.buildings.map((b) => ({ x: b.def.x, y: b.def.y })));
 
+    // The arena's cast stands inside the enclosure that just spawned; created
+    // here (after heroScale is settled) so the fighters match hero size.
+    this.setupArenaFighters();
+
     // Roads are generated, not painted. Any `paths` in a saved MapConfig are
     // ignored — see rebuildRoads().
     this.rebuildRoads();
@@ -562,6 +572,17 @@ export class VillageScene extends Phaser.Scene {
       this.pendingProjects = null;
       this.handleLinearUpdate(pending);
     }
+  }
+
+  /** Place (or re-place) the arena's resident goblin and skeleton. */
+  private setupArenaFighters(): void {
+    this.arenaFighters?.destroy();
+    this.arenaFighters = null;
+    const npcs = getActiveTheme().getArenaNpcs?.();
+    const arena = this.buildings.find((b) => b.def.id === 'arena');
+    const interior = arena?.interiorWorldRect() ?? null;
+    if (npcs === undefined || interior === null) return;
+    this.arenaFighters = new ArenaFighters(this, npcs, interior, this.heroScale);
   }
 
   // ---------------------------------------------------------------------------
@@ -868,6 +889,36 @@ export class VillageScene extends Phaser.Scene {
     return positions;
   }
 
+  /**
+   * Grid positions INSIDE an enclosure's interior rect — heroes walk in
+   * through the gate and stand on the floor rather than gathering at the
+   * door. The arena's heroes keep to the west side, because the goblin and
+   * skeleton they spar with hold the east; the farm centres its workers among
+   * the crop rows. Positions clamp to the rect so a crowd compresses against
+   * the fence instead of standing in it.
+   */
+  private calcInteriorPositions(
+    rect: { x: number; y: number; w: number; h: number },
+    count: number,
+    buildingId: string,
+  ): Array<{ x: number; y: number }> {
+    if (count === 0) return [];
+    const cx = rect.x + rect.w * (buildingId === 'arena' ? 0.32 : 0.5);
+    const cy = rect.y + rect.h * 0.55;
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const positions: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      positions.push({
+        x: Phaser.Math.Clamp(cx + (col - (cols - 1) / 2) * GRID_SPACING_X, rect.x, rect.x + rect.w),
+        y: Phaser.Math.Clamp(cy + (row - (rows - 1) / 2) * GRID_SPACING_Y, rect.y, rect.y + rect.h),
+      });
+    }
+    return positions;
+  }
+
   // ---------------------------------------------------------------------------
   // Slot management
   // ---------------------------------------------------------------------------
@@ -908,7 +959,12 @@ export class VillageScene extends Phaser.Scene {
     const doorX = building?.doorX ?? buildingDef.x;
     const doorY = building?.doorY ?? buildingDef.y + 60;
 
-    const positions = this.calcGridPositions(doorX, doorY, slots.length);
+    // Enclosures station their heroes inside; the road network ends at the
+    // gate, so the final leg of the walk passes through it naturally.
+    const interior = building?.interiorWorldRect() ?? null;
+    const positions = interior !== null
+      ? this.calcInteriorPositions(interior, slots.length, buildingId)
+      : this.calcGridPositions(doorX, doorY, slots.length);
 
     for (let i = 0; i < slots.length; i++) {
       const hero = this.heroes.get(slots[i]!);
@@ -1033,5 +1089,10 @@ export class VillageScene extends Phaser.Scene {
       const slots = this.buildingSlots.get(building.def.id);
       building.setSmoking(slots !== undefined && slots.length > 0);
     }
+
+    // Same contract for the arena's cast: the goblin and skeleton spar only
+    // while a hero is actually in the yard.
+    const arenaSlots = this.buildingSlots.get('arena');
+    this.arenaFighters?.setFighting(arenaSlots !== undefined && arenaSlots.length > 0);
   }
 }

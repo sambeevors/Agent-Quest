@@ -189,6 +189,39 @@ def bake_heroes(src: Sources, out_dir: Path) -> dict:
     }
 
 
+SKELETON_ANIM_FILES = {
+    "walk": "skeleton_walk_strip8.png",
+    "idle": "skeleton_idle_strip6.png",
+    "attack": "skeleton_attack_strip7.png",
+}
+
+
+def bake_skeleton(src: Sources, out_dir: Path) -> dict:
+    """Skeleton sheet for the arena's sparring partner — an NPC, not a hero,
+    so it only needs the rows the arena plays (idle, attack, walk). Frames
+    share the 96x64 hero geometry; counts are measured from strip width."""
+    strips = {
+        name: src.image(f"Characters/Skeleton/PNG/{path}")
+        for name, path in SKELETON_ANIM_FILES.items()
+    }
+    for name, img in strips.items():
+        if img.height != FRAME_H or img.width % FRAME_W != 0:
+            raise AssertionError(f"skeleton {name}: unexpected strip size {img.size}")
+    columns = max(img.width // FRAME_W for img in strips.values())
+    sheet = Image.new("RGBA", (FRAME_W * columns, FRAME_H * len(strips)))
+    anims: dict[str, dict[str, int]] = {}
+    for row, (name, img) in enumerate(strips.items()):
+        anims[name] = {"row": row, "frames": img.width // FRAME_W}
+        paste(sheet, img, 0, row * FRAME_H)
+    save_png(sheet, out_dir / "heroes" / "skeleton.png")
+    return {
+        "frameWidth": FRAME_W,
+        "frameHeight": FRAME_H,
+        "columns": columns,
+        "anims": anims,
+    }
+
+
 def bake_goblins(src: Sources, out_dir: Path) -> dict:
     """Goblin sheet for Codex-sourced agents — same grid as the human sheets.
 

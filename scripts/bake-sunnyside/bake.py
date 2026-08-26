@@ -55,10 +55,11 @@ def main() -> None:
     meta: dict = json.loads(meta_path.read_text()) if meta_path.exists() else {}
 
     if enabled("heroes"):
-        from heroes import bake_goblins, bake_heroes
+        from heroes import bake_goblins, bake_heroes, bake_skeleton
 
         meta["heroes"] = bake_heroes(src, args.out)
         meta["goblin"] = bake_goblins(src, args.out)
+        meta["skeleton"] = bake_skeleton(src, args.out)
         print("baked heroes")
     if enabled("terrain"):
         from terrain import bake_terrain

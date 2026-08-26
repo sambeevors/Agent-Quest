@@ -12,10 +12,25 @@ export class Building {
   readonly doorY: number;
   private readonly scene: Phaser.Scene;
   private smoke: Phaser.GameObjects.Sprite | null = null;
+  /** Interior rect in image pixels — set for enclosures heroes walk into. */
+  private readonly interior: readonly [number, number, number, number] | null;
+  private ground: Phaser.GameObjects.Image | null = null;
 
   constructor(scene: Phaser.Scene, def: BuildingDef) {
     this.def = def;
     this.scene = scene;
+
+    this.interior = getActiveTheme().getBuildingInterior?.(def.id) ?? null;
+
+    // An enclosure's floor (arena earth, farm soil) is a separate layer under
+    // everything y-sorted: baked into the main image it would sit at door
+    // depth and paint over any hero standing inside the fence.
+    if (this.interior !== null && scene.textures.exists(`${def.imageKey}-ground`)) {
+      this.ground = scene.add.image(def.x, def.y, `${def.imageKey}-ground`);
+      this.ground.setOrigin(0.5, 1);
+      this.ground.setScale(getActiveTheme().getBuildingScale(def.id));
+      this.ground.setDepth(3); // above terrain and roads, below all y-sorted sprites
+    }
 
     this.image = scene.add.image(def.x, def.y, def.imageKey);
     this.image.setOrigin(0.5, 1); // bottom-centre — the def's y IS the ground line
@@ -103,6 +118,23 @@ export class Building {
   }
 
   /**
+   * Where stationed heroes may stand, in world space — only for enclosures
+   * (arena, farm). Ordinary buildings return null and their heroes gather at
+   * the door.
+   */
+  interiorWorldRect(): { x: number; y: number; w: number; h: number } | null {
+    if (this.interior === null) return null;
+    const scale = this.image.scaleX;
+    const [ix, iy, iw, ih] = this.interior;
+    return {
+      x: this.def.x - this.image.displayWidth / 2 + ix * scale,
+      y: this.def.y - this.image.displayHeight + iy * scale,
+      w: iw * scale,
+      h: ih * scale,
+    };
+  }
+
+  /**
    * Ground plan used for road routing, in world space.
    *
    * NOT the sprite's bounding box: these are tall buildings drawn in
@@ -110,8 +142,17 @@ export class Building {
    * path may happily pass behind. Only the lower band actually stands on the
    * ground, so roads route around that and heroes can still walk behind the
    * upper storeys — which is what makes the depth sorting read correctly.
+   *
+   * Enclosures are the exception: a fence ring is ALL ground — there is no
+   * upper storey to walk behind — so their footprint is the whole image and
+   * roads (and scenery) keep out of the yard entirely.
    */
   get footprint(): { x: number; y: number; w: number; h: number } {
+    if (this.interior !== null) {
+      const w = this.image.displayWidth * 0.96;
+      const h = this.image.displayHeight * 0.94;
+      return { x: this.def.x - w / 2, y: this.def.y - h, w, h };
+    }
     const w = this.image.displayWidth * 0.78;
     const h = Math.max(24, this.image.displayHeight * 0.34);
     return { x: this.def.x - w / 2, y: this.def.y - h, w, h };

@@ -105,10 +105,10 @@ export const SUNNYSIDE_SHEET = {
       "forge": 52,
       "tavern": 52,
       "alchemist": 48,
-      "chapel": 52,
       "castle": 64,
       "watchtower": 48,
-      "arena": 60
+      "arena": 72,
+      "farm": 72
     },
     "size": {
       "library": [
@@ -127,10 +127,6 @@ export const SUNNYSIDE_SHEET = {
         192,
         248
       ],
-      "chapel": [
-        224,
-        256
-      ],
       "castle": [
         384,
         256
@@ -140,8 +136,12 @@ export const SUNNYSIDE_SHEET = {
         384
       ],
       "arena": [
-        288,
-        192
+        512,
+        320
+      ],
+      "farm": [
+        512,
+        384
       ]
     },
     "chimney": {
@@ -161,10 +161,6 @@ export const SUNNYSIDE_SHEET = {
         60,
         32
       ],
-      "chapel": [
-        108,
-        8
-      ],
       "castle": [
         64,
         96
@@ -172,45 +168,25 @@ export const SUNNYSIDE_SHEET = {
       "watchtower": [
         72,
         8
-      ],
+      ]
+    },
+    "interior": {
       "arena": [
-        108,
-        28
+        64,
+        88,
+        384,
+        152
+      ],
+      "farm": [
+        56,
+        80,
+        400,
+        224
       ]
     }
   },
   "scenery": {
     "animated": {
-      "tree-1": {
-        "frames": 4,
-        "frameWidth": 128,
-        "frameHeight": 136
-      },
-      "tree-2": {
-        "frames": 4,
-        "frameWidth": 112,
-        "frameHeight": 172
-      },
-      "mushroom-1": {
-        "frames": 4,
-        "frameWidth": 64,
-        "frameHeight": 64
-      },
-      "mushroom-2": {
-        "frames": 4,
-        "frameWidth": 64,
-        "frameHeight": 64
-      },
-      "mushroom-3": {
-        "frames": 4,
-        "frameWidth": 64,
-        "frameHeight": 64
-      },
-      "mushroom-4": {
-        "frames": 4,
-        "frameWidth": 64,
-        "frameHeight": 64
-      },
       "animal-1": {
         "frames": 4,
         "frameWidth": 128,
@@ -240,16 +216,6 @@ export const SUNNYSIDE_SHEET = {
         "frames": 4,
         "frameWidth": 64,
         "frameHeight": 64
-      },
-      "tree-3": {
-        "frames": 4,
-        "frameWidth": 128,
-        "frameHeight": 136
-      },
-      "tree-4": {
-        "frames": 4,
-        "frameWidth": 112,
-        "frameHeight": 172
       }
     }
   },
@@ -281,6 +247,25 @@ export const SUNNYSIDE_SHEET = {
         4
       ],
       "height": 13
+    }
+  },
+  "skeleton": {
+    "frameWidth": 96,
+    "frameHeight": 64,
+    "columns": 8,
+    "anims": {
+      "walk": {
+        "row": 0,
+        "frames": 8
+      },
+      "idle": {
+        "row": 1,
+        "frames": 6
+      },
+      "attack": {
+        "row": 2,
+        "frames": 7
+      }
     }
   }
 } as const;

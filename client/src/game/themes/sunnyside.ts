@@ -1,5 +1,6 @@
 import { SUNNYSIDE_SHEET } from './sunnyside-sheet';
 import type {
+  ArenaNpcSpec,
   HeroPreview,
   HeroSpriteConfig,
   PreloadEntry,
@@ -26,6 +27,7 @@ const BASE = 'assets/themes/sunnyside';
 
 const SHEET = SUNNYSIDE_SHEET.heroes;
 const GOBLIN = SUNNYSIDE_SHEET.goblin;
+const SKELETON = SUNNYSIDE_SHEET.skeleton;
 
 /**
  * How large a hero renders. The baked frames are 96x64 with an ~15px-tall
@@ -46,17 +48,19 @@ const BUILDING_SCALE = 0.58;
 
 const DOOR_HEIGHT: Record<string, number> = SUNNYSIDE_SHEET.buildings.doorHeight;
 
-/** Stationary animation per agent state, where a sensible mapping exists. */
+/** Stationary animation per agent state, where a sensible mapping exists.
+ * git → watering: publishing sends the hero to the Farm, where it works the
+ * land rather than pantomiming a scribe. */
 const ACTIVITY_ANIMS: ReadonlyArray<{ state: string; anim: keyof typeof SHEET.anims; frameRate: number }> = [
   { state: 'editing', anim: 'hammering', frameRate: 14 },
   { state: 'bash', anim: 'attack', frameRate: 10 },
   { state: 'debugging', anim: 'doing', frameRate: 8 },
-  { state: 'git', anim: 'doing', frameRate: 8 },
+  { state: 'git', anim: 'watering', frameRate: 7 },
   { state: 'waiting', anim: 'waiting', frameRate: 6 },
 ];
 
-function rowIndices(row: number, frames: number): number[] {
-  return Array.from({ length: frames }, (_, i) => row * SHEET.columns + i);
+function rowIndices(row: number, frames: number, columns: number = SHEET.columns): number[] {
+  return Array.from({ length: frames }, (_, i) => row * columns + i);
 }
 
 function humanKey(color: UnitColor, unit: UnitType): string {
@@ -160,6 +164,31 @@ export const sunnysideTheme: ThemeManifest = {
     return (SUNNYSIDE_SHEET.buildings.chimney as Record<string, readonly [number, number]>)[id] ?? null;
   },
 
+  getBuildingInterior(id: string): readonly [number, number, number, number] | null {
+    return (SUNNYSIDE_SHEET.buildings.interior as Record<string, readonly [number, number, number, number]>)[id] ?? null;
+  },
+
+  getArenaNpcs(): ArenaNpcSpec[] {
+    // Both sheets share the hero frame format and face right natively; the
+    // scene flips them to face the heroes' side of the yard.
+    const goblinIdle = GOBLIN.anims.idle;
+    const goblinAttack = GOBLIN.anims.attack;
+    return [
+      {
+        textureKey: 'hero-goblin',
+        facesLeft: false,
+        idle: { frameIndices: rowIndices(goblinIdle.row, goblinIdle.frames), frameRate: 8 },
+        attack: { frameIndices: rowIndices(goblinAttack.row, goblinAttack.frames), frameRate: 10 },
+      },
+      {
+        textureKey: 'npc-skeleton',
+        facesLeft: false,
+        idle: { frameIndices: rowIndices(SKELETON.anims.idle.row, SKELETON.anims.idle.frames, SKELETON.columns), frameRate: 8 },
+        attack: { frameIndices: rowIndices(SKELETON.anims.attack.row, SKELETON.anims.attack.frames, SKELETON.columns), frameRate: 10 },
+      },
+    ];
+  },
+
   getStaticAssetPreload(): StaticAssetEntry[] {
     const entries: StaticAssetEntry[] = [
       // Terrain sheets beyond the grass tileset (which BootScene loads from
@@ -175,8 +204,28 @@ export const sunnysideTheme: ThemeManifest = {
       { key: 'house-yellow', path: `${BASE}/buildings/house-yellow.png` },
       { key: 'house-red', path: `${BASE}/buildings/house-red.png` },
       { key: 'house-purple', path: `${BASE}/buildings/house-purple.png` },
-      // Static scenery. (All four tree variants are animated and preloaded
-      // from the bake's animated metadata below.)
+      // Enclosure floors — drawn beneath the y-sorted world by Building so
+      // heroes stand ON the arena's earth and the farm's soil rows.
+      { key: 'building-arena-ground', path: `${BASE}/buildings/arena-ground.png` },
+      { key: 'building-farm-ground', path: `${BASE}/buildings/farm-ground.png` },
+      // The arena's resident sparring partner (the goblin sheet is already a
+      // hero preload). Spritesheet geometry from the bake metadata.
+      {
+        key: 'npc-skeleton',
+        path: `${BASE}/heroes/skeleton.png`,
+        frameWidth: SUNNYSIDE_SHEET.skeleton.frameWidth,
+        frameHeight: SUNNYSIDE_SHEET.skeleton.frameHeight,
+      },
+      // Static scenery. Foliage holds still by design — only creatures
+      // (the animal strips below) animate.
+      { key: 'tree-1', path: `${BASE}/scenery/tree-1.png` },
+      { key: 'tree-2', path: `${BASE}/scenery/tree-2.png` },
+      { key: 'tree-3', path: `${BASE}/scenery/tree-3.png` },
+      { key: 'tree-4', path: `${BASE}/scenery/tree-4.png` },
+      { key: 'mushroom-1', path: `${BASE}/scenery/mushroom-1.png` },
+      { key: 'mushroom-2', path: `${BASE}/scenery/mushroom-2.png` },
+      { key: 'mushroom-3', path: `${BASE}/scenery/mushroom-3.png` },
+      { key: 'mushroom-4', path: `${BASE}/scenery/mushroom-4.png` },
       { key: 'bush-1', path: `${BASE}/scenery/bush-1.png` },
       { key: 'bush-2', path: `${BASE}/scenery/bush-2.png` },
       { key: 'bush-3', path: `${BASE}/scenery/bush-3.png` },
@@ -188,9 +237,6 @@ export const sunnysideTheme: ThemeManifest = {
       { key: 'flower-1', path: `${BASE}/scenery/flower-1.png` },
       { key: 'flower-2', path: `${BASE}/scenery/flower-2.png` },
       { key: 'flower-3', path: `${BASE}/scenery/flower-3.png` },
-      { key: 'crop-1', path: `${BASE}/scenery/crop-1.png` },
-      { key: 'crop-2', path: `${BASE}/scenery/crop-2.png` },
-      { key: 'crop-3', path: `${BASE}/scenery/crop-3.png` },
       { key: 'stump-1', path: `${BASE}/scenery/stump-1.png` },
       { key: 'stump-2', path: `${BASE}/scenery/stump-2.png` },
     ];
@@ -215,15 +261,16 @@ export const sunnysideTheme: ThemeManifest = {
   },
 
   postLoadHook(scene): void {
-    // Looping animations for animated scenery and the chimney smoke. Created
+    // Looping animations for the creatures and the chimney smoke. Created
     // once here (the anims manager is global) so renderers just play them.
+    // Everything botanical is baked static, so the animated table is only
+    // the animal strips.
     for (const [key, spec] of Object.entries(SUNNYSIDE_SHEET.scenery.animated)) {
       if (!scene.anims.exists(`${key}-anim`) && scene.textures.exists(key)) {
         scene.anims.create({
           key: `${key}-anim`,
           frames: scene.anims.generateFrameNumbers(key, { start: 0, end: spec.frames - 1 }),
-          // Trees sway lazily; small creatures and blinking mushrooms tick faster.
-          frameRate: key.startsWith('tree') ? 3 : 5,
+          frameRate: 5,
           repeat: -1,
         });
       }

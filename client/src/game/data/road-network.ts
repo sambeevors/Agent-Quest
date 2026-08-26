@@ -20,7 +20,7 @@ const DEFAULT_WAYPOINTS: Point[] = [
   { x: 1150, y: 1000 }, // 8  sw-corner
   { x: 1680, y: 1000 }, // 9  se-corner
   { x: 1040, y: 680 },  // 10 library-access
-  { x: 1790, y: 680 },  // 11 chapel-access
+  { x: 1790, y: 680 },  // 11 farm-access
   { x: 1430, y: 490 },  // 12 castle-access
 ];
 

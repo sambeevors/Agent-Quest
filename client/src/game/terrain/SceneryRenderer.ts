@@ -10,11 +10,12 @@ import type { SceneryItem } from '../data/scenery';
  * container would collapse them all into a single depth slot and force the
  * whole forest either above or below every moving thing.
  *
- * Animated kinds (trees swaying, mushrooms blinking, animals grazing) play
- * the looping animation the theme registered as `<key>-anim`, each starting
- * at a phase derived from its position — deterministic (the same forest
- * animates the same way every reload) but desynchronised, so a stand of
- * trees doesn't sway in lockstep.
+ * A kind whose theme registered a looping `<key>-anim` plays it, starting at
+ * a phase derived from its position — deterministic but desynchronised. With
+ * the Sunnyside bake that is nobody: foliage is baked static (plants that
+ * dance with no wind read as noise) and the animals are filtered out before
+ * this renderer runs, becoming wandering Critters instead. The branch stays
+ * because it is the generic contract, not dead code for one theme's choices.
  *
  * The returned array is the caller's handle for tearing the scatter down when
  * it needs regenerating.

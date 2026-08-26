@@ -133,7 +133,7 @@ describe('generateScenery', () => {
     }
     expect(byKind.size).toBeGreaterThan(1);
     // Kinds with plenty of samples must span the same jitter range; sparse
-    // kinds (animals, crop patches) can't be expected to hit the extremes,
+    // kinds (animals, stumps) can't be expected to hit the extremes,
     // but every one of their items must still fall inside that range.
     const populous = [...byKind.values()].filter((v) => v.length >= 20);
     expect(populous.length).toBeGreaterThan(1);
@@ -160,7 +160,7 @@ describe('generateScenery', () => {
   test('emits only variants that exist for each kind', () => {
     const maxVariant: Record<string, number> = {
       tree: 4, bush: 3, rock: 5, mushroom: 4,
-      flower: 3, stump: 2, crop: 3, animal: 5,
+      flower: 3, stump: 2, animal: 5,
     };
     for (const i of generateScenery(opts())) {
       expect(i.variant).toBeGreaterThanOrEqual(1);

@@ -92,16 +92,19 @@ function buildDecorations(): DecorationManifest[] {
   return out;
 }
 
-/** Doorway height (baked px) per building — mirror of the bake metadata. */
+/** Doorway height (baked px) per building — mirror of the bake metadata.
+ * The arena and farm are fenced enclosures; their "door" is the gate gap in
+ * the fence, declared taller than a post so the fence renders around hero
+ * height rather than towering over it. */
 const DOOR_HEIGHT: Record<string, number> = {
   library: 64,
   forge: 52,
   tavern: 52,
   alchemist: 48,
-  chapel: 48,
-  castle: 60,
+  farm: 72,
+  castle: 64,
   watchtower: 48,
-  arena: 60,
+  arena: 72,
 };
 
 function buildingScale(id: string): number {
@@ -114,7 +117,7 @@ function buildProtectedBuildings(): ProtectedBuildingManifest[] {
     ['alchemist', 'Alchemist', 'debugging'],
     ['castle', 'Castle', 'thinking'],
     ['watchtower', 'Watchtower', 'reviewing'],
-    ['chapel', 'Chapel', 'git'],
+    ['farm', 'Farm', 'git'],
     ['tavern', 'Tavern', 'idle'],
     ['forge', 'Forge', 'editing'],
     ['arena', 'Arena', 'bash'],

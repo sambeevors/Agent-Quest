@@ -13,8 +13,38 @@ const BUILDING_IDS = Object.keys(SUNNYSIDE_SHEET.buildings.doorHeight);
 describe('sunnysideTheme buildings', () => {
   test('every activity building has a door height and a size', () => {
     expect(BUILDING_IDS.sort()).toEqual(
-      ['alchemist', 'arena', 'castle', 'chapel', 'forge', 'library', 'tavern', 'watchtower'],
+      ['alchemist', 'arena', 'castle', 'farm', 'forge', 'library', 'tavern', 'watchtower'],
     );
+  });
+
+  test('enclosures declare an interior that fits inside their image', () => {
+    // The arena and farm are the two buildings heroes physically enter.
+    expect(Object.keys(SUNNYSIDE_SHEET.buildings.interior).sort()).toEqual(['arena', 'farm']);
+    for (const [id, rect] of Object.entries(SUNNYSIDE_SHEET.buildings.interior)) {
+      const [w, h] = SUNNYSIDE_SHEET.buildings.size[id as keyof typeof SUNNYSIDE_SHEET.buildings.size];
+      const [ix, iy, iw, ih] = rect;
+      expect(ix).toBeGreaterThan(0);
+      expect(iy).toBeGreaterThan(0);
+      expect(ix + iw).toBeLessThan(w);
+      expect(iy + ih).toBeLessThan(h);
+      expect(sunnysideTheme.getBuildingInterior?.(id)).toEqual(rect);
+    }
+    expect(sunnysideTheme.getBuildingInterior?.('library')).toBeNull();
+  });
+
+  test('enclosures have no chimney — nothing to smoke on a fence', () => {
+    const chimneyIds = Object.keys(SUNNYSIDE_SHEET.buildings.chimney);
+    expect(chimneyIds).not.toContain('arena');
+    expect(chimneyIds).not.toContain('farm');
+  });
+
+  test('the arena cast idles and attacks off real sheet rows', () => {
+    const npcs = sunnysideTheme.getArenaNpcs?.() ?? [];
+    expect(npcs.map((n) => n.textureKey).sort()).toEqual(['hero-goblin', 'npc-skeleton']);
+    for (const npc of npcs) {
+      expect(npc.idle.frameIndices.length).toBeGreaterThan(1);
+      expect(npc.attack.frameIndices.length).toBeGreaterThan(1);
+    }
   });
 
   test('doorways render at one size across all buildings', () => {

@@ -405,9 +405,9 @@ export class TerrainRenderer {
       tint: [0x4488DD, 0x88CCFF, 0x66AAEE], lifespan: 1500, frequency: 180, quantity: 1, gravityY: 15,
     }).setDepth(4);
 
-    const chapel = BUILDING_DEFS.find(b => b.id === 'chapel');
-    if (chapel) {
-      this.scene.add.particles(chapel.x, chapel.y - 30, 'px', {
+    const farm = BUILDING_DEFS.find(b => b.id === 'farm');
+    if (farm) {
+      this.scene.add.particles(farm.x, farm.y - 30, 'px', {
         x: { min: -4, max: 4 }, speed: { min: 2, max: 6 }, angle: { min: 260, max: 280 },
         scale: { start: 0.2, end: 0 }, alpha: { start: 0.45, end: 0 },
         tint: [0xFFE082, 0xFFD54F, 0xFFB300], lifespan: 1200, frequency: 240, quantity: 1, gravityY: -12,

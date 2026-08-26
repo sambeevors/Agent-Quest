@@ -88,7 +88,8 @@ export class Critter {
       this.rest();
       return;
     }
-    if (Math.abs(dx) > 2) this.sprite.setFlipX(dx < 0);
+    // The animal strips all face LEFT natively, so flip when heading right.
+    if (Math.abs(dx) > 2) this.sprite.setFlipX(dx > 0);
     this.moveTween = this.scene.tweens.add({
       targets: this.sprite,
       x: tx,

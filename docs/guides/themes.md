@@ -47,7 +47,7 @@ emitted by the bake and must never be edited by hand.
 1. Bake (or collect) assets into `client/public/assets/themes/<id>/`,
    matching the shapes above — in particular the road sheet's 6-column
    contract and per-kind scenery keys (`tree-1…`, `bush-1…`, `rock-1…`,
-   `mushroom-1…`, `flower-1…`, `stump-1…`, `crop-1…`, `animal-1…`).
+   `mushroom-1…`, `flower-1…`, `stump-1…`, `animal-1…`).
 2. Write the manifest in `client/src/game/themes/<id>.ts`, widen `ThemeId`
    (also in `server/src/map/asset-manifest.ts`), register it, and set
    `rebaseSavedScale` so `village.json`'s stored `heroScale` (authored

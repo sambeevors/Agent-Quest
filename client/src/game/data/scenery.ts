@@ -22,7 +22,7 @@ import type { Point, Rect } from './desire-paths';
 
 export type SceneryKind =
   | 'tree' | 'bush' | 'rock' | 'mushroom'
-  | 'flower' | 'stump' | 'crop' | 'animal';
+  | 'flower' | 'stump' | 'animal';
 
 export interface SceneryItem {
   kind: SceneryKind;
@@ -91,8 +91,9 @@ const KIND_SPECS: Record<SceneryKind, KindSpec> = {
   },
   // The cozy-farm layer. Flowers behave like small props; the rest are
   // deliberately sparse so they read as ambience, not as state: a stump is a
-  // rare accent, a crop patch suggests a smallholding near (but never against)
-  // the village, and animals graze alone in open meadow.
+  // rare accent and animals graze alone in open meadow. (Crops used to
+  // scatter here too, but stray squares of farmland in the wild read as
+  // meaning something — cultivation now lives only inside the Farm.)
   flower: {
     variants: 3, weightDense: 4, weightOpen: 26,
     buildingClearance: 16, roadClearance: 18, spacing: 30,
@@ -100,10 +101,6 @@ const KIND_SPECS: Record<SceneryKind, KindSpec> = {
   stump: {
     variants: 2, weightDense: 6, weightOpen: 4,
     buildingClearance: 24, roadClearance: 26, spacing: 90,
-  },
-  crop: {
-    variants: 3, weightDense: 0, weightOpen: 9,
-    buildingClearance: 48, roadClearance: 44, spacing: 200,
   },
   animal: {
     variants: 5, weightDense: 1, weightOpen: 8,

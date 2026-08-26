@@ -228,7 +228,7 @@ export function parseJsonlLine(raw: string): ParsedEvent | null {
       });
 
       // Determine activity. A Bash call is classified by what it actually runs:
-      // a `git commit` is Chapel work and a `grep`/`cat` is Library work, even
+      // a `git commit` is Farm work and a `grep`/`cat` is Library work, even
       // though both arrive as the same tool.
       if (tu.name === 'Bash' && typeof tu.input['command'] === 'string') {
         const bashActivity = classifyBashCommand(tu.input['command']);

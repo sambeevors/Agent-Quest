@@ -1,8 +1,11 @@
 """Bake scenery and ambience sprites.
 
-Animated pieces (trees, mushrooms, animals) become horizontal spritesheets;
-static pieces become single images. Everything is upscaled x4 to match the
-64px world, and content-cropped where the source tile has large margins.
+Only creatures animate: the animal strips become horizontal spritesheets for
+the wandering critters. Everything botanical or mineral is baked STATIC —
+trees and mushrooms take frame 0 of their strips — because plants that dance
+in a world with no wind read as noise, not ambience. Everything is upscaled
+x4 to match the 64px world, and content-cropped where the source tile has
+large margins.
 """
 
 from __future__ import annotations
@@ -15,16 +18,11 @@ from common import Sources, crop_tiles, save_png, upscale
 
 TILESET = "Tileset/spr_tileset_sunnysideworld_16px.png"
 
-# Static pieces cut from the tileset: name -> (tx, ty, tw, th)
+# Static pieces cut from the tileset on the 16px grid: name -> (tx, ty, tw, th)
 STATIC_TILES = {
     "bush-1": (27, 1, 1, 1),
     "bush-2": (28, 4, 1, 1),
     "bush-3": (29, 3, 1, 1),
-    "rock-1": (48, 21, 3, 2),
-    "rock-2": (51, 21, 3, 2),
-    "rock-3": (53, 21, 2, 2),
-    "rock-4": (55, 22, 1, 1),
-    "rock-5": (53, 29, 2, 2),
     "flower-1": (33, 1, 1, 1),
     "flower-2": (33, 2, 1, 1),
     "flower-3": (33, 3, 1, 1),
@@ -32,35 +30,43 @@ STATIC_TILES = {
     "stump-2": (32, 5, 1, 1),
 }
 
-# Animated strips from Elements/: name -> (path, frame count). Frame size is
-# measured (the strips vary — tree_02 is 28x43 while tree_01 is 32x34).
-# Trees deliberately come ONLY from these animated strips: the tileset's
-# static trees sit flush against their neighbours, so any crop either clips
-# the canopy or drags a stranger in — and a forest where some trees sway and
-# some are frozen reads as broken anyway. Variants 3/4 are palette-shifted
-# copies of 1/2, so every tree moves.
+# Pieces whose artwork ignores the tile grid: name -> (x, y, w, h) in raw
+# pixels. The five grey rocks overlap tile boundaries in the sheet, so any
+# grid-aligned crop drags a neighbouring rock's edge in as a stray sliver —
+# these rects are the connected-component bboxes of each rock, found by scan.
+STATIC_PX = {
+    "rock-1": (736, 320, 32, 27),
+    "rock-2": (787, 340, 26, 25),
+    "rock-3": (820, 343, 24, 22),
+    "rock-4": (855, 349, 18, 16),
+    "rock-5": (883, 355, 10, 10),
+}
+
+# Static foliage from Elements/ strips: name -> path. Frame 0 only — see the
+# module docstring. Trees deliberately come from these strips rather than the
+# tileset: the tileset's static trees sit flush against their neighbours, so
+# any crop either clips the canopy or drags a stranger in. Variants 3/4 are
+# palette-shifted copies of 1/2 for woodland variety.
+STATIC_STRIPS = {
+    "tree-1": "Elements/Plants/spr_deco_tree_01_strip4.png",
+    "tree-2": "Elements/Plants/spr_deco_tree_02_strip4.png",
+    "mushroom-1": "Elements/Plants/spr_deco_mushroom_red_01_strip4.png",
+    "mushroom-2": "Elements/Plants/spr_deco_mushroom_blue_01_strip4.png",
+    "mushroom-3": "Elements/Plants/spr_deco_mushroom_blue_02_strip4.png",
+    "mushroom-4": "Elements/Plants/spr_deco_mushroom_blue_03_strip4.png",
+}
+STRIP_FRAMES = 4  # every _strip4 source
+
+# Animated strips: name -> (path, frame count). Creatures only — land
+# critters (animal-1..5) wander the meadow; the duck is its own key and
+# lives on the water.
 ANIMATED = {
-    "tree-1": ("Elements/Plants/spr_deco_tree_01_strip4.png", 4),
-    "tree-2": ("Elements/Plants/spr_deco_tree_02_strip4.png", 4),
-    "mushroom-1": ("Elements/Plants/spr_deco_mushroom_red_01_strip4.png", 4),
-    "mushroom-2": ("Elements/Plants/spr_deco_mushroom_blue_01_strip4.png", 4),
-    "mushroom-3": ("Elements/Plants/spr_deco_mushroom_blue_02_strip4.png", 4),
-    "mushroom-4": ("Elements/Plants/spr_deco_mushroom_blue_03_strip4.png", 4),
-    # Land critters (animal-1..5) wander the meadow; the duck is its own key
-    # and lives on the water.
     "animal-1": ("Elements/Animals/spr_deco_chicken_01_strip4.png", 4),
     "animal-2": ("Elements/Animals/spr_deco_cow_strip4.png", 4),
     "animal-3": ("Elements/Animals/spr_deco_sheep_01_strip4.png", 4),
     "animal-4": ("Elements/Animals/spr_deco_pig_01_strip4.png", 4),
     "animal-5": ("Elements/Animals/spr_deco_bird_01_strip4.png", 4),
     "duck": ("Elements/Animals/spr_deco_duck_01_strip4.png", 4),
-}
-
-# Crop patches: soil tile + a grown crop, composed 2x2 soil with 4 plants.
-CROP_PATCHES = {
-    "crop-1": "pumpkin_04",
-    "crop-2": "sunflower_04",
-    "crop-3": "cabbage_04",
 }
 
 
@@ -78,6 +84,13 @@ def _shift_foliage(img: Image.Image) -> Image.Image:
     return out
 
 
+def _first_frame(strip: Image.Image, frames: int) -> Image.Image:
+    if strip.width % frames != 0:
+        raise AssertionError(f"strip {strip.size} not divisible into {frames} frames")
+    fw = strip.width // frames
+    return strip.crop((0, 0, fw, strip.height))
+
+
 def bake_scenery(src: Sources, out_dir: Path) -> dict:
     ts = src.image(TILESET)
     meta: dict = {"animated": {}}
@@ -89,6 +102,21 @@ def bake_scenery(src: Sources, out_dir: Path) -> dict:
             raise AssertionError(f"{name}: empty tile region")
         save_png(upscale(img.crop(bbox)), out_dir / "scenery" / f"{name}.png")
 
+    for name, (x, y, w, h) in STATIC_PX.items():
+        img = ts.crop((x, y, x + w, y + h))
+        if img.getbbox() is None:
+            raise AssertionError(f"{name}: empty pixel region")
+        save_png(upscale(img), out_dir / "scenery" / f"{name}.png")
+
+    for name, path in STATIC_STRIPS.items():
+        frame = _first_frame(src.image(path), STRIP_FRAMES)
+        save_png(upscale(frame), out_dir / "scenery" / f"{name}.png")
+
+    # Darker-foliage copies of the two trees for woodland variety.
+    for src_name, dst_name in (("tree-1", "tree-3"), ("tree-2", "tree-4")):
+        frame = _first_frame(src.image(STATIC_STRIPS[src_name]), STRIP_FRAMES)
+        save_png(upscale(_shift_foliage(frame)), out_dir / "scenery" / f"{dst_name}.png")
+
     for name, (path, frames) in ANIMATED.items():
         strip = src.image(path)
         if strip.width % frames != 0:
@@ -99,32 +127,5 @@ def bake_scenery(src: Sources, out_dir: Path) -> dict:
             "frameWidth": strip.width // frames * 4,
             "frameHeight": strip.height * 4,
         }
-
-    # Darker-foliage copies of the two animated trees, so a wood has variety
-    # without any frozen trees.
-    for src_name, dst_name in (("tree-1", "tree-3"), ("tree-2", "tree-4")):
-        path, frames = ANIMATED[src_name]
-        strip = src.image(path)
-        dark = _shift_foliage(strip)
-        save_png(upscale(dark), out_dir / "scenery" / f"{dst_name}.png")
-        meta["animated"][dst_name] = {
-            "frames": frames,
-            "frameWidth": strip.width // frames * 4,
-            "frameHeight": strip.height * 4,
-        }
-
-    soil = src.image("Elements/Crops/soil_01.png")
-    for name, crop in CROP_PATCHES.items():
-        plant = src.image(f"Elements/Crops/{crop}.png")
-        patch = Image.new("RGBA", (soil.width * 2, soil.height * 2))
-        for gy in range(2):
-            for gx in range(2):
-                patch.alpha_composite(soil, (gx * soil.width, gy * soil.height))
-        for gy in range(2):
-            for gx in range(2):
-                px = gx * soil.width + (soil.width - plant.width) // 2
-                py = gy * soil.height + soil.height - plant.height - 1
-                patch.alpha_composite(plant, (px, py))
-        save_png(upscale(patch), out_dir / "scenery" / f"{name}.png")
 
     return meta

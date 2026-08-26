@@ -53,3 +53,7 @@ server/data/linear.json
 # committed; this sibling file is per-machine and must not be.
 .conductor/settings.local.toml
 .playwright-mcp/
+
+# Python bytecode from the bake pipeline
+__pycache__/
+*.pyc
