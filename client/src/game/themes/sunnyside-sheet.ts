@@ -128,8 +128,8 @@ export const SUNNYSIDE_SHEET = {
         248
       ],
       "castle": [
-        440,
-        400
+        368,
+        244
       ],
       "watchtower": [
         144,
@@ -162,8 +162,8 @@ export const SUNNYSIDE_SHEET = {
         32
       ],
       "castle": [
-        220,
-        228
+        184,
+        96
       ],
       "watchtower": [
         72,

@@ -24,6 +24,9 @@ from PIL import Image, ImageDraw
 from common import GAMEMAKER, SCALE, TILE, Sources, crop_tiles, paste, save_png, upscale
 from terrain import BORDER_TOP, EARTH_FILL, _strip_border
 
+# Hand-drawn, non-pack-derived sprites that recipes paste through unchanged.
+ART = Path(__file__).resolve().parent / "art"
+
 # Bounding boxes of the useful components in SUNNYSIDE_WORLD_BUILDINGS_V0.01.png
 # (x0, y0, x1, y1 inclusive), catalogued by eye from the sheet.
 PIECES = {
@@ -358,26 +361,15 @@ def build_farm(kit: Kit):
 
 
 def build_castle(kit: Kit):
-    # A keep: two glass-spired towers (hall_open cap over a storey shaft)
-    # flanking a central blue-roofed hall — all real architecture from the
-    # modular sheet. (The previous curtain-wall composition used the
-    # tileset's grey monument tiles as "towers", which read as strange
-    # pedestals, not a castle.)
-    img = canvas(110, 100)
-    house = kit.piece("house_small")  # blue roof = the royal colour
-    dark_rect(img, 28 + 19, 55 + 31, 28 + 34, 55 + 43)
-    paste(img, house, 28, 55)
-    storey = kit.piece("storey")
-    # The pack bakes a grass baseline into each piece's bottom rows — fine at
-    # ground level, a floating green stripe when the piece sits mid-tower.
-    cap = kit.piece("hall_open").crop((0, 0, 30, 49))
-    for tx in (0, 80):
-        paste(img, storey, tx, 55)
-        # Back the cap's open arch so the gallery reads as depth, not as a
-        # hole showing the meadow through the tower.
-        dark_rect(img, tx + 7, 40, tx + 23, 57)
-        paste(img, cap, tx, 9)
-    return img, 13, (55, 57)
+    # The one hand-drawn building. The modular sheet has no castle pieces, and
+    # every composition assembled from house/storey parts read as a row of huts
+    # wearing spires. art/castle.png is drawn on the same 16px grid as every
+    # recipe here, so it upscales x4 with the rest and its gate lands at the
+    # shared doorway zoom. Chimney anchor sits in the middle crenel, so smoke
+    # rises from inside the keep rather than off a wall with no flue.
+    del kit  # drawn art, not assembled from the pack
+    img = Image.open(ART / "castle.png").convert("RGBA")
+    return img, 13, (46, 24)
 
 
 def build_watchtower(kit: Kit):
