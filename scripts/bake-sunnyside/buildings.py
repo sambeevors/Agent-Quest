@@ -311,7 +311,7 @@ def build_farm(kit: Kit):
 BUILDING_RECIPES = {
     "library": drawn("library", 16, (54, 0)),
     "forge": drawn("forge", 13, (36, 1)),
-    "tavern": drawn("tavern", 13, (36, 2)),
+    "tavern": drawn("tavern", 13, (41, 2)),
     "alchemist": drawn("alchemist", 12, (22, 1)),
     "castle": drawn("castle", 13, (46, 24)),
     "watchtower": drawn("watchtower", 12, (21, 0)),

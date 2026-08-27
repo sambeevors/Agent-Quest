@@ -120,8 +120,8 @@ export const SUNNYSIDE_SHEET = {
         216
       ],
       "tavern": [
-        288,
-        224
+        336,
+        248
       ],
       "alchemist": [
         176,
@@ -154,7 +154,7 @@ export const SUNNYSIDE_SHEET = {
         4
       ],
       "tavern": [
-        144,
+        164,
         8
       ],
       "alchemist": [
