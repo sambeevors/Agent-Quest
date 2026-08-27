@@ -25,6 +25,19 @@ Roof colour is the map's legend: each building's glass is tinted to match its ro
 apart by colour before shape. Don't reassign one without checking it stays distinct from its
 neighbours.
 
+`library.png` is the **reference sprite**: it is the one that went through review to sign-off, and
+anything drawn later should be checked against it. What it settles:
+
+- Identity is one bold icon (an open book over the door), not a detailed vignette — detail becomes
+  noise at the ~0.47 render scale.
+- Wall windows are empty `#201C2C` voids matching the door, not glazed.
+- Roof slopes are **mirrored about the centre**, bright edge outward on each side, with a flat
+  glazed panel carrying no shingles in the middle span. The horizontal trim under that panel is its
+  sill and only makes sense with the panel present.
+- Chimneys are stone.
+- Restraint: the approved version has *fewer* elements than the drafts it replaced, and measures
+  1.65% full-pixel asymmetry against the pack library's 4.7%.
+
 ## Rules a sprite here must meet
 
 The bake will happily paste through art that breaks these; the village is what notices.
