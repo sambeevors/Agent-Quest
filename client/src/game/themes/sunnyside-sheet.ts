@@ -112,8 +112,8 @@ export const SUNNYSIDE_SHEET = {
     },
     "size": {
       "library": [
-        368,
-        256
+        432,
+        296
       ],
       "forge": [
         288,
@@ -146,8 +146,8 @@ export const SUNNYSIDE_SHEET = {
     },
     "chimney": {
       "library": [
-        184,
-        4
+        216,
+        0
       ],
       "forge": [
         144,
