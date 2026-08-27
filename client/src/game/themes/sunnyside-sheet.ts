@@ -132,8 +132,8 @@ export const SUNNYSIDE_SHEET = {
         244
       ],
       "watchtower": [
-        144,
-        384
+        176,
+        416
       ],
       "arena": [
         512,
@@ -166,8 +166,8 @@ export const SUNNYSIDE_SHEET = {
         96
       ],
       "watchtower": [
-        72,
-        8
+        84,
+        0
       ]
     },
     "interior": {

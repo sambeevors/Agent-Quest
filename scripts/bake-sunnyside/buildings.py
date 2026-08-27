@@ -314,7 +314,7 @@ BUILDING_RECIPES = {
     "tavern": drawn("tavern", 13, (36, 2)),
     "alchemist": drawn("alchemist", 12, (22, 1)),
     "castle": drawn("castle", 13, (46, 24)),
-    "watchtower": drawn("watchtower", 12, (18, 2)),
+    "watchtower": drawn("watchtower", 12, (21, 0)),
 }
 
 # Enclosures the heroes physically enter: the arena (bash — sparring against
