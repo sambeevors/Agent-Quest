@@ -27,30 +27,15 @@ from terrain import BORDER_TOP, EARTH_FILL, _strip_border
 # Hand-drawn, non-pack-derived sprites that recipes paste through unchanged.
 ART = Path(__file__).resolve().parent / "art"
 
-# Bounding boxes of the useful components in SUNNYSIDE_WORLD_BUILDINGS_V0.01.png
-# (x0, y0, x1, y1 inclusive), catalogued by eye from the sheet.
+# Bounding boxes in SUNNYSIDE_WORLD_BUILDINGS_V0.01.png (x0, y0, x1, y1
+# inclusive), catalogued by eye from the sheet. Only the pieces the surviving
+# assembled recipes still need — the six halls are hand-drawn now, and their
+# house/storey/tower/shutter/vent entries went with them (see git history if
+# you ever need those coordinates back).
 PIECES = {
-    "house_wide": (93, 121, 178, 175),  # 86x55 big gable house, skylight, door hole
-    "tower_tall": (89, 28, 118, 108),  # 30x81 spire tower with legs
     "house_small": (13, 129, 66, 172),  # 54x44 gable house with arch door
-    "house_narrow": (143, 21, 172, 75),  # 30x55 narrow tall house, glass stripe
-    "storey": (41, 64, 70, 108),  # 30x45 wooden storey with two windows
-    "hall_open": (41, 10, 70, 60),  # 30x51 glass-front hall with arch
-    "barn_front": (13, 184, 66, 207),  # 54x24 awning wall with wide arch
-    "hut": (129, 80, 158, 102),  # 30x23 tiny complete facade
-    "tower_top_c": (238, 27, 257, 57),  # 20x31 dormer tower top
-    "sign_small": (240, 128, 271, 139),  # 32x12 wooden board
-    "ladder_tall": (256, 144, 271, 175),  # 16x32
     "ladder": (272, 73, 287, 98),  # 16x26 orange-rung ladder
-    "porch_roof": (161, 101, 190, 111),  # 30x11 gable cap with window
-    "shutter_red": (16, 48, 31, 59),
-    "shutter_tan": (16, 64, 31, 75),
-    "shutter_blue": (16, 80, 31, 91),
-    "shutter_orange": (16, 96, 31, 107),
     "bracket": (273, 32, 286, 40),
-    "vent_a": (2, 50, 12, 60),
-    "vent_b": (3, 66, 11, 76),
-    "lamp": (3, 80, 11, 93),
 }
 
 # Doorway holes are transparent in the sheet; each recipe backs them with this.
@@ -165,61 +150,24 @@ def dark_rect(img: Image.Image, x0: int, y0: int, x1: int, y1: int) -> None:
     ImageDraw.Draw(img).rectangle([x0, y0, x1, y1], fill=DOOR_DARK)
 
 
+# Hand-drawn buildings. The pack ships no prefab buildings, and the modular
+# sheet's house/storey parts only ever composed into rows of huts wearing hats
+# — so these are drawn instead, on the same 16px grid every recipe here uses.
+# The bake still owns the x4 upscale and the metadata, so nothing downstream
+# can tell an assembled recipe from a drawn one. See art/README.md.
+
+
+def drawn(name: str, door_h: int, chimney: tuple[int, int]):
+    def recipe(kit: Kit):
+        del kit  # drawn art, not assembled from the pack
+        return Image.open(ART / f"{name}.png").convert("RGBA"), door_h, chimney
+
+    return recipe
+
+
 # Each recipe returns (image16px, door_height_16px, chimney_anchor_16px).
 # door_height: doorway height in the composed 16px image (x4 when baked);
 # chimney anchor: (x, y) where smoke should originate, in 16px canvas coords.
-
-
-def build_library(kit: Kit):
-    img = canvas(92, 61)
-    house = kit.piece("house_wide")  # door hole x[35,50] y[39,54] within piece
-    dark_rect(img, 3 + 35, 5 + 39, 3 + 50, 5 + 54)
-    paste(img, house, 3, 5)
-    shutter = kit.piece("shutter_blue")
-    paste(img, shutter, 3 + 35, 5 + 55 - 12)
-    # A little book pile on the ground beside the door — never on the roof.
-    book1 = kit.gm("spr_deco_book_01")
-    book2 = kit.gm("spr_deco_book_02")
-    paste(img, book1, 57, 60 - book1.height)
-    paste(img, book2, 64, 60 - book2.height)
-    return img, 16, (46, 8)
-
-
-def build_forge(kit: Kit):
-    img = canvas(72, 52)
-    house = kit.piece("house_small", "red")  # door hole x[19,34] y[31,43]
-    dark_rect(img, 0 + 19, 6 + 31, 0 + 34, 6 + 43)
-    paste(img, house, 0, 6)
-    vent = kit.piece("vent_b")  # chimney sits ON the right roof slope
-    paste(img, vent, 37, 9)
-    anvil = kit.gm("spr_deco_anvil")
-    paste(img, anvil, 49, 51 - anvil.height)
-    return img, 13, (41, 9)
-
-
-def build_tavern(kit: Kit):
-    img = canvas(70, 54)
-    house = kit.piece("house_small", "orange")  # door hole x[19,34] y[31,43]
-    dark_rect(img, 0 + 19, 8 + 31, 0 + 34, 8 + 43)
-    paste(img, house, 0, 8)
-    barrel = kit.gm("spr_deco_barrel_closed")
-    paste(img, barrel, 55, 52 - barrel.height)
-    mug = kit.gm("spr_deco_mug_02")
-    paste(img, mug, 58, 52 - barrel.height - mug.height + 1)
-    barrel2 = kit.gm("spr_deco_barrel_open")
-    paste(img, barrel2, 2, 52 - barrel2.height)
-    return img, 13, (14, 11)
-
-
-def build_alchemist(kit: Kit):
-    img = canvas(48, 62)
-    house = kit.piece("house_narrow", "green")  # door is drawn (opaque), no hole
-    paste(img, house, 0, 6)
-    jar1 = kit.gm("spr_deco_jar_01")
-    jar2 = kit.gm("spr_deco_jar_02")
-    paste(img, jar1, 33, 60 - jar1.height)
-    paste(img, jar2, 41, 60 - jar2.height)
-    return img, 12, (15, 8)
 
 
 def _fence_ring(kit: Kit, cols: int, rows: int, gate_cols: set[int]) -> Image.Image:
@@ -360,36 +308,13 @@ def build_farm(kit: Kit):
     return img, ground, 18, (14, 20, 100, 56)
 
 
-def build_castle(kit: Kit):
-    # The one hand-drawn building. The modular sheet has no castle pieces, and
-    # every composition assembled from house/storey parts read as a row of huts
-    # wearing spires. art/castle.png is drawn on the same 16px grid as every
-    # recipe here, so it upscales x4 with the rest and its gate lands at the
-    # shared doorway zoom. Chimney anchor sits in the middle crenel, so smoke
-    # rises from inside the keep rather than off a wall with no flue.
-    del kit  # drawn art, not assembled from the pack
-    img = Image.open(ART / "castle.png").convert("RGBA")
-    return img, 13, (46, 24)
-
-
-def build_watchtower(kit: Kit):
-    img = canvas(36, 96)
-    storey = kit.piece("storey")
-    body = storey.crop((0, 0, 30, 42))  # drop the baked-in grass at the base
-    paste(img, storey, 3, 51)
-    paste(img, body, 3, 22)
-    top = kit.piece("tower_top_c")
-    paste(img, top, 8, 0)
-    return img, 12, (18, 2)
-
-
 BUILDING_RECIPES = {
-    "library": build_library,
-    "forge": build_forge,
-    "tavern": build_tavern,
-    "alchemist": build_alchemist,
-    "castle": build_castle,
-    "watchtower": build_watchtower,
+    "library": drawn("library", 16, (46, 1)),
+    "forge": drawn("forge", 13, (36, 1)),
+    "tavern": drawn("tavern", 13, (36, 2)),
+    "alchemist": drawn("alchemist", 12, (22, 1)),
+    "castle": drawn("castle", 13, (46, 24)),
+    "watchtower": drawn("watchtower", 12, (18, 2)),
 }
 
 # Enclosures the heroes physically enter: the arena (bash — sparring against

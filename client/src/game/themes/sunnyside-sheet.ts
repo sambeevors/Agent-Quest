@@ -113,19 +113,19 @@ export const SUNNYSIDE_SHEET = {
     "size": {
       "library": [
         368,
-        244
+        256
       ],
       "forge": [
         288,
-        208
-      ],
-      "tavern": [
-        280,
         216
       ],
+      "tavern": [
+        288,
+        224
+      ],
       "alchemist": [
-        192,
-        248
+        176,
+        272
       ],
       "castle": [
         368,
@@ -147,19 +147,19 @@ export const SUNNYSIDE_SHEET = {
     "chimney": {
       "library": [
         184,
-        32
+        4
       ],
       "forge": [
-        164,
-        36
+        144,
+        4
       ],
       "tavern": [
-        56,
-        44
+        144,
+        8
       ],
       "alchemist": [
-        60,
-        32
+        88,
+        4
       ],
       "castle": [
         184,

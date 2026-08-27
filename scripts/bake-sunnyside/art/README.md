@@ -8,9 +8,22 @@ as generated.
 
 Because they are original work they are safe to commit, unlike the pack itself.
 
-| File | Building | Door height (native px) | Chimney anchor |
-|---|---|---|---|
-| `castle.png` | Castle | 13 | `(46, 24)` — the middle crenel |
+| File | Building | Canvas | Door height | Chimney anchor | Roof |
+|---|---|---|---|---|---|
+| `library.png` | Library | 92×64 | 16 | `(46, 1)` — flue on the nave ridge | blue |
+| `castle.png` | Castle | 92×61 | 13 | `(46, 24)` — the middle crenel | blue |
+| `watchtower.png` | Watchtower | 36×96 | 12 | `(18, 2)` — the beacon at the apex | blue |
+| `tavern.png` | Tavern | 72×56 | 13 | `(36, 2)` — the stack mouth | orange |
+| `forge.png` | Forge | 72×54 | 13 | `(36, 1)` — the brick flue mouth | red |
+| `alchemist.png` | Alchemist | 44×68 | 12 | `(22, 1)` — the tapered flue mouth | green |
+
+Door heights are **duplicated** in `server/src/map/asset-manifest-sunnyside.ts` and nothing tests that
+the two agree — change one and you must change the other, or the client and server will scale the
+same building differently.
+
+Roof colour is the map's legend: each building's glass is tinted to match its roof, so they are told
+apart by colour before shape. Don't reassign one without checking it stays distinct from its
+neighbours.
 
 ## Rules a sprite here must meet
 
