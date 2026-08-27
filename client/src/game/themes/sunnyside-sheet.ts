@@ -116,16 +116,16 @@ export const SUNNYSIDE_SHEET = {
         296
       ],
       "forge": [
-        288,
-        216
+        320,
+        232
       ],
       "tavern": [
         336,
         248
       ],
       "alchemist": [
-        176,
-        272
+        208,
+        288
       ],
       "castle": [
         368,
@@ -150,16 +150,16 @@ export const SUNNYSIDE_SHEET = {
         0
       ],
       "forge": [
-        144,
-        4
+        156,
+        0
       ],
       "tavern": [
         164,
         8
       ],
       "alchemist": [
-        88,
-        4
+        104,
+        0
       ],
       "castle": [
         184,
