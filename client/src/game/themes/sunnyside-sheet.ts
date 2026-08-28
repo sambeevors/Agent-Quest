@@ -150,16 +150,16 @@ export const SUNNYSIDE_SHEET = {
         0
       ],
       "forge": [
-        156,
+        160,
         0
       ],
       "tavern": [
-        164,
-        8
+        168,
+        0
       ],
       "alchemist": [
         104,
-        0
+        8
       ],
       "castle": [
         184,
