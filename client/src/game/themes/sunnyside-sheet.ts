@@ -166,7 +166,7 @@ export const SUNNYSIDE_SHEET = {
         96
       ],
       "watchtower": [
-        84,
+        88,
         0
       ]
     },
