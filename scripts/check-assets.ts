@@ -16,7 +16,7 @@ import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { tinySwordsCc0Theme } from '../client/src/game/themes/tiny-swords-cc0';
+import { sunnysideTheme } from '../client/src/game/themes/sunnyside';
 import { BUILDING_DEFS } from '../client/src/game/data/building-layout';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,7 +29,7 @@ interface Expected {
 
 function collectExpected(): Expected[] {
   const out: Expected[] = [];
-  const theme = tinySwordsCc0Theme;
+  const theme = sunnysideTheme;
 
   out.push({ path: 'assets/logo.png', source: 'BootScene logo' });
 
@@ -76,7 +76,7 @@ function main(): number {
   for (const m of missing) {
     console.error(`  [${m.source}] ${m.path}`);
   }
-  console.error('\nRestore with:  git checkout -- client/public/assets/themes/tiny-swords-cc0/');
+  console.error('\nRestore with:  git checkout -- client/public/assets/themes/sunnyside/');
   return 1;
 }
 

@@ -1,8 +1,8 @@
 import * as Phaser from 'phaser';
 import { HERO_COLOR_SPRITE_BASE, HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroClass, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
 import { getActiveTheme } from '../themes/registry';
-import { findRoadPath, type Point } from '../data/road-network';
-import { addCrispText, LABEL_FONT } from '../text';
+import { directPath, findRoadPath, type Point } from '../data/road-network';
+import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
 
@@ -67,13 +67,19 @@ export class HeroSprite {
   private _x: number;
   private _y: number;
   private moveTween: Phaser.Tweens.Tween | null = null;
+  /** Fired once the current walk reaches its destination; a new moveTo drops it. */
+  private arrivalCallback: (() => void) | null = null;
   private waitingTween: Phaser.Tweens.Tween | null = null;
   private chatterTimer: Phaser.Time.TimerEvent | null = null;
+  /** A thought the timer raised while the hero was walking — said on arrival. */
+  private chatterPending = false;
   private lastChatterLine: string | null = null;
   private lastErrorAt: number | undefined;
   private idleKey: string;
   private runKey: string;
   private facesLeft: boolean;
+  private cfg!: import('../themes/types').HeroSpriteConfig;
+  private moving = false;
   private nameOffsetY: number;
   private subagentOffsetY: number;
   private bubbleOffsetY: number;
@@ -108,11 +114,11 @@ export class HeroSprite {
 
     const theme = getActiveTheme();
     // Map the logical hero color to a sprite base the theme actually ships
-    // with. Extra palette entries (teal/orange/green) share the sprite of
-    // their base color — only the label (name tag) gets the expanded color,
-    // the sprite itself is never recolored.
+    // with (identity for Sunnyside — every colour has a baked sheet). The
+    // source decides the species: Codex sessions render as goblins.
     const spriteBase = HERO_COLOR_SPRITE_BASE[heroColor];
-    const cfg = theme.getHeroConfig(spriteBase, heroClass);
+    const cfg = theme.getHeroConfig(spriteBase, heroClass, source);
+    this.cfg = cfg;
     this.idleKey = cfg.idleKey;
     this.runKey = cfg.runKey;
     this.facesLeft = cfg.facesLeft;
@@ -167,7 +173,7 @@ export class HeroSprite {
       });
     }
 
-    this.sprite.play(idleAnimKey);
+    this.playStationary();
 
     const nameColor = HERO_LABEL_COLOR[heroColor] ?? '#DDDDDD';
     this.nameBaseColor = nameColor;
@@ -267,9 +273,13 @@ export class HeroSprite {
     }
   }
 
-  /** Record what the hero is doing — it picks the pool its thoughts come from. */
+  /** Record what the hero is doing — it picks the pool its thoughts come
+   * from and, when the theme maps this state to an animation, what the
+   * stationary sprite plays (hammering at the Forge, foot-tapping while
+   * waiting, …). */
   setActivity(activity: AgentActivity): void {
     this.currentActivity = activity;
+    if (!this.moving) this.playStationary();
   }
 
   /** Apply status-driven overlays (e.g. 'waiting' pulses the name). */
@@ -281,7 +291,35 @@ export class HeroSprite {
     } else if (!wantsWaiting && this.isWaiting) {
       this.isWaiting = false;
       this.stopWaitingPulse();
+    } else {
+      return;
     }
+    if (!this.moving) this.playStationary();
+  }
+
+  /**
+   * Play the animation for a parked hero: the theme's entry for the current
+   * state ('waiting' outranks the activity — a blocked hero taps its foot
+   * whatever building it is stationed at), falling back to idle. Animations
+   * are created lazily; every state indexes into the same texture.
+   */
+  private playStationary(): void {
+    const state = this.isWaiting ? 'waiting' : this.currentActivity;
+    const extra = this.cfg.extraAnims?.[state];
+    if (extra !== undefined) {
+      const key = `${this.idleKey}-${state}`;
+      if (!this.scene.anims.exists(key)) {
+        this.scene.anims.create({
+          key,
+          frames: this.scene.anims.generateFrameNumbers(this.idleKey, { frames: extra.frameIndices }),
+          frameRate: extra.frameRate,
+          repeat: -1,
+        });
+      }
+      this.sprite.play(key, true);
+      return;
+    }
+    this.sprite.play(`${this.idleKey}-anim`, true);
   }
 
   /**
@@ -316,7 +354,15 @@ export class HeroSprite {
     if (this.chatterTimer !== null) this.chatterTimer.remove();
     this.chatterTimer = this.scene.time.delayedCall(nextChatterDelay(), () => {
       this.chatterTimer = null;
-      this.speak(this.chatterMood());
+      // A hero on the road holds its tongue. The lines speak in the register
+      // of the BUILDING the hero is stationed at, and the activity flips at
+      // dispatch — so one said mid-walk would ring an anvil the hero is still
+      // half a village away from. It lands on arrival instead.
+      if (this.moving) {
+        this.chatterPending = true;
+      } else {
+        this.speak(this.chatterMood());
+      }
       this.scheduleChatter();
     });
   }
@@ -349,11 +395,14 @@ export class HeroSprite {
     // behind it because his center-y is well above the building's foot-y.
     const footY = this._y + this.sprite.displayHeight * 0.5;
     this.sprite.setDepth(footY + 0.5);
-    this.nameText.setDepth(footY + 0.6);
-    if (this.subagentText !== null) this.subagentText.setDepth(footY + 0.6);
-    if (this.sourceText !== null) this.sourceText.setDepth(footY + 0.6);
-    this.bubble.setDepth(footY + 0.7);
     if (this.selectionHalo !== null) this.selectionHalo.setDepth(footY + 0.4);
+    // Labels sort in their own band above the world (see HERO_LABEL_DEPTH),
+    // keyed by foot y so the near hero's name still covers the far one's.
+    const labelDepth = HERO_LABEL_DEPTH + footY / 10000;
+    this.nameText.setDepth(labelDepth);
+    if (this.subagentText !== null) this.subagentText.setDepth(labelDepth);
+    if (this.sourceText !== null) this.sourceText.setDepth(labelDepth);
+    this.bubble.setDepth(labelDepth + 0.00005);
   }
 
   /**
@@ -415,7 +464,36 @@ export class HeroSprite {
     }
   }
 
-  moveTo(targetX: number, targetY: number, activity: AgentActivity): void {
+  /**
+   * Turn the hero to look at a world x — the direction it holds while parked.
+   * Motion overrides it, so this is only meaningful once the hero has arrived
+   * (the arena stations its heroes facing the fighters they spar with).
+   */
+  faceTowards(worldX: number): void {
+    const dx = worldX - this._x;
+    if (Math.abs(dx) < 1) return;
+    this.sprite.setFlipX((dx < 0) !== this.facesLeft);
+  }
+
+  /**
+   * Walk to (targetX, targetY) along the road network. `onArrive` fires when
+   * the hero is actually standing there — immediately if it already is, and
+   * never if another moveTo supersedes this one first.
+   */
+  moveTo(targetX: number, targetY: number, activity: AgentActivity, onArrive?: () => void): void {
+    this.walk(findRoadPath({ x: this._x, y: this._y }, { x: targetX, y: targetY }), activity, onArrive);
+  }
+
+  /**
+   * Walk in a straight line instead of routing through the road graph. Only
+   * for moves inside an enclosure, where there is nothing to route around and
+   * the graph would send the hero out of the gate and back.
+   */
+  walkDirect(targetX: number, targetY: number, activity: AgentActivity, onArrive?: () => void): void {
+    this.walk(directPath({ x: this._x, y: this._y }, { x: targetX, y: targetY }), activity, onArrive);
+  }
+
+  private walk(path: Point[], activity: AgentActivity, onArrive?: () => void): void {
     this.currentActivity = activity;
 
     // Cancel existing move
@@ -423,8 +501,7 @@ export class HeroSprite {
       this.moveTween.stop();
       this.moveTween = null;
     }
-
-    const path = findRoadPath({ x: this._x, y: this._y }, { x: targetX, y: targetY });
+    this.arrivalCallback = onArrive ?? null;
 
     // Remove the first point (current position)
     if (path.length > 1) {
@@ -432,16 +509,38 @@ export class HeroSprite {
     }
 
     if (path.length === 0) {
-      this.sprite.play(`${this.idleKey}-anim`, true);
+      this.moving = false;
+      this.playStationary();
+      this.notifyArrival();
       return;
     }
 
+    this.moving = true;
     this.moveAlongPath(path);
+  }
+
+  /** Distance from the sprite's centre to its feet — where it stands. */
+  get footOffset(): number {
+    return this.sprite.displayHeight / 2;
+  }
+
+  private notifyArrival(): void {
+    if (this.chatterPending) {
+      this.chatterPending = false;
+      // Now in the right building, so the register is finally correct.
+      this.speak(this.chatterMood());
+      this.scheduleChatter();
+    }
+    const cb = this.arrivalCallback;
+    this.arrivalCallback = null;
+    cb?.();
   }
 
   private moveAlongPath(path: Point[]): void {
     if (path.length === 0) {
-      this.sprite.play(`${this.idleKey}-anim`, true);
+      this.moving = false;
+      this.playStationary();
+      this.notifyArrival();
       return;
     }
 
@@ -498,6 +597,7 @@ export class HeroSprite {
   }
 
   destroy(): void {
+    this.arrivalCallback = null;
     if (this.moveTween !== null) {
       this.moveTween.stop();
     }

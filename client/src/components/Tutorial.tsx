@@ -11,7 +11,7 @@ const ACTIVITY_LEGEND: { activity: string; building: string; tools: string }[] =
   { activity: 'Bash',                   building: 'Arena',       tools: 'run commands & tests' },
   { activity: 'Thinking',               building: 'Castle',      tools: 'reason & plan' },
   { activity: 'Reviewing / subagents',  building: 'Watchtower',  tools: 'dispatch review' },
-  { activity: 'Git commit / push',      building: 'Chapel',      tools: 'commit & push' },
+  { activity: 'Git commit / push',      building: 'Farm',        tools: 'commit & push' },
   { activity: 'Debugging',              building: 'Alchemist',   tools: 'fix errors' },
   { activity: 'Idle / waiting',         building: 'Tavern',      tools: 'rest between tasks' },
 ];

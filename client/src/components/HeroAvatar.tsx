@@ -25,11 +25,13 @@ interface HeroAvatarProps {
 const DEFAULT_SIZE = 24;
 
 export function HeroAvatar({ agent, size = DEFAULT_SIZE, className, title }: HeroAvatarProps) {
-  // Map expanded palette to the 5-color sprite set the theme actually ships.
-  // Extra palette colors (teal/orange/green) show up here untinted — the
-  // avatar is small enough that the Phaser-canvas tint would be invisible
-  // anyway, so we just fall back to the sprite base without distortion.
-  const preview = getActiveTheme().getHeroPreview(HERO_COLOR_SPRITE_BASE[agent.heroColor], agent.heroClass);
+  // Every hero colour has its own baked portrait (identity map for the
+  // Sunnyside theme); Codex sessions show the goblin portrait.
+  const preview = getActiveTheme().getHeroPreview(
+    HERO_COLOR_SPRITE_BASE[agent.heroColor],
+    agent.heroClass,
+    agent.source,
+  );
   const inherit = size === 'inherit';
   const backgroundSize = inherit
     ? `${preview.sheetColumns * 100}% ${preview.sheetRows * 100}%`

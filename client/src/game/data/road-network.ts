@@ -20,7 +20,7 @@ const DEFAULT_WAYPOINTS: Point[] = [
   { x: 1150, y: 1000 }, // 8  sw-corner
   { x: 1680, y: 1000 }, // 9  se-corner
   { x: 1040, y: 680 },  // 10 library-access
-  { x: 1790, y: 680 },  // 11 chapel-access
+  { x: 1790, y: 680 },  // 11 farm-access
   { x: 1430, y: 490 },  // 12 castle-access
 ];
 
@@ -174,6 +174,16 @@ export function findRoadPath(from: Point, to: Point): Point[] {
     }
   }
   return out;
+}
+
+/**
+ * A straight walk from `from` to `to`, subdivided the same way road legs are.
+ * For moves INSIDE an enclosure — a farmer stepping to the next bed — where
+ * routing through the graph would march the hero out of the gate to the
+ * nearest waypoint and back in again.
+ */
+export function directPath(from: Point, to: Point): Point[] {
+  return [{ x: from.x, y: from.y }, ...interpolateSegment(from, to)];
 }
 
 /** Exposed so TerrainRenderer can paint roads along the same network. */

@@ -11,10 +11,10 @@ export const GIT_COMMAND_PATTERN = /\bgit\s+(commit|push|merge|rebase|cherry-pic
 /**
  * The `gh` verbs that publish something, in the `gh <group> <verb>` slot —
  * `gh pr create`, `gh issue comment`, `gh release upload`. These are the same
- * kind of act as a `git push`, so they share the Chapel.
+ * kind of act as a `git push`, so they share the Farm.
  *
  * Split write-from-read exactly as `git` is: `gh pr view`/`list`/`checks`/`diff`
- * are polling, and an agent watching CI shouldn't be kneeling in the Chapel for
+ * are polling, and an agent watching CI shouldn't be tilling the Farm for
  * the ten minutes it takes.
  */
 const GH_WRITE_VERBS = new Set([
@@ -249,7 +249,7 @@ function isInPlaceEdit(name: string, args: string[]): boolean {
  * or `cat f | xargs rm` stay generic shell work.
  *
  * Publishing outranks both: a write-oriented `git` or `gh` anywhere in the chain
- * sends the hero to the Chapel.
+ * sends the hero to the Farm.
  */
 export function classifyBashCommand(command: string): AgentActivity {
   if (GIT_COMMAND_PATTERN.test(command)) return 'git';
@@ -258,7 +258,7 @@ export function classifyBashCommand(command: string): AgentActivity {
   if (segments.length === 0) return 'bash';
 
   // Publishing wins wherever it appears in a chain, the same way the git pattern
-  // does — `bun test && gh pr create` ends at the Chapel, not the Arena.
+  // does — `bun test && gh pr create` ends at the Farm, not the Arena.
   if (segments.some(({ parsed }) => parsed !== null && isGhWrite(parsed.name, parsed.args))) {
     return 'git';
   }

@@ -2,6 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './fonts.css';
+// Loaded after App (and therefore after every component stylesheet) so the
+// Sunnyside chrome overrides win the cascade at equal specificity.
+import './sunnyside-ui.css';
 
 // Phaser bakes each label into a texture on first draw and never re-renders it,
 // so mount behind the font. The cap keeps a stalled font from blocking the app.

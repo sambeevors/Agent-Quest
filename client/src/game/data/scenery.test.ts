@@ -122,9 +122,9 @@ describe('generateScenery', () => {
   });
 
   test('scales every kind alike, so native art size decides what looks big', () => {
-    // A tree frame is 192px and a mushroom's 64px. Scaling both the same is
-    // what makes the tree three times the mushroom — which is how the pack
-    // drew them. A per-kind scale would silently overrule the artist.
+    // The whole pack is baked from one 16px grid at x4, so a tree's ~136px
+    // frame against a mushroom's 64px is exactly the proportion the artist
+    // drew. A per-kind scale would silently overrule that.
     const byKind = new Map<string, number[]>();
     for (const i of generateScenery(opts())) {
       const list = byKind.get(i.kind) ?? [];
@@ -132,10 +132,23 @@ describe('generateScenery', () => {
       byKind.set(i.kind, list);
     }
     expect(byKind.size).toBeGreaterThan(1);
-    const ranges = [...byKind.values()].map((v) => [Math.min(...v), Math.max(...v)]);
+    // Kinds with plenty of samples must span the same jitter range; sparse
+    // kinds (animals, stumps) can't be expected to hit the extremes,
+    // but every one of their items must still fall inside that range.
+    const populous = [...byKind.values()].filter((v) => v.length >= 20);
+    expect(populous.length).toBeGreaterThan(1);
+    const ranges = populous.map((v) => [Math.min(...v), Math.max(...v)]);
     for (const [lo, hi] of ranges) {
       expect(lo).toBeCloseTo(ranges[0]![0]!, 1);
       expect(hi).toBeCloseTo(ranges[0]![1]!, 1);
+    }
+    const globalLo = Math.min(...ranges.map(([lo]) => lo!));
+    const globalHi = Math.max(...ranges.map(([, hi]) => hi!));
+    for (const scales of byKind.values()) {
+      for (const s of scales) {
+        expect(s).toBeGreaterThanOrEqual(globalLo - 0.01);
+        expect(s).toBeLessThanOrEqual(globalHi + 0.01);
+      }
     }
   });
 
@@ -145,7 +158,10 @@ describe('generateScenery', () => {
   });
 
   test('emits only variants that exist for each kind', () => {
-    const maxVariant: Record<string, number> = { tree: 4, bush: 3, rock: 5, mushroom: 3 };
+    const maxVariant: Record<string, number> = {
+      tree: 4, bush: 3, rock: 5, mushroom: 4,
+      flower: 3, stump: 2, animal: 5,
+    };
     for (const i of generateScenery(opts())) {
       expect(i.variant).toBeGreaterThanOrEqual(1);
       expect(i.variant).toBeLessThanOrEqual(maxVariant[i.kind]!);

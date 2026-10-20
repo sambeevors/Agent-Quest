@@ -26,18 +26,16 @@ export class BootScene extends Phaser.Scene {
     // Logo shown on the loading screen + reused by the React TopBar
     this.load.image('logo', 'assets/logo.png');
 
-    // Functional building images — path comes from the active theme.
-    // The CC0 theme remaps each activity id to a specific Knights or
-    // Goblins building PNG via getBuildingImage().
+    // Functional building images — path comes from the active theme via
+    // getBuildingImage().
     const theme = getActiveTheme();
     for (const def of BUILDING_DEFS) {
       this.load.image(def.imageKey, theme.getBuildingImage(def.id));
     }
 
     // Hero spritesheets provided by the active theme. Each theme's manifest
-    // returns the (key → path, frame size) list needed for its variants.
-    // The CC0 pack ships one combined sheet per (color, unit) with
-    // multiple animations packed into rows.
+    // returns the (key → path, frame size) list needed for its variants —
+    // one combined sheet per (class, color) with animations packed into rows.
     const seen = new Set<string>();
     for (const entry of getActiveTheme().getHeroPreload()) {
       if (seen.has(entry.key)) continue;
@@ -59,10 +57,8 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // Ground decorations, trees, stumps, decorative houses — all delegated
+    // Ground decorations, scenery, VFX, construction sprites — all delegated
     // to the active theme so swapping themes swaps their PNGs end-to-end.
-    // The CC0 pack ships static 64×64 props + a tree atlas that
-    // postLoadHook slices into per-frame textures.
     for (const entry of getActiveTheme().getStaticAssetPreload()) {
       if (entry.frameWidth !== undefined && entry.frameHeight !== undefined) {
         this.load.spritesheet(entry.key, entry.path, {
@@ -152,7 +148,7 @@ export class BootScene extends Phaser.Scene {
       }).setOrigin(0.5, 0);
 
       const hintText =
-        'Restore with:\n   git checkout -- client/public/assets/themes/tiny-swords-cc0/\n' +
+        'Restore with:\n   git checkout -- client/public/assets/themes/sunnyside/\n' +
         'or re-clone the repository.';
       const hint = addCrispText(this, cx, sample.y + sample.displayHeight + 20, hintText, {
         fontSize: '12px',
