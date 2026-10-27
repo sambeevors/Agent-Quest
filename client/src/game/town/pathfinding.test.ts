@@ -80,6 +80,8 @@ describe('the town', () => {
       if (b.doors.length === 0) continue;
       const [sx, sy] = b.slots[0]!;
       expect(b.doors.some(([dx, dy]) => dx === sx && dy + 1 === sy)).toBe(true);
+      // Trainers go in (and come out) through the tile below every door.
+      for (const [dx, dy] of b.doors) expect(isWalkable(dx, dy + 1)).toBe(true);
     }
   });
 

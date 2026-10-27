@@ -21,9 +21,9 @@ const BUILDING_LABEL_LEADING = 3;
  * The building itself is part of the baked town — drawn into `ground.png`
  * and `overhead.png` exactly as FireRed draws it — so this is the layer of
  * meaning on top: its name and activity over the roof, a click target over
- * its footprint, the tiles its trainers stand on, and its door, which stands
- * open while one of them is inside (the town's occupancy tell, where the old
- * village had chimney smoke).
+ * its footprint, the tiles its trainers' partners wait on, and its door,
+ * which stands open while one of them is inside (the town's occupancy tell,
+ * where the old village had chimney smoke).
  */
 export class Building {
   readonly def: BuildingDef;
@@ -91,15 +91,21 @@ export class Building {
   }
 
   /**
-   * What a trainer stationed here turns to face: the door it's waiting at
-   * (whichever is nearest, for the Bike Shop's pair), or null for an
-   * open-air place.
+   * The door a trainer whose partner waits at `feet` goes in by — whichever
+   * is nearest, for the Bike Shop's pair — as the feet of a trainer standing
+   * in it. Null for an open-air place, where trainers stay outside. A
+   * trainer already in by one of this building's doors (`current`) stays
+   * there rather than coming out to use the other.
    */
-  doorFocus(feet: Point): Point | null {
+  doorFor(feet: Point, current: Point | null = null): Point | null {
+    if (current !== null && this.place.doors.some((d) => {
+      const p = footOf(d);
+      return p.x === current.x && p.y === current.y;
+    })) return current;
     let best: Point | null = null;
     let bestD = Infinity;
-    for (const [x, y] of this.place.doors) {
-      const p = { x: x * TILE + TILE / 2, y: y * TILE + TILE / 2 };
+    for (const door of this.place.doors) {
+      const p = footOf(door);
       const d = Math.abs(p.x - feet.x) + Math.abs(p.y - feet.y);
       if (d < bestD) { best = p; bestD = d; }
     }
