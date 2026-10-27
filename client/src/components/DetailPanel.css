@@ -426,6 +426,52 @@
 .detail-last-message a { color: #9ec4f5; text-decoration: none; }
 .detail-last-message a:hover { text-decoration: underline; }
 
+/* GFM extras (tables, strikethrough, task lists, quotes, rules) — shared by
+ * the collapsed panel preview and the full-message modal. Tables scroll
+ * sideways rather than squeezing columns to a word each in a 300px panel. */
+.detail-last-message del, .lastmsg-body del { color: rgba(245, 230, 200, 0.55); }
+.detail-last-message blockquote, .lastmsg-body blockquote {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 2px solid rgba(196, 163, 90, 0.4);
+  color: rgba(245, 230, 200, 0.8);
+}
+.detail-last-message hr, .lastmsg-body hr {
+  border: none;
+  border-top: 1px solid rgba(196, 163, 90, 0.25);
+  margin: 10px 0;
+}
+.detail-last-message table, .lastmsg-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 6px 0 10px;
+  font-size: 0.92em;
+}
+.detail-last-message th, .detail-last-message td,
+.lastmsg-body th, .lastmsg-body td {
+  border: 1px solid rgba(196, 163, 90, 0.25);
+  padding: 3px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.detail-last-message th, .lastmsg-body th {
+  background: rgba(196, 163, 90, 0.12);
+  color: #C4A35A;
+  font-weight: 700;
+}
+.detail-last-message tr:nth-child(even) td, .lastmsg-body tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.03);
+}
+.detail-last-message li.task-list-item, .lastmsg-body li.task-list-item { list-style: none; }
+.detail-last-message ul.contains-task-list, .lastmsg-body ul.contains-task-list { padding-left: 4px; }
+.detail-last-message input[type="checkbox"], .lastmsg-body input[type="checkbox"] {
+  margin: 0 6px 0 0;
+  vertical-align: middle;
+  accent-color: #C4A35A;
+}
+
 /* Tabs (Live / Report) */
 .detail-tabs {
   display: flex;
