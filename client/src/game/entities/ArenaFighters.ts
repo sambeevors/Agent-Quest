@@ -18,7 +18,7 @@ import { spriteAnchors } from '../data/sprite-anchors';
  */
 export class ArenaFighters {
   private readonly scene: Phaser.Scene;
-  private readonly sprites: Array<{ sprite: Phaser.GameObjects.Sprite; spec: ArenaNpcSpec }> = [];
+  private readonly sprites: Array<{ sprite: Phaser.GameObjects.Sprite; spec: ArenaNpcSpec; feet: Point }> = [];
   private fighting = false;
 
   constructor(
@@ -46,19 +46,19 @@ export class ArenaFighters {
       sprite.setDepth(footY + 0.5);
       this.ensureAnim(spec, 'idle');
       sprite.play(this.animKey(spec, 'idle'));
-      this.sprites.push({ sprite, spec });
+      this.sprites.push({ sprite, spec, feet: { x, y: footY } });
     });
   }
 
   /**
-   * World x the cast occupies (mean of the standing spots), so a hero parked
-   * on the bridge can turn to face them rather than assume a side. Null when
-   * the theme ships no fighters.
+   * Where the cast stands (mean of their feet), so a hero parked on the
+   * bridge can turn to face them rather than assume a side. Null when no
+   * fighter's texture loaded.
    */
-  focusX(): number | null {
+  focus(): Point | null {
     if (this.sprites.length === 0) return null;
-    const sum = this.sprites.reduce((acc, { sprite }) => acc + sprite.x, 0);
-    return sum / this.sprites.length;
+    const sum = this.sprites.reduce((acc, { feet }) => ({ x: acc.x + feet.x, y: acc.y + feet.y }), { x: 0, y: 0 });
+    return { x: sum.x / this.sprites.length, y: sum.y / this.sprites.length };
   }
 
   /** Switch the cast between idling and sparring. Idempotent. */

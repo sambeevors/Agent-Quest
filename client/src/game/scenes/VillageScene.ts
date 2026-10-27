@@ -595,10 +595,7 @@ export class VillageScene extends Phaser.Scene {
    * faces its door, and one on Nugget Bridge faces the Pokémon it battles.
    */
   private stationFocus(buildingId: string, feet: Point): Point | null {
-    if (buildingId === 'arena') {
-      const x = this.arenaFighters?.focusX() ?? null;
-      return x === null ? null : { x, y: feet.y - 64 };
-    }
+    if (buildingId === 'arena') return this.arenaFighters?.focus() ?? null;
     return this.buildings.find((b) => b.def.id === buildingId)?.doorFocus(feet) ?? null;
   }
 
