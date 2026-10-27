@@ -11,8 +11,6 @@ extraResources:
     to: server/agent-quest-server
   - from: ../client/dist
     to: client
-  - from: ../server/data/map/village.json
-    to: map/village.json
 mac:
   category: public.app-category.developer-tools
   target: dir

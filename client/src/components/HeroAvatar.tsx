@@ -1,7 +1,7 @@
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { getActiveTheme } from '../game/themes/registry';
-import { HERO_COLOR_SPRITE_BASE, type AgentState } from '../types/agent';
-import { heroNameFor } from '../naming/hero-names';
+import { portraitUrl } from '../game/pokemon';
+import type { AgentState } from '../types/agent';
+import { trainerFor, trainerName } from '../naming/hero-names';
 
 interface HeroAvatarProps {
   agent: AgentState;
@@ -25,17 +25,9 @@ interface HeroAvatarProps {
 const DEFAULT_SIZE = 24;
 
 export function HeroAvatar({ agent, size = DEFAULT_SIZE, className, title }: HeroAvatarProps) {
-  // Every hero colour has its own baked portrait (identity map for the
-  // Sunnyside theme); Codex sessions show the goblin portrait.
-  const preview = getActiveTheme().getHeroPreview(
-    HERO_COLOR_SPRITE_BASE[agent.heroColor],
-    agent.heroClass,
-    agent.source,
-  );
+  // The trainer's FireRed battle portrait, cropped square to the face.
+  const trainer = trainerFor(agent.id, agent.source);
   const inherit = size === 'inherit';
-  const backgroundSize = inherit
-    ? `${preview.sheetColumns * 100}% ${preview.sheetRows * 100}%`
-    : `${preview.sheetColumns * size}px ${preview.sheetRows * size}px`;
   const sizeStyle: CSSProperties = inherit
     ? { width: '100%', height: '100%' }
     : { width: size, height: size };
@@ -59,12 +51,12 @@ export function HeroAvatar({ agent, size = DEFAULT_SIZE, className, title }: Her
     <div
       ref={ref}
       className={className}
-      title={title ?? agent.heroClass}
+      title={title ?? trainerName(trainer)}
       role="img"
-      aria-label={`${agent.heroClass} ${heroNameFor(agent.id)}`}
+      aria-label={trainerName(trainer)}
       style={{
-        backgroundImage: `url('${preview.url}')`,
-        backgroundSize,
+        backgroundImage: `url('${portraitUrl(trainer)}')`,
+        backgroundSize: '100% 100%',
         backgroundPosition: '0 0',
         backgroundRepeat: 'no-repeat',
         imageRendering: 'pixelated',

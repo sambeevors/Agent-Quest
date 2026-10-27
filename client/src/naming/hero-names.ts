@@ -1,54 +1,44 @@
 /**
- * Fantasy names for the heroes on the map.
+ * Every hero is a real trainer out of Pokémon FireRed.
  *
  * A session's real identity — the Claude Code slug (`bubbly-waddling-cat`),
  * the project folder a Codex session runs in, or a subagent's descriptor
- * ("Explore") — reads like a log line rather than a villager, so every hero
- * gets a first name and a surname drawn from the two tables below.
+ * ("Explore") — reads like a log line rather than a townsperson, so every hero
+ * is given one of the trainers the game itself names: Youngster Joey, Lass
+ * Janice, Hiker Marcos… or, now and then, Red, Leaf, Blue or Prof. Oak. The
+ * roster (`trainer-roster.ts`) is generated from the decompilation's trainer
+ * table by scripts/bake-pokemon/, along with the sprite each class walks
+ * around as, its battle portrait, and the Pokémon it sends out last — which
+ * follows it around town.
  *
- * The name is DERIVED from the agent id rather than stored on `AgentState`:
+ * Codex sessions are Team Rocket. FireRed's grunts are all just "GRUNT", so
+ * they take the names of the organisation's members from across the series.
+ *
+ * The trainer is DERIVED from the agent id rather than stored on `AgentState`:
  * that keeps it stable across page reloads and server restarts (unlike
  * `heroClass` / `heroColor`, which are round-robin counters in the server's
  * state manager and reshuffle when it restarts), needs no protocol change,
  * and lets the Activity Feed name an agent it no longer tracks.
- *
- * Names are labels only. Keep each part to ~10 characters — the canvas label
- * is 14px monospace and long ones overrun neighbouring heroes.
  */
+import type { AgentSource } from '../types/agent';
+import { ROCKETS, TRAINERS } from './trainer-roster';
 
-/** Given names. 60 entries; paired with LAST_NAMES this is 3600 combinations. */
-export const FIRST_NAMES = [
-  'Aeric',   'Alrik',   'Ansel',   'Belisa',  'Briala',  'Bryn',
-  'Caldis',  'Corvin',  'Cyrion',  'Dagna',   'Dorin',   'Eirwen',
-  'Elowen',  'Emeric',  'Faelan',  'Fenric',  'Galen',   'Grimm',
-  'Gwendra', 'Halric',  'Hesper',  'Hollis',  'Ilvara',  'Iselle',
-  'Joreth',  'Jorvik',  'Kaelen',  'Kestrel', 'Lucan',   'Lyra',
-  'Maeve',   'Merrick', 'Nolwen',  'Nyra',    'Orin',    'Ovric',
-  'Peregrin','Perrin',  'Quillon', 'Rhoswen', 'Rowena',  'Sable',
-  'Selwyn',  'Thalia',  'Torvald', 'Ulla',    'Ulric',   'Varek',
-  'Vesper',  'Wren',    'Wystan',  'Xanthe',  'Yarrow',  'Yrsa',
-  'Zephyr',  'Zorin',   'Aldric',  'Fyren',   'Marek',   'Sorrel',
-] as const;
-
-/** Surnames. Place-and-weather flavoured, to sound like the village they walk. */
-export const LAST_NAMES = [
-  'Ambergale', 'Ashvale',   'Barrowdim', 'Blackmoor', 'Briarwood', 'Cinderfen',
-  'Coldhollow','Dawnholt',  'Deepmarsh', 'Duskbane',  'Elmshadow', 'Emberly',
-  'Fairwater', 'Fellmere',  'Fernwhisp', 'Frostwind', 'Galewind',  'Glimmerlin',
-  'Grimsong',  'Havenlock', 'Highfell',  'Hollowfen', 'Ironbark',  'Ironquill',
-  'Juniper',   'Larkspire', 'Mistvale',  'Mossgrove', 'Nightbloom','Northgale',
-  'Oakenshade','Oldenkeep', 'Pinewatch', 'Quarrow',   'Ravenmoor', 'Rookmantle',
-  'Silverbeck','Stonebrook','Stormvale', 'Thistledew','Thornwake', 'Umbershaw',
-  'Valeworth', 'Whitethorn','Windmere',  'Yewmantle', 'Ashenford', 'Brackwater',
-  'Cloudreach','Drakemoor', 'Everwarden','Foxglove',  'Greyhallow','Hawthorne',
-  'Loambrook', 'Marrowfen', 'Reedwhistle','Snowmantle','Wildergrove','Yarrowdale',
-] as const;
+export interface Trainer {
+  /** Trainer class as the game prints it ("Bug Catcher"); empty for named characters. */
+  readonly title: string;
+  readonly name: string;
+  /** Overworld walker sheet: assets/pokemon/trainers/<sprite>.png. */
+  readonly sprite: string;
+  /** Battle portrait: assets/pokemon/portraits/<portrait>.png. */
+  readonly portrait: string;
+  /** National dex number of the Pokémon that follows them. */
+  readonly partner: number;
+}
 
 /**
- * Avalanche step (murmur3's finalizer). Without it the two table indices are
- * badly correlated: session ids differ only in their tail, a plain rolling
- * hash barely disturbs the low bits, and `% 60` reads exactly those — 500
- * uuids landed on 158 names instead of ~465.
+ * Avalanche step (murmur3's finalizer). Session ids differ only in their
+ * tail, and a plain rolling hash barely disturbs the low bits that `%` reads —
+ * without it, 500 uuids landed on a third as many names as they should.
  */
 function mix(h: number): number {
   h ^= h >>> 16;
@@ -59,18 +49,27 @@ function mix(h: number): number {
   return h >>> 0;
 }
 
-/** FNV-1a over the id, finalised. Two seeds give two independent draws. */
-function hash(value: string, seed: number): number {
-  let h = seed;
+/** FNV-1a over the id, finalised. */
+function hash(value: string): number {
+  let h = 0x811c9dc5;
   for (let i = 0; i < value.length; i++) {
     h = Math.imul(h ^ value.charCodeAt(i), 16777619);
   }
   return mix(h);
 }
 
-/** The hero name for an agent id — deterministic, so it never changes under a walking hero. */
-export function heroNameFor(agentId: string): string {
-  const first = FIRST_NAMES[hash(agentId, 0x811c9dc5) % FIRST_NAMES.length]!;
-  const last = LAST_NAMES[hash(agentId, 0x2545f491) % LAST_NAMES.length]!;
-  return `${first} ${last}`;
+/** The trainer an agent is — deterministic, so it never changes under a walking hero. */
+export function trainerFor(agentId: string, source: AgentSource = 'claude'): Trainer {
+  const pool: readonly Trainer[] = source === 'codex' ? ROCKETS : TRAINERS;
+  return pool[hash(agentId) % pool.length]!;
+}
+
+/** "Youngster Joey", or just "Red" for a trainer the game names alone. */
+export function trainerName(trainer: Trainer): string {
+  return trainer.title === '' ? trainer.name : `${trainer.title} ${trainer.name}`;
+}
+
+/** The hero name for an agent id: the name of the trainer it is. */
+export function heroNameFor(agentId: string, source: AgentSource = 'claude'): string {
+  return trainerName(trainerFor(agentId, source));
 }

@@ -1,14 +1,12 @@
-import type { FrameExtent } from '../themes/types';
+import type { FrameExtent } from '../pokemon';
 
 /**
  * Where a centre-origin character sprite's head and feet are, as world-px
  * offsets from its position. Negative is up.
  *
- * Character frames are much taller than the figure drawn in them — a
- * Sunnyside hero is ~19 rows of a 64-row frame — so the frame's own edges
- * are no stand-in for either: hung off the frame top, a name floats ~35px
- * over the head; sorted on the frame bottom, a hero draws in front of a tree
- * it is standing behind.
+ * Measured off the art rather than assumed from the frame: a party icon's
+ * Pokémon sits a few rows above its 32px frame's bottom, and a trainer with a
+ * hat reaches the very top of its frame where a bare head stops short.
  */
 export interface SpriteAnchors {
   /** Centre → top of the head (hair included). */

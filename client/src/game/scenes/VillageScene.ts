@@ -2,27 +2,14 @@ import * as Phaser from 'phaser';
 import { eventBridge } from '../EventBridge';
 import { Building } from '../entities/Building';
 import { HeroSprite } from '../entities/HeroSprite';
-import { BUILDING_DEFS, VILLAGE_GATE, WORLD_WIDTH, WORLD_HEIGHT, getBuildingForActivity } from '../data/building-layout';
-import { TerrainRenderer, PROCEDURAL_WATER_BOUNDS } from '../terrain/TerrainRenderer';
-import { renderMapConfig } from '../terrain/MapConfigRenderer';
-import { ensureAssetsLoaded } from '../data/asset-loader';
-import { setRoadNetworkFromDesire } from '../data/road-network';
-import { buildDesireNetwork, type DesireNode, type Rect } from '../data/desire-paths';
-import { planRoads, type RoadSite } from '../data/building-plan';
-import { buildPathTilemap } from '../data/path-tiles';
-import { renderPathTiles } from '../terrain/PathTileRenderer';
-import { generateScenery } from '../data/scenery';
-import { renderScenery } from '../terrain/SceneryRenderer';
-import { largestClearRect, waterKeepOut } from '../data/water';
-import { Critter } from '../entities/Critter';
+import { BUILDING_DEFS, getBuildingForActivity } from '../data/building-layout';
 import { ArenaFighters } from '../entities/ArenaFighters';
 import { FarmWork } from '../entities/FarmWork';
 import type { AgentState } from '../../types/agent';
-import { heroNameFor } from '../../naming/hero-names';
-import type { AssetManifest, MapConfig, BuildingPosition } from '../data/map-config';
-import { SERVER_URL as API_BASE } from '../../config';
-import { getActiveTheme, rebaseSavedScale } from '../themes/registry';
+import { heroNameFor, trainerFor } from '../../naming/hero-names';
 import { sceneRenderScale } from '../dpr';
+import { ARENA_NPCS, SPRITE_SCALE, TOWN_GROUND_KEY, TOWN_OVERHEAD_KEY } from '../pokemon';
+import { footOf, SPAWN_TILE, tileRectToWorld, VIEW_RECT, WORLD_HEIGHT, WORLD_WIDTH, type Point } from '../town/town';
 import { declutterLabels } from '../data/label-declutter';
 
 /** Set `cam.zoom` to `newZoom` while keeping the world point currently
@@ -43,14 +30,10 @@ const IDLE_HIDE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 /** How often parked heroes' name labels are re-spread to clear each other. */
 const LABEL_DECLUTTER_INTERVAL_MS = 200;
 
-/** Grid spacing between heroes at the same building. Still narrower than a
- * name (~95px), but wide enough that the label declutter pass can spread a
- * rank of three names up to ~104px side by side with each hero still
- * standing under its own (see declutterHeroLabels) — the old 40px grid
- * forced the names into a column over the roof. A 3×3 crowd spans ±68px,
- * which keeps it on the forecourt the door's road arrives at. */
-const GRID_SPACING_X = 68;
-const GRID_SPACING_Y = 36;
+/** The town's overhead layer — roof eaves and tree crowns, drawn over every
+ * sprite as the GBA draws its top background. Above the deepest foot y,
+ * below the name labels. */
+const OVERHEAD_DEPTH = 3000;
 
 export class VillageScene extends Phaser.Scene {
   private buildings: Building[] = [];
@@ -77,16 +60,7 @@ export class VillageScene extends Phaser.Scene {
   private onNightToggle: ((on: unknown) => void) | null = null;
   private onRainToggle: ((on: unknown) => void) | null = null;
 
-  /** Rendered desire-path roads. Rebuilt whenever the set of buildings changes. */
-  private roadLayer: Phaser.GameObjects.Container | null = null;
-
-  /** Generated scenery sprites, regenerated alongside the roads. */
-  private scenerySprites: Phaser.GameObjects.GameObject[] = [];
-
-  /** Wandering ambient animals (meadow critters + lake ducks). */
-  private critters: Critter[] = [];
-
-  /** The arena's resident goblin and skeleton — spar while a hero is inside. */
+  /** The Pokémon on Nugget Bridge — battle while a trainer is on it. */
   private arenaFighters: ArenaFighters | null = null;
 
   /** The farm's work roster — stations its heroes on the crops and moves
@@ -95,36 +69,21 @@ export class VillageScene extends Phaser.Scene {
 
   /**
    * Heroes that have finished walking to their station. An assigned hero is
-   * still crossing the village for a second or two, and until it gets there
-   * the building is not occupied — no smoke over a cold forge, no fighters
+   * still crossing town for a second or two, and until it gets there the
+   * building is not occupied — no door swinging open for nobody, no Pokémon
    * swinging at nobody. Every occupancy tell keys off arrival, never off the
    * slot assignment.
    */
   private arrived = new Set<string>();
 
-  /** Water keep-out rects — also where the ducks live. */
-  private waterRects: Rect[] = [];
-
-  /** Placed floors (the jetty) — kept clear of swimming ducks. */
-  private floorRects: Rect[] = [];
-
-  /** Ground the generator must leave alone — water and other placed features. */
-  private sceneryExclusions: Rect[] = [];
-
   /** World rect the camera fits. */
   private contentBounds: Phaser.Geom.Rectangle | null = null;
 
 
-  /** Hero sprite scale — defaults to the active theme's baseline.
-   * MapConfig-saved overrides are stored against the original Tiny Swords
-   * baseline and rebased through `rebaseSavedScale` so they render
-   * proportionally under the current art. */
-  private heroScale = getActiveTheme().heroScale;
+  /** Where new trainers appear — feet on the west edge, along Route 4. */
+  private heroSpawn: Point = footOf(SPAWN_TILE);
 
-  /** Spawn point used for new heroes. Overridden by MapConfig.spawn when present. */
-  private heroSpawn: { x: number; y: number } = { x: VILLAGE_GATE.x, y: VILLAGE_GATE.y };
-
-  /** True once bootstrapWorld() has finished spawning buildings. */
+  /** True once buildWorld() has placed the town. */
   private buildingsReady = false;
 
   /** Agent updates received before buildings were ready — replayed once ready. */
@@ -141,22 +100,14 @@ export class VillageScene extends Phaser.Scene {
     // this colour is only visible past the map edges or during zoom-out.
     this.cameras.main.setBackgroundColor('#000000');
 
-    // Signal React that the village is up so it can reveal the HTML overlays
+    // Signal React that the town is up so it can reveal the HTML overlays
     // (TopBar, PartyBar, etc.) that should stay hidden during the BootScene.
     eventBridge.emit('village:ready');
 
-    // Load the shipped village; fall back to the procedural terrain if the
-    // request fails. This is fire-and-forget — the rest of create() (input,
-    // overlays, listeners) doesn't depend on it.
-    void this.bootstrapWorld();
-
-    // Set world bounds and fit the village into the viewport, then center the
-    // map inside it. Anchoring on the world center (rather than a hardcoded
-    // point near the gate) keeps the map visually centred regardless of the
-    // fitted zoom level.
+    // The town is baked (BootScene loaded it), so the world is built here
+    // and now, then the camera opens on the town itself.
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.fitCamera();
-    this.cameras.main.centerToBounds();
+    this.buildWorld();
 
     // Re-fit when the browser/window resizes. Re-centering on bounds after
     // the zoom change keeps the map anchored in the middle of the new
@@ -450,11 +401,6 @@ export class VillageScene extends Phaser.Scene {
       this.farmWork?.destroy();
       this.farmWork = null;
       this.arrived.clear();
-      this.roadLayer?.destroy();
-      this.roadLayer = null;
-      for (const sprite of this.scenerySprites) sprite.destroy();
-      this.scenerySprites = [];
-      this.sceneryExclusions = [];
       this.contentBounds = null;
     };
     this.events.on('shutdown', cleanup);
@@ -462,91 +408,28 @@ export class VillageScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------------------
-  // World bootstrap — prefer saved MapConfig, fall back to procedural terrain
+  // The town
   // ---------------------------------------------------------------------------
 
-  private async bootstrapWorld(): Promise<void> {
-    let mapConfig: MapConfig | null = null;
-    let manifest: AssetManifest | null = null;
-    let mapStatus: number | string = 'n/a';
-    let manifestStatus: number | string = 'n/a';
-    let fetchError: unknown = null;
-    try {
-      const mapRes = await fetch(`${API_BASE}/api/map`);
-      mapStatus = mapRes.status;
-      if (mapRes.status === 200) {
-        mapConfig = await mapRes.json() as MapConfig;
+  /**
+   * Lay out Cerulean City: the baked ground under everything, the overhead
+   * layer over every sprite, a hotspot per building, the bridge's Pokémon and
+   * the flower bed's roster. Nothing is generated — the town is the game's
+   * own map (see town/town.ts).
+   */
+  private buildWorld(): void {
+    this.add.image(0, 0, TOWN_GROUND_KEY).setOrigin(0, 0).setDepth(0);
+    this.add.image(0, 0, TOWN_OVERHEAD_KEY).setOrigin(0, 0).setDepth(OVERHEAD_DEPTH);
 
-        // Single-theme project — the server serves one manifest, so no
-        // runtime switch is possible.
-        const activeTheme = getActiveTheme().id;
-
-        // Fetch the asset manifest for the (now aligned) theme so
-        // decorations/buildings referenced by mapConfig resolve correctly.
-        const manRes = await fetch(`${API_BASE}/api/assets/manifest?theme=${encodeURIComponent(activeTheme)}`);
-        manifestStatus = manRes.status;
-        if (manRes.ok) manifest = await manRes.json() as AssetManifest;
-      }
-    } catch (err) {
-      fetchError = err;
-    }
-
-    console.log('[VillageScene] bootstrapWorld', {
-      mapStatus,
-      manifestStatus,
-      mapConfigLoaded: mapConfig !== null,
-      manifestLoaded: manifest !== null,
-      terrainTiles: mapConfig ? Object.keys(mapConfig.terrain ?? {}).length : 0,
-      buildings: mapConfig?.buildings?.length ?? 0,
-      mapName: mapConfig?.meta?.name,
-      fetchError: fetchError ? String(fetchError) : null,
-    });
-
-    try { if (!this.sys.isActive()) return; } catch { return; }
-
-    if (mapConfig !== null && manifest !== null) {
-      console.log('[VillageScene] rendering the village from /api/map');
-      await ensureAssetsLoaded(this, manifest, mapConfig);
-      try { if (!this.sys.isActive()) return; } catch { return; }
-      const rendered = renderMapConfig(this, mapConfig, manifest);
-      // Placed features are keep-out ground for the scenery generator, and so
-      // is the painted water: the lake is terrain tiles, not a feature, so
-      // nothing in `featureBounds` describes it.
-      this.waterRects = waterKeepOut(mapConfig.terrain);
-      this.floorRects = rendered.floorBounds;
-      this.sceneryExclusions = [...rendered.featureBounds, ...this.waterRects];
-      this.spawnBuildings(mapConfig.buildings);
-
-      // Apply hero scale from map settings
-      if (mapConfig.settings?.heroScale) {
-        this.heroScale = rebaseSavedScale(mapConfig.settings.heroScale);
-      }
-
-      this.heroSpawn = mapConfig.spawn
-        ? { x: mapConfig.spawn.x, y: mapConfig.spawn.y }
-        : { x: VILLAGE_GATE.x, y: VILLAGE_GATE.y };
-    } else {
-      console.warn('[VillageScene] FALLBACK → procedural TerrainRenderer', {
-        reason: mapConfig === null ? 'mapConfig is null' : 'manifest is null',
-        mapStatus,
-        manifestStatus,
-      });
-      new TerrainRenderer(this).render();
-      this.waterRects = PROCEDURAL_WATER_BOUNDS.map((r) => ({ ...r }));
-      this.sceneryExclusions = this.waterRects.map((r) => ({ ...r }));
-      this.spawnBuildings(null);
-    }
-
-    // The arena's cast stands inside the enclosure that just spawned; created
-    // here (after heroScale is settled) so the fighters match hero size.
+    for (const def of BUILDING_DEFS) this.buildings.push(new Building(this, def));
     this.setupArenaFighters();
     this.setupFarmWork();
 
-    // Roads are generated, not painted. Any `paths` in a saved MapConfig are
-    // ignored — see rebuildRoads().
-    this.rebuildRoads();
+    const view = tileRectToWorld(VIEW_RECT);
+    this.contentBounds = new Phaser.Geom.Rectangle(view.x, view.y, view.w, view.h);
+    this.fitCamera();
+    this.cameras.main.centerOn(this.contentBounds.centerX, this.contentBounds.centerY);
 
-    // Buildings are now spawned — process any buffered updates
     this.buildingsReady = true;
     if (this.pendingAgentUpdate !== null) {
       const pending = this.pendingAgentUpdate;
@@ -555,23 +438,23 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  /** Place (or re-place) the arena's resident goblin and skeleton. */
+  /** Place the Pokémon facing the trainers on Nugget Bridge. */
   private setupArenaFighters(): void {
     this.arenaFighters?.destroy();
     this.arenaFighters = null;
-    const npcs = getActiveTheme().getArenaNpcs?.();
-    const arena = this.buildings.find((b) => b.def.id === 'arena');
-    const interior = arena?.interiorWorldRect() ?? null;
-    if (npcs === undefined || interior === null) return;
-    this.arenaFighters = new ArenaFighters(this, npcs, interior, this.heroScale);
+    const bridge = this.buildings.find((b) => b.def.id === 'arena');
+    const spots = bridge?.place.fighters?.map(footOf) ?? [];
+    if (bridge === undefined || spots.length === 0) return;
+    const rect = tileRectToWorld(bridge.place.rect);
+    this.arenaFighters = new ArenaFighters(this, ARENA_NPCS, spots, rect.x + rect.w / 2, SPRITE_SCALE);
   }
 
-  /** Place (or re-place) the farm's work roster over its tilled beds. */
+  /** Put the flower bed's work roster over its patches. */
   private setupFarmWork(): void {
     this.farmWork?.destroy();
     this.farmWork = null;
-    const beds = this.buildings.find((b) => b.def.id === 'farm')?.cropWorldPoints() ?? null;
-    if (beds === null) return;
+    const beds = this.buildings.find((b) => b.def.id === 'farm')?.slotFeet() ?? [];
+    if (beds.length === 0) return;
     this.farmWork = new FarmWork(
       this,
       beds,
@@ -583,169 +466,13 @@ export class VillageScene extends Phaser.Scene {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Desire-path roads
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Regenerate and redraw the road network from whatever is currently standing.
-   *
-   * Called once the world boots. Any `paths` painted in the map editor are deliberately ignored:
-   * the whole point of generating roads is that they follow the buildings, and
-   * mixing a stale hand-drawn layer underneath would contradict them.
-   */
-  private rebuildRoads(): void {
-    const sites: RoadSite[] = [];
-    for (const b of this.buildings) {
-      sites.push({ id: `b:${b.def.id}`, door: { x: b.doorX, y: b.doorY }, keepOut: b.footprint });
-    }
-    const cell = (getActiveTheme().terrain?.tileSize ?? 64) / 2;
-    // Keep-out rects, door leads and the jetty gate — shared with the tests
-    // that lay out the shipped map, so both route the same roads.
-    const { nodes, obstacles, clearance } = planRoads(sites, this.heroSpawn, cell);
-
-    const network = buildDesireNetwork(nodes, obstacles, { clearance });
-
-    this.roadLayer?.destroy();
-    const terrain = getActiveTheme().terrain;
-    const road = terrain?.road;
-    // Rasterised even with no road art to draw it with: the scenery keeps off
-    // this surface, and the tiles are the honest width of a track.
-    const tilemap = buildPathTilemap(network, {
-      cell,
-      tilesetColumns: road?.columns,
-      roadBlockFrame: road?.blockFrame,
-      gravelFrame: road?.gravelFrame,
-      tuftFrame: road?.tuftFrame,
-      bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
-    });
-    this.roadLayer = terrain !== undefined && road !== undefined
-      ? renderPathTiles(this, tilemap, road.tilesetKey, terrain.tileSize)
-      : null;
-    setRoadNetworkFromDesire(network.waypoints, network.edges);
-
-    // Scenery is generated against the road tiles that were just laid and the
-    // building sprites as drawn, so no sprite can end up sitting on either.
-    for (const sprite of this.scenerySprites) sprite.destroy();
-    const items = generateScenery({
-      bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
-      buildings: obstacles,
-      buildingSprites: this.buildings.map((b) => ({
-        x: b.def.x - b.image.displayWidth / 2,
-        y: b.def.y - b.image.displayHeight,
-        w: b.image.displayWidth,
-        h: b.image.displayHeight,
-      })),
-      roads: tilemap,
-      // Placed features (the lake's rocks and jetty) and the water.
-      exclusions: this.sceneryExclusions,
-    });
-    // Animals become moving critters rather than static scatter — the
-    // generator still owns WHERE they live (clearances, spacing, seed).
-    this.scenerySprites = renderScenery(this, items.filter((i) => i.kind !== 'animal'));
-    this.spawnCritters(items.filter((i) => i.kind === 'animal'));
-
-    this.updateContentBounds(nodes);
-  }
-
-  /**
-   * Wandering ambience: meadow critters at the scenery generator's animal
-   * placements, plus ducks paddling on each big enough body of water. Ducks
-   * are seeded off their rect's geometry so the same lake always keeps the
-   * same flock.
-   */
-  private spawnCritters(animals: ReturnType<typeof generateScenery>): void {
-    for (const c of this.critters) c.destroy();
-    this.critters = [];
-    for (const a of animals) {
-      this.critters.push(new Critter(this, {
-        textureKey: `animal-${a.variant}`,
-        x: a.x,
-        y: a.y,
-        scale: a.scale,
-        roamRadius: 50,
-      }));
-    }
-    // waterKeepOut rects reach ~24px past the shoreline onto land, so the
-    // inset has to clear that margin AND keep a body's width of open water.
-    // That inset is measured to the duck's FEET (its origin): the body above
-    // them is ~25px tall and ~30 wide at this scale, so it stays well clear of
-    // the waterline, and of the jetty by FLOOR_CLEARANCE.
-    const SHORE_INSET = 88;
-    const FLOOR_CLEARANCE = 24;
-    const floors = this.floorRects.map((f) => ({
-      x: f.x - FLOOR_CLEARANCE,
-      y: f.y - FLOOR_CLEARANCE,
-      w: f.w + FLOOR_CLEARANCE * 2,
-      h: f.h + FLOOR_CLEARANCE * 2,
-    }));
-    for (const r of this.waterRects) {
-      const inner = largestClearRect({
-        x: r.x + SHORE_INSET,
-        y: r.y + SHORE_INSET,
-        w: r.w - SHORE_INSET * 2,
-        h: r.h - SHORE_INSET * 2,
-      }, floors);
-      if (inner.w < 64 || inner.h < 64) continue;
-      const count = Math.max(1, Math.min(3, Math.floor((inner.w * inner.h) / 150_000)));
-      let seed = (Math.round(r.x) * 73856093) ^ (Math.round(r.y) * 19349663) ^ Math.round(r.w * 7);
-      const rand = () => {
-        seed = (seed * 1664525 + 1013904223) >>> 0;
-        return seed / 0xffffffff;
-      };
-      for (let i = 0; i < count; i++) {
-        this.critters.push(new Critter(this, {
-          textureKey: 'duck',
-          x: inner.x + rand() * inner.w,
-          y: inner.y + rand() * inner.h,
-          scale: 0.45,
-          roamRadius: 120,
-          bounds: inner,
-        }));
-      }
-    }
-  }
-
-  /**
-   * Track the world rect worth looking at and re-fit the camera when it
-   * changes, so the view frames what's actually standing.
-   */
-  private updateContentBounds(nodes: DesireNode[]): void {
-    if (nodes.length === 0) return;
-    const xs = nodes.map((n) => n.x);
-    const ys = nodes.map((n) => n.y);
-    const PAD = 190;
-    const next = new Phaser.Geom.Rectangle(
-      Math.min(...xs) - PAD,
-      Math.min(...ys) - PAD * 1.4, // extra headroom: buildings are drawn upward from their door
-      Math.max(...xs) - Math.min(...xs) + PAD * 2,
-      Math.max(...ys) - Math.min(...ys) + PAD * 2.2,
-    );
-
-    const changed = this.contentBounds === null
-      || Math.abs(next.width - this.contentBounds.width) > 1
-      || Math.abs(next.height - this.contentBounds.height) > 1
-      || Math.abs(next.x - this.contentBounds.x) > 1
-      || Math.abs(next.y - this.contentBounds.y) > 1;
-    this.contentBounds = next;
-    if (changed) {
-      this.fitCamera();
-      this.cameras.main.centerOn(next.centerX, next.centerY);
-    }
-  }
-
-
-  /** Calculate zoom so the village area (~1100×700 centred at 1400,780) fills the viewport. */
-  /**
-   * Zoom so everything standing fits the viewport. Falls back to the built-in
-   * village footprint until `contentBounds` is known (i.e. before bootstrap).
-   */
+  /** Zoom so the town's view rect fits the viewport. */
   private fitCamera(): void {
     const cam = this.cameras.main;
-    const villageW = this.contentBounds?.width ?? 1100;
-    const villageH = this.contentBounds?.height ?? 700;
-    const zoomX = cam.width / villageW;
-    const zoomY = cam.height / villageH;
+    const viewW = this.contentBounds?.width ?? WORLD_WIDTH;
+    const viewH = this.contentBounds?.height ?? WORLD_HEIGHT;
+    const zoomX = cam.width / viewW;
+    const zoomY = cam.height / viewH;
     cam.setZoom(Phaser.Math.Clamp(Math.min(zoomX, zoomY) * 0.95, this.minZoom(), this.maxZoom()));
   }
 
@@ -791,72 +518,6 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  private spawnBuildings(overrides: BuildingPosition[] | null): void {
-    for (const def of BUILDING_DEFS) {
-      const override = overrides?.find((p) => p.id === def.id);
-      const resolved = override !== undefined
-        ? { ...def, x: override.x, y: override.y }
-        : def;
-      this.buildings.push(new Building(this, resolved));
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Grid position calculation
-  // ---------------------------------------------------------------------------
-
-  private calcGridPositions(doorX: number, doorY: number, count: number): Array<{ x: number; y: number }> {
-    if (count === 0) return [];
-    if (count === 1) return [{ x: doorX, y: doorY }];
-
-    const cols = Math.ceil(Math.sqrt(count));
-    const positions: Array<{ x: number; y: number }> = [];
-    const offsetX = ((cols - 1) * GRID_SPACING_X) / 2;
-
-    for (let i = 0; i < count; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      positions.push({
-        x: doorX - offsetX + col * GRID_SPACING_X,
-        y: doorY + row * GRID_SPACING_Y,
-      });
-    }
-    return positions;
-  }
-
-  /**
-   * Grid positions INSIDE an enclosure's interior rect — heroes walk in
-   * through the gate and stand on the floor rather than gathering at the
-   * door. The arena's heroes keep to the west side, because the goblin and
-   * skeleton they spar with hold the east. Positions clamp to the rect so a
-   * crowd compresses against the fence instead of standing in it.
-   *
-   * The farm reaches this only as a fallback, under a theme whose art
-   * declares no crop beds; normally `FarmWork` stations its heroes on the
-   * beds themselves.
-   */
-  private calcInteriorPositions(
-    rect: { x: number; y: number; w: number; h: number },
-    count: number,
-    buildingId: string,
-  ): Array<{ x: number; y: number }> {
-    if (count === 0) return [];
-    const cx = rect.x + rect.w * (buildingId === 'arena' ? 0.32 : 0.5);
-    const cy = rect.y + rect.h * 0.55;
-    const cols = Math.ceil(Math.sqrt(count));
-    const rows = Math.ceil(count / cols);
-    const positions: Array<{ x: number; y: number }> = [];
-    for (let i = 0; i < count; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      positions.push({
-        x: Phaser.Math.Clamp(cx + (col - (cols - 1) / 2) * GRID_SPACING_X, rect.x, rect.x + rect.w),
-        y: Phaser.Math.Clamp(cy + (row - (rows - 1) / 2) * GRID_SPACING_Y, rect.y, rect.y + rect.h),
-      });
-    }
-    return positions;
-  }
-
   // ---------------------------------------------------------------------------
   // Slot management
   // ---------------------------------------------------------------------------
@@ -900,43 +561,26 @@ export class VillageScene extends Phaser.Scene {
       return;
     }
 
-    const buildingDef = BUILDING_DEFS.find((b) => b.id === buildingId);
-    if (buildingDef === undefined) return;
-
     const building = this.buildings.find((b) => b.def.id === buildingId);
-    const doorX = building?.doorX ?? buildingDef.x;
-    const doorY = building?.doorY ?? buildingDef.y + 60;
-
-    // Enclosures station their heroes inside; the road network ends at the
-    // gate, so the final leg of the walk passes through it naturally.
-    const interior = building?.interiorWorldRect() ?? null;
-    const positions = interior !== null
-      ? this.calcInteriorPositions(interior, slots.length, buildingId)
-      : this.calcGridPositions(doorX, doorY, slots.length);
-
-    const focusX = this.stationFocusX(buildingId, doorX, interior !== null);
+    if (building === undefined) return;
+    // One trainer per tile, the doorstep first — a crowd queues outward
+    // from the door. Past the last baked slot, latecomers share the doorstep.
+    const spots = building.slotFeet();
 
     for (let i = 0; i < slots.length; i++) {
       const heroId = slots[i]!;
       const hero = this.heroes.get(heroId);
       if (hero === undefined) continue;
-      const pos = positions[i]!;
-
-      // Inside an enclosure the grid point is where the hero's FEET go, so
-      // the clamp to the interior rect keeps the hero standing in the yard
-      // rather than its centre. At a door the point is the sprite centre,
-      // as the road network's endpoints are.
-      const y = interior !== null ? pos.y - hero.footOffset : pos.y;
-      hero.gridBaseX = pos.x;
-      hero.gridBaseY = y;
+      const spot = spots[i] ?? spots[0]!;
       // Arrival is cleared by removeFromSlot, which runs when a hero changes
       // building — the only case where it genuinely isn't there. Heroes
       // already at this building are just shuffling to make room for a new
-      // arrival and stay counted, or the chimney would puff out every time
-      // the building gained a hero.
-      hero.moveTo(pos.x, y, hero.currentActivity, () => {
+      // arrival and stay counted, or the door would swing shut every time
+      // the building gained a trainer.
+      hero.moveTo(spot.x, spot.y, hero.currentActivity, () => {
         this.arrived.add(heroId);
-        if (focusX !== null) hero.faceTowards(focusX);
+        const focus = this.stationFocus(building.def.id, spot);
+        if (focus !== null) hero.faceTowards(focus);
         this.refreshOccupancy(buildingId);
       });
     }
@@ -945,16 +589,14 @@ export class VillageScene extends Phaser.Scene {
   }
 
   /**
-   * What a hero stationed here turns to look at, or null to keep the
-   * direction it walked in. A hero freezing mid-stride tends to end up with
-   * its back to the anvil it is supposedly hammering, so the arena's heroes
-   * face the fighters they spar with and everyone else faces the door they
-   * are working at. The farm is the exception: its heroes stand on the beds
-   * they water, so there is nothing to turn towards.
+   * What a trainer stationed here turns to look at, or null to keep the
+   * direction it walked in. One that freezes mid-stride tends to end up with
+   * its back to the counter it's supposedly at, so a trainer at a building
+   * faces its door, and one on Nugget Bridge faces the Pokémon it battles.
    */
-  private stationFocusX(buildingId: string, doorX: number, isEnclosure: boolean): number | null {
-    if (buildingId === 'arena') return this.arenaFighters?.focusX() ?? null;
-    return isEnclosure ? null : doorX;
+  private stationFocus(buildingId: string, feet: Point): Point | null {
+    if (buildingId === 'arena') return this.arenaFighters?.focus() ?? null;
+    return this.buildings.find((b) => b.def.id === buildingId)?.doorFocus(feet) ?? null;
   }
 
   /**
@@ -972,14 +614,14 @@ export class VillageScene extends Phaser.Scene {
   }
 
   /**
-   * Drive a building's ambience from whether a hero is actually standing at
-   * it: smoke from its chimney, and in the arena the goblin and skeleton
-   * squaring up. Both stop the moment the last hero leaves.
+   * Drive a place's ambience from whether a trainer is actually standing at
+   * it: the door standing open, and on Nugget Bridge the Pokémon squaring
+   * up. Both stop the moment the last trainer leaves.
    */
   private refreshOccupancy(buildingId: string): void {
     const slots = this.buildingSlots.get(buildingId) ?? [];
     const occupied = slots.some((id) => this.arrived.has(id));
-    this.buildings.find((b) => b.def.id === buildingId)?.setSmoking(occupied);
+    this.buildings.find((b) => b.def.id === buildingId)?.setOccupied(occupied);
     if (buildingId === 'arena') this.arenaFighters?.setFighting(occupied);
   }
 
@@ -1037,15 +679,14 @@ export class VillageScene extends Phaser.Scene {
         const hero = new HeroSprite(
           this,
           agent.id,
-          heroNameFor(agent.id),
-          agent.heroClass,
+          heroNameFor(agent.id, agent.source),
+          trainerFor(agent.id, agent.source),
           agent.heroColor,
           this.heroSpawn.x,
           this.heroSpawn.y,
           agent.id.startsWith('agent-'),
           agent.source,
         );
-        hero.setHeroScale(this.heroScale);
         hero.setActivity(agent.currentActivity);
         hero.setStatus(agent.status);
         hero.setErrorTimestamp(agent.lastErrorAt);
@@ -1088,8 +729,8 @@ export class VillageScene extends Phaser.Scene {
       this.repositionBuilding(buildingId);
     }
 
-    // Ambience marks an occupied building — meaningful state: the chimney
-    // smokes (and the arena's cast spars) while a hero stands there, and
+    // Ambience marks an occupied building — meaningful state: the door
+    // stands open (and the bridge's Pokémon battle) while a trainer is there, and
     // stops the moment the last one leaves. Arrivals raise it via their own
     // callback; this sweep is what lowers it, since a hero that walked off or
     // vanished fires no arrival for the building it left.

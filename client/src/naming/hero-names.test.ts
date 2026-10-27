@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'bun:test';
-import { heroNameFor, FIRST_NAMES, LAST_NAMES } from './hero-names';
+import { heroNameFor, trainerFor } from './hero-names';
+import { ROCKETS, TRAINERS } from './trainer-roster';
 
 /** A Claude session id: 36-char uuid. All real ones share this length. */
 function uuidLike(n: number): string {
@@ -12,51 +13,58 @@ function subagentId(n: number): string {
   return `agent-Explore-${n.toString(16).padStart(16, '0')}`;
 }
 
-describe('heroNameFor', () => {
+describe('trainerFor', () => {
   test('is deterministic for a given id', () => {
     const id = uuidLike(42);
+    expect(trainerFor(id)).toBe(trainerFor(id));
     expect(heroNameFor(id)).toBe(heroNameFor(id));
   });
 
-  test('returns a first name and a surname from the tables', () => {
-    for (let i = 0; i < 50; i++) {
-      const parts = heroNameFor(uuidLike(i)).split(' ');
-      expect(parts).toHaveLength(2);
-      expect(FIRST_NAMES).toContain(parts[0]! as (typeof FIRST_NAMES)[number]);
-      expect(LAST_NAMES).toContain(parts[1]! as (typeof LAST_NAMES)[number]);
+  test('names a real trainer: class and name, or a name alone', () => {
+    expect(heroNameFor(uuidLike(1)).length).toBeGreaterThan(2);
+    for (const t of TRAINERS) {
+      const name = t.title === '' ? t.name : `${t.title} ${t.name}`;
+      expect(name).toMatch(/^[A-Z]/);
     }
+    expect(TRAINERS.some((t) => t.title === 'Youngster' && t.name === 'Joey')).toBe(true);
+    expect(TRAINERS.some((t) => t.title === '' && t.name === 'Red')).toBe(true);
   });
 
-  test('spreads same-length uuids across the whole name space', () => {
-    // Guards the avalanche step: a plain rolling hash leaves the two indices
-    // correlated for same-length ids and collapses the name space.
+  test('spreads same-length uuids across the roster', () => {
+    // Guards the avalanche step: a plain rolling hash collapses the spread
+    // for ids that differ only in their tail.
     const names = new Set<string>();
     for (let i = 0; i < 500; i++) names.add(heroNameFor(uuidLike(i)));
-    expect(names.size).toBeGreaterThan(400);
+    expect(names.size).toBeGreaterThan(TRAINERS.length * 0.7);
   });
 
   test('spreads subagent ids too', () => {
     const names = new Set<string>();
     for (let i = 0; i < 200; i++) names.add(heroNameFor(subagentId(i)));
-    expect(names.size).toBeGreaterThan(150);
+    expect(names.size).toBeGreaterThan(120);
+  });
+
+  test('Codex sessions are Team Rocket', () => {
+    for (let i = 0; i < 20; i++) {
+      expect(ROCKETS).toContain(trainerFor(uuidLike(i), 'codex'));
+    }
+    expect(heroNameFor(uuidLike(3), 'codex')).toStartWith('Rocket ');
   });
 
   test('survives degenerate ids', () => {
-    for (const id of ['', 'x', '-']) {
-      expect(heroNameFor(id).split(' ')).toHaveLength(2);
-    }
+    for (const id of ['', 'x', '-']) expect(heroNameFor(id).length).toBeGreaterThan(0);
   });
 });
 
-describe('name tables', () => {
-  test('have no duplicate entries', () => {
-    expect(new Set(FIRST_NAMES).size).toBe(FIRST_NAMES.length);
-    expect(new Set(LAST_NAMES).size).toBe(LAST_NAMES.length);
+describe('roster', () => {
+  test('has no duplicate trainers', () => {
+    const keys = TRAINERS.map((t) => `${t.title} ${t.name}`);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
-  test('stay short enough for the 14px monospace canvas label', () => {
-    for (const n of [...FIRST_NAMES, ...LAST_NAMES]) {
-      expect(n.length).toBeLessThanOrEqual(11);
+  test('names stay short enough for a canvas label', () => {
+    for (const t of [...TRAINERS, ...ROCKETS]) {
+      expect(`${t.title} ${t.name}`.trim().length).toBeLessThanOrEqual(20);
     }
   });
 });

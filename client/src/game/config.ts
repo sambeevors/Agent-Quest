@@ -7,8 +7,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#1a1a2e',
   scene: [BootScene, VillageScene],
   // Disable bilinear filtering so pixel-art sprites stay crisp under any
-  // upscale. The Sunnyside pack is pixel art, so this is safe for
-  // every theme we ship.
+  // upscale — everything on the canvas is GBA pixel art.
   pixelArt: true,
   // Scale.NONE because RESIZE forces the canvas backing store to CSS pixels,
   // which on Retina displays renders at half resolution and lets the browser

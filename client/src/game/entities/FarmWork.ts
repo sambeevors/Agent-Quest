@@ -3,20 +3,17 @@ import type { HeroSprite } from './HeroSprite';
 import { nextTendDelay, pickBed } from '../data/farm-work';
 
 /**
- * The Farm's work roster: which hero is watering which bed, and when it moves
- * on to another.
+ * The flower bed's work roster: which trainer is tending which patch, and
+ * when it moves on to another.
  *
- * Every other building stations its heroes on a fixed grid, which is right —
- * they are queueing at a door. The farm is an enclosure with fifteen tilled
- * beds baked into its floor at known coordinates, so its heroes work it
- * instead: walk in through the gate to a bed, water it for a few seconds,
- * then cross to another. The hops are straight lines (`walkDirect`), because
- * the road graph would route a step between two beds out through the gate and
- * back in again.
+ * Every other place stations its trainers on fixed tiles, which is right —
+ * they are queueing at a door. The flower bed beside the Bike Shop is a
+ * patch of ground with flowers to tend, so its trainers work it instead:
+ * walk over to a tile, tend it for a few seconds, then step to another.
  *
  * The roster is the only thing that decides where a farm hero stands, so it
- * owns the whole farm's positioning — `VillageScene.repositionBuilding`
- * hands the building over rather than laying out a grid.
+ * owns the whole bed's positioning — `VillageScene.repositionBuilding`
+ * hands the place over rather than laying out a crowd.
  */
 export class FarmWork {
   private readonly scene: Phaser.Scene;
@@ -56,9 +53,7 @@ export class FarmWork {
       const bed = pickBed(this.beds.length, this.claimedBeds(), null);
       if (bed === null) continue; // More heroes than beds — try again next update.
       this.assigned.set(heroId, bed);
-      // Entering from outside the fence, so this leg follows the roads and
-      // passes through the gate like any other arrival.
-      hero.moveTo(...this.standAt(hero, bed), hero.currentActivity, () => {
+      hero.moveTo(...this.standAt(bed), hero.currentActivity, () => {
         this.onArrive(heroId);
         this.scheduleHop(heroId);
       });
@@ -69,11 +64,10 @@ export class FarmWork {
     for (const heroId of [...this.assigned.keys()]) this.release(heroId);
   }
 
-  /** Where a hero stands to work `bed`: feet on the bed, so the crop shows
-   *  below them rather than the hero straddling the row. */
-  private standAt(hero: HeroSprite, bed: number): [number, number] {
+  /** Where a trainer's feet go to work `bed`. */
+  private standAt(bed: number): [number, number] {
     const spot = this.beds[bed]!;
-    return [spot.x, spot.y - hero.footOffset];
+    return [spot.x, spot.y];
   }
 
   private claimedBeds(): Set<number> {
@@ -103,7 +97,7 @@ export class FarmWork {
         return;
       }
       this.assigned.set(heroId, bed);
-      hero.walkDirect(...this.standAt(hero, bed), hero.currentActivity, () => {
+      hero.moveTo(...this.standAt(bed), hero.currentActivity, () => {
         this.scheduleHop(heroId);
       });
     }));

@@ -2,9 +2,9 @@ export const HERO_CLASSES = ['warrior', 'archer', 'pawn'] as const;
 export type HeroClass = (typeof HERO_CLASSES)[number];
 
 // Kept in sync with server/src/types.ts — the state manager assigns round-robin
-// across the full palette. Every entry has its own Sunnyside sprite sheet
-// (the bake palette-swaps the hero's shirt per colour), and the name label
-// uses the matching `HERO_LABEL_COLOR`.
+// across the full palette. A hero's sprite comes from the trainer it is
+// (naming/hero-names.ts); the colour only tints its name, via
+// `HERO_LABEL_COLOR`, so neighbouring trainers stay easy to tell apart.
 export const HERO_COLORS = [
   'blue', 'yellow', 'red', 'black', 'purple',
   'teal', 'orange', 'green',
@@ -39,23 +39,6 @@ export const HERO_LABEL_COLOR: Record<HeroColor, string> = {
   teal:   '#7ED9CF',
   orange: '#FF9F4A',
   green:  '#88E08A',
-};
-
-/**
- * Sprite variant to actually render for each HeroColor. The Sunnyside bake
- * palette-swaps the hero's shirt per colour, so every HeroColor has its own
- * sheet and the map is the identity. It survives as a seam: a future theme
- * with fewer sprite variants can collapse colours here again.
- */
-export const HERO_COLOR_SPRITE_BASE: Record<HeroColor, HeroColor> = {
-  blue:   'blue',
-  yellow: 'yellow',
-  red:    'red',
-  black:  'black',
-  purple: 'purple',
-  teal:   'teal',
-  orange: 'orange',
-  green:  'green',
 };
 
 export type AgentActivity =

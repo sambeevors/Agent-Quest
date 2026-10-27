@@ -1,16 +1,14 @@
 /**
- * How a hero works the farm: which bed it tends next, and how long it stays.
+ * How a trainer works the flower bed: which patch it tends next, and how long
+ * it stays.
  *
- * A hero at the Farm used to stand on a grid position for as long as its
- * session kept publishing — a watering animation played at nobody. The farm
- * is the one building whose art has things to DO in it (fifteen tilled beds,
- * baked at known coordinates), so its heroes move between them: water a crop
- * for a few seconds, pick another, walk over, water that one.
+ * A trainer at the flower bed doesn't stand in a queue the way one at a door
+ * does — there are flowers to tend, so it moves between them: tend a patch
+ * for a few seconds, pick another, step over, tend that one.
  *
- * The choice is deliberately NOT seeded, unlike the scenery and road
- * generators. Those must be identical on every reload or the village appears
- * to rearrange itself; this is creature motion, in the same family as
- * `Critter`'s wandering — the whole point is that you can't predict it.
+ * The choice is deliberately NOT seeded. The town must be identical on every
+ * reload, but this is creature motion — the whole point is that you can't
+ * predict it.
  */
 
 /** Seconds a hero spends watering one bed before moving to another. */

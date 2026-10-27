@@ -32,7 +32,6 @@ interface ServerLaunch {
   command: string;
   args: string[];
   clientDir: string;
-  mapPath: string;
 }
 
 function serverLaunch(): ServerLaunch {
@@ -42,7 +41,6 @@ function serverLaunch(): ServerLaunch {
       command: join(res, 'server', 'agent-quest-server'),
       args: [],
       clientDir: join(res, 'client'),
-      mapPath: join(res, 'map', 'village.json'),
     };
   }
   const repo = resolve(__dirname, '..', '..');
@@ -50,7 +48,6 @@ function serverLaunch(): ServerLaunch {
     command: 'bun',
     args: ['run', join(repo, 'server', 'src', 'index.ts')],
     clientDir: join(repo, 'client', 'dist'),
-    mapPath: join(repo, 'server', 'data', 'map', 'village.json'),
   };
 }
 
@@ -75,7 +72,6 @@ function startServer(): void {
       PORT: String(PORT),
       CLIENT_URL: ORIGIN,
       AGENT_QUEST_CLIENT_DIR: launch.clientDir,
-      AGENT_QUEST_MAP_PATH: launch.mapPath,
       AGENT_QUEST_EXIT_WITH_PARENT: '1',
     },
     stdio: ['pipe', 'pipe', 'pipe'],

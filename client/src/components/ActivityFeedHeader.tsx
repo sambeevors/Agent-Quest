@@ -98,7 +98,7 @@ export function ActivityFeedHeader({
           {filteredAgent !== null && (
             <span className="feed-agent-chip">
               <HeroAvatar agent={filteredAgent} size={14} />
-              <span>{heroNameFor(filteredAgent.id)}</span>
+              <span>{heroNameFor(filteredAgent.id, filteredAgent.source)}</span>
               <button type="button" aria-label="Clear agent filter" className="feed-chip-close" onClick={onClearAgentFilter}>×</button>
             </span>
           )}

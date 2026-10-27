@@ -52,7 +52,7 @@ function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge }: PartyRo
     flashing ? 'flashing' : '',
   ].filter(Boolean).join(' ');
 
-  const heroName = heroNameFor(agent.id);
+  const heroName = heroNameFor(agent.id, agent.source);
 
   const title = mode === 'icons'
     ? `${heroName} · ${displayActivity(agent)}`

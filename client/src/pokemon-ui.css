@@ -1,0 +1,44 @@
+/*
+ * FireRed reskin — panel CHROME only. Loaded after every component
+ * stylesheet, it overrides just the container treatment (background, border)
+ * of the overlay panels; layout, information design and the RuneScape type
+ * stay exactly as they were.
+ *
+ * The frame is FireRed's battle text box: a dark slate centre in a rounded
+ * white-and-blue frame, so every panel keeps the dark interior its text
+ * palette is tuned for. Headers get the white menu window with dark text.
+ * Both PNGs are baked by scripts/bake-pokemon/ at native 1x (4px slices).
+ */
+
+.partybar,
+.detail-panel,
+.activity-feed,
+.topbar,
+.building-info-panel,
+.notif-menu,
+.settings-modal,
+.tutorial-modal,
+.report,
+.toast {
+  border: 8px solid transparent;
+  border-image: url('/assets/pokemon/ui/box.png') 4 repeat;
+  image-rendering: pixelated;
+  border-radius: 0;
+  background: rgba(40, 56, 80, 0.94);
+  background-clip: padding-box;
+}
+
+.partybar-header,
+.feed-header-row {
+  border: 8px solid transparent;
+  border-image: url('/assets/pokemon/ui/plate.png') 4 fill stretch;
+  image-rendering: pixelated;
+  background: none;
+}
+
+.partybar-header .partybar-title,
+.feed-header-row .feed-title {
+  /* FireRed's dialogue ink: dark grey with a pale drop shadow. */
+  color: #484848;
+  text-shadow: 1px 1px 0 #d0d0c8;
+}

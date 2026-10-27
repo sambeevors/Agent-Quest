@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { spriteAnchors } from './sprite-anchors';
-import { HERO_EXTENT, sunnysideTheme } from '../themes/sunnyside';
+import { SPRITE_SCALE, TRAINER_EXTENT } from '../pokemon';
 
 describe('spriteAnchors', () => {
   test('offsets are measured from the frame centre and scale with the sprite', () => {
@@ -9,17 +9,11 @@ describe('spriteAnchors', () => {
     expect(a.footOffset).toBe(14);
   });
 
-  test('a Sunnyside hero stands ~11px below its centre, not at the frame bottom', () => {
-    // The frame bottom is 51px below centre at heroScale 1.6. Feet there put
-    // farmers ~40px above the bed they water and sorted heroes in front of
-    // the trees they stood behind.
-    const { headOffset, footOffset } = spriteAnchors(HERO_EXTENT, sunnysideTheme.heroScale);
-    const frameHalf = (HERO_EXTENT.frameHeight / 2) * sunnysideTheme.heroScale;
-    expect(footOffset).toBeGreaterThan(0);
-    expect(footOffset).toBeLessThan(frameHalf / 2);
-    // The head is well inside the frame too, so a name hung above it sits
-    // on the hero rather than over the roof behind.
+  test('a trainer stands on the bottom of its 16x32 frame, like the overworld sprite it is', () => {
+    const { headOffset, footOffset } = spriteAnchors(TRAINER_EXTENT, SPRITE_SCALE);
+    const frameHalf = (TRAINER_EXTENT.frameHeight / 2) * SPRITE_SCALE;
+    expect(footOffset).toBeGreaterThan(frameHalf * 0.8);
+    expect(footOffset).toBeLessThanOrEqual(frameHalf);
     expect(headOffset).toBeLessThan(0);
-    expect(-headOffset).toBeLessThan(frameHalf / 2);
   });
 });

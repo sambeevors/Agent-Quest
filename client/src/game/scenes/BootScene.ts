@@ -1,8 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBridge } from '../EventBridge';
-import { BUILDING_DEFS } from '../data/building-layout';
 import { addCrispText, LABEL_FONT } from '../text';
-import { getActiveTheme } from '../themes/registry';
+import { imagePreload, spritesheetPreload } from '../pokemon';
 import { groupMissingByCategory } from '../data/asset-diagnostics';
 import { sceneRenderScale } from '../dpr';
 
@@ -26,57 +25,18 @@ export class BootScene extends Phaser.Scene {
     // Logo shown on the loading screen + reused by the React TopBar
     this.load.image('logo', 'assets/logo.png');
 
-    // Functional building images — path comes from the active theme via
-    // getBuildingImage().
-    const theme = getActiveTheme();
-    for (const def of BUILDING_DEFS) {
-      this.load.image(def.imageKey, theme.getBuildingImage(def.id));
-    }
-
-    // Hero spritesheets provided by the active theme. Each theme's manifest
-    // returns the (key → path, frame size) list needed for its variants —
-    // one combined sheet per (class, color) with animations packed into rows.
-    const seen = new Set<string>();
-    for (const entry of getActiveTheme().getHeroPreload()) {
-      if (seen.has(entry.key)) continue;
-      seen.add(entry.key);
+    // The town's two layers and door frames, then every trainer walker and
+    // Pokémon icon strip — all baked by scripts/bake-pokemon/.
+    for (const entry of imagePreload()) this.load.image(entry.key, entry.path);
+    for (const entry of spritesheetPreload()) {
       this.load.spritesheet(entry.key, entry.path, {
         frameWidth: entry.frameWidth,
         frameHeight: entry.frameHeight,
       });
     }
-
-    // Terrain tileset comes from the active theme; TerrainRenderer keys off
-    // the same config to pick the grass frame. Themes without a terrain
-    // section get the procedural fallback tile from TerrainRenderer.
-    const terrain = getActiveTheme().terrain;
-    if (terrain !== undefined) {
-      this.load.spritesheet(terrain.tilesetKey, terrain.path, {
-        frameWidth: terrain.tileSize,
-        frameHeight: terrain.tileSize,
-      });
-    }
-
-    // Ground decorations, scenery, VFX — all delegated
-    // to the active theme so swapping themes swaps their PNGs end-to-end.
-    for (const entry of getActiveTheme().getStaticAssetPreload()) {
-      if (entry.frameWidth !== undefined && entry.frameHeight !== undefined) {
-        this.load.spritesheet(entry.key, entry.path, {
-          frameWidth: entry.frameWidth,
-          frameHeight: entry.frameHeight,
-        });
-      } else {
-        this.load.image(entry.key, entry.path);
-      }
-    }
   }
 
   create(): void {
-    // Themes can post-process loaded assets (e.g. slice a combined tree
-    // atlas into per-variant textures). Runs once here before any scene
-    // that consumes those textures starts.
-    getActiveTheme().postLoadHook?.(this);
-
     this.cameras.main.setBackgroundColor('#1a1a2e');
 
     // The canvas backing store is at physical pixels (see dpr.ts). Lay the
@@ -115,8 +75,8 @@ export class BootScene extends Phaser.Scene {
         wordWrap: { width: Math.min(vw * 0.8, 640) },
       }).setOrigin(0.5);
 
-      // Per-category breakdown so the user can tell at a glance whether
-      // heroes, buildings, terrain, or decorations were affected — each
+      // Per-category breakdown so the user can tell at a glance whether the
+      // trainers, their Pokémon or the town itself were affected — each
       // class of asset has a different visual impact once we render.
       const summaryLines = grouped.categories
         .map((c) => `  • ${c.label}: ${c.count}`)
@@ -148,7 +108,7 @@ export class BootScene extends Phaser.Scene {
       }).setOrigin(0.5, 0);
 
       const hintText =
-        'Restore with:\n   git checkout -- client/public/assets/themes/sunnyside/\n' +
+        'Restore with:\n   git checkout -- client/public/assets/pokemon/\n' +
         'or re-clone the repository.';
       const hint = addCrispText(this, cx, sample.y + sample.displayHeight + 20, hintText, {
         fontSize: '12px',
@@ -183,7 +143,7 @@ export class BootScene extends Phaser.Scene {
       if (this.hasTransitioned) return;
       this.hasTransitioned = true;
       try {
-        this.statusText.setText('Connected! Entering village...');
+        this.statusText.setText('Connected! Entering Cerulean City...');
         this.time.delayedCall(800, () => {
           this.scene.start('VillageScene');
         });

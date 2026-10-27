@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>A fantasy village dashboard for monitoring your Claude Code CLI and Codex agents.</strong>
+  <strong>A Pokémon FireRed town for monitoring your Claude Code CLI and Codex agents.</strong>
 </p>
 
 <p align="center">
@@ -13,14 +13,14 @@
 
 ---
 
-> **Use Claude Code CLI or Codex as usual — each agent session auto-spawns a hero on the dashboard, live.**
+> **Use Claude Code CLI or Codex as usual — each agent session auto-spawns a trainer on the dashboard, live.**
 
-Agent Quest is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as fantasy heroes in a 2D village. Each running agent becomes a hero who walks between buildings based on what it's doing: `Read` sends it to the Library, `Edit` to the Forge, `Bash` to the Arena, and so on.
+Agent Quest is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as trainers walking around Cerulean City, exactly as Pokémon FireRed draws it. Each running agent becomes a real FireRed trainer — Youngster Joey, Lass Janice, now and then Red or Prof. Oak — with the Pokémon they send out last at their heels, walking the town's streets to the place that matches what it's doing: `Read` sends it to the Trade House, `Edit` to the Bike Shop, `Bash` to battle on Nugget Bridge, and so on. Codex sessions are Team Rocket.
 
 <p align="center">
   <img src="docs/media/day.gif" alt="Agent Quest — main view" width="820" />
   <br/>
-  <sub><em>Every hero is an agent — the building it visits tells you what it's doing.</em></sub>
+  <sub><em>Every trainer is an agent — the place it visits tells you what it's doing.</em></sub>
 </p>
 
 <p align="center">
@@ -31,16 +31,16 @@ Agent Quest is a browser-based monitoring dashboard that visualizes active Claud
 
 ## Why?
 
-Claude Code and Codex sessions happen in a terminal — useful, but not very *alive*. When you run several agents at once (across projects, across `~/.claude*` installations and `~/.codex`), it's hard to feel what they're actually doing. Agent Quest turns that invisible activity into something you can glance at: a little village where every hero is an agent, and where they walk tells you what they're up to.
+Claude Code and Codex sessions happen in a terminal — useful, but not very *alive*. When you run several agents at once (across projects, across `~/.claude*` installations and `~/.codex`), it's hard to feel what they're actually doing. Agent Quest turns that invisible activity into something you can glance at: a little Kanto town where every trainer is an agent, and where they walk tells you what they're up to.
 
 ## Features
 
 - Real-time visualization of active Claude Code and Codex sessions
 - Auto-discovery of every `~/.claude*` directory (supports multiple installations like `~/.claude-work`, `~/.claude-personale`) and of `~/.codex` if present
-- Activity feed, party bar, and detail panel alongside the village scene
+- Activity feed, party bar, and detail panel alongside the town
 - Sub-2s latency via native WebSocket (optional lower-latency path via Claude Code `postToolUse` hooks — Claude Code only; Codex doesn't expose hooks)
 - **Cost & token tracking** — per-session and fleet-wide spend estimates
-- **Generated roads & scenery** — tracks worn between buildings by use, and woodland that never grows through a wall
+- **Cerulean City, block for block** — rendered from the FireRed decompilation's own map data, with trainers routed along its real streets
 
 See [What this fork adds](#what-this-fork-adds) for the details.
 
@@ -59,19 +59,30 @@ The pricing table lives in [`server/src/pricing/model-pricing.ts`](server/src/pr
 - A model with no published rate makes the figure a lower bound, shown as `≥ $x.xx`.
 - Codex reports no token usage, so Codex sessions are excluded.
 
-### Generated roads & scenery
+### Cerulean City
 
-Roads are no longer drawn by hand. Every track is a **desire path**: the map works out which buildings want a direct link (a minimum spanning tree for the backbone, plus Gabriel-graph edges for the shortcuts a village actually has), routes each one *around* the buildings in the way, and wears it wider where more journeys funnel through it. Heroes walk the same network, so they can't clip through a wall.
+The world is FireRed's Cerulean City, not a map drawn for this app. `scripts/bake-pokemon/` reads the [pret/pokefirered](https://github.com/pret/pokefirered) decompilation and renders the town block for block, with the edges of Routes 4, 5, 9 and 24 (Nugget Bridge) placed at their real connection offsets. Movement uses the same data the game moves on: a trainer can walk wherever the map's collision bits allow, never across water or up a ledge, one tile at a time and turning at right angles.
 
-Trees, shrubs, rocks and mushrooms are scattered procedurally against the current layout, with per-kind clearances — a mushroom can sit at a road's edge, a tree keeps well back. Woodland follows a low-frequency density field so it clumps and thins naturally, and thins further near settlements so villages sit in their own clearings. Everything is seeded, so the same world regenerates identically on every reload.
+| Activity | Where the trainer goes |
+|---|---|
+| Read / Grep / Glob | Trade House |
+| Edit / Write | Bike Shop |
+| Bash | Nugget Bridge — battling the Rocket's Ekans and Zubat |
+| Thinking | Badge House |
+| Reviewing / subagents | Cerulean Gym |
+| Git commit / push | the flower bed beside the Bike Shop |
+| Debugging | Poké Mart |
+| Idle / waiting | Pokémon Center |
 
-The tracks are tiled from the pack's own dirt tiles, not painted over the grass, so a road meets the meadow with the artist's own wavy fringe. The bake pipeline lays those tiles out in the exact 16-tile edge layout the renderer expects — see `scripts/bake-sunnyside/terrain.py`.
+Every hero is a real trainer from the game's own trainer table, named the way the game names them, walking as their class's overworld sprite, shown in the panels with their battle portrait, and followed by the Pokémon they send out last. A door stands open while a trainer is inside.
+
+**Educational use only.** The art belongs to Nintendo / Game Freak / The Pokémon Company. The repo commits only the baked PNGs the app loads; re-baking needs local checkouts of pret/pokefirered and [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
 
 ## Requirements
 
 **Required**
 - [Bun](https://bun.sh) 1.1 or later — the runtime behind both the server and the scripts. If you don't have it: `curl -fsSL https://bun.sh/install | bash`
-- An active Claude Code or Codex installation (one or more `~/.claude*` directories, and/or `~/.codex`, with session logs). Without either, the dashboard still starts, but the village stays empty and a banner tells you so.
+- An active Claude Code or Codex installation (one or more `~/.claude*` directories, and/or `~/.codex`, with session logs). Without either, the dashboard still starts, but the town stays empty and a banner tells you so.
 - See the [Platform matrix](#platform-matrix) below for OS support per provider.
 
 **Optional**
@@ -104,7 +115,7 @@ bun install
 bun start
 ```
 
-That's it: your browser opens on <http://localhost:4445> and the village appears.
+That's it: your browser opens on <http://localhost:4445> and Cerulean City appears.
 
 Optional — create an `agentquest` shortcut so you can launch from any directory:
 
@@ -115,7 +126,7 @@ ln -s "$PWD/bin/agentquest" ~/.local/bin/agentquest
 
 After the symlink you can run `agentquest` (alias of `bun start`) and `agentquest update` (alias of `git pull --ff-only && bun install`) from anywhere.
 
-Agent Quest ships with its processed art (under `client/public/assets/themes/sunnyside/`), so there's nothing else to download.
+Agent Quest ships with its baked art (under `client/public/assets/pokemon/`), so there's nothing else to download.
 
 ### One-line install (macOS only)
 
@@ -125,7 +136,7 @@ Agent Quest ships with its processed art (under `client/public/assets/themes/sun
 curl -fsSL https://raw.githubusercontent.com/sambeevors/Agent-Quest/main/install.sh | bash
 ```
 
-The installer prints exactly what it's going to do and asks before touching anything. It checks/installs Bun, clones into `~/agent-quest` (override with `--dir <path>`), runs `bun install`, creates an `agentquest` shortcut in `~/.local/bin/`, and offers to launch right away. When it finishes, your browser opens on <http://localhost:4445> and the village appears.
+The installer prints exactly what it's going to do and asks before touching anything. It checks/installs Bun, clones into `~/agent-quest` (override with `--dir <path>`), runs `bun install`, creates an `agentquest` shortcut in `~/.local/bin/`, and offers to launch right away. When it finishes, your browser opens on <http://localhost:4445> and Cerulean City appears.
 
 From the next session onwards:
 
@@ -141,7 +152,7 @@ bun run desktop:install   # build "Agent Quest.app", copy it to /Applications, l
 bun run desktop           # or: run the Electron shell from source, without installing
 ```
 
-The app bundles its own server (a compiled Bun binary), so once installed it needs neither Bun nor this checkout. It turns on **Open at Login** the first time it runs; toggle it from the *Agent Quest* menu or System Settings → General → Login Items. Closing the window keeps the village running in the dock; *Quit* stops the server.
+The app bundles its own server (a compiled Bun binary), so once installed it needs neither Bun nor this checkout. It turns on **Open at Login** the first time it runs; toggle it from the *Agent Quest* menu or System Settings → General → Login Items. Closing the window keeps the town running in the dock; *Quit* stops the server.
 
 - It uses the same port as `bun start` (4444), so only one of the two can run at a time.
 - Server output goes to `~/Library/Logs/Agent Quest/server.log` (*Agent Quest → Show Server Log*).
@@ -173,7 +184,7 @@ lsof -ti:4444,4445 | xargs kill -9
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
-**Empty village with a "No Claude Code or Codex installation detected" banner** — expected when no `~/.claude*` or `~/.codex` directory with session logs exists. Start a Claude Code or Codex session and heroes appear automatically (the banner disappears on its own).
+**Empty town with a "No Claude Code or Codex installation detected" banner** — expected when no `~/.claude*` or `~/.codex` directory with session logs exists. Start a Claude Code or Codex session and trainers appear automatically (the banner disappears on its own).
 
 **Assets look broken or the app blocks at boot with "missing asset" screens** — see [Missing assets](#missing-assets).
 
@@ -209,20 +220,20 @@ For installed end-user copies that follow `main`, `agentquest update` runs the e
 
 ### Missing assets
 
-If you accidentally delete or move files under `client/public/assets/themes/sunnyside/` (hero spritesheets, building PNGs, terrain, decorations), Agent Quest will tell you:
+If you accidentally delete or move files under `client/public/assets/pokemon/` (the town, trainer sprites and portraits, Pokémon icons), Agent Quest will tell you:
 
-- The **main app** blocks at boot with a screen that lists the missing files grouped by category (hero / building / terrain / decoration) and suggests a restore command.
+- The **main app** blocks at boot with a screen that lists the missing files grouped by category (trainers / Pokémon / town) and suggests a restore command.
 - Run `bun run check:assets` any time to verify the whole bundled pack ahead of starting the app. Exits non-zero with a detailed list if anything is missing — good for CI or pre-commit.
 
 Restore with:
 
 ```bash
-git checkout -- client/public/assets/themes/sunnyside/
+git checkout -- client/public/assets/pokemon/
 ```
 
 ## LAN access (view from your phone / iPad)
 
-By default the dev servers only listen on `localhost` for security. To share the village with other devices on the same Wi-Fi (phone, tablet, another laptop), opt in with a single env flag:
+By default the dev servers only listen on `localhost` for security. To share the town with other devices on the same Wi-Fi (phone, tablet, another laptop), opt in with a single env flag:
 
 ```bash
 # macOS / Linux — one-off, for this run only
@@ -278,7 +289,7 @@ Issues and pull requests are welcome — bug reports, feature ideas, new buildin
 ## Credits
 
 - Original project: [Agent Quest](https://github.com/FulAppiOS/Agent-Quest) by [Fulvio Scichilone](https://github.com/FulAppiOS). This repository is a fork; the village and the provider architecture are their work.
-- Sprites, tiles, and decorations: [Sunnyside World](https://danieldiggle.itch.io/sunnyside) by Daniel Diggle — a paid asset pack, used here under its standard licence (use in projects permitted; redistribution of the raw assets is not). The repo bundles only processed, game-ready bakes under `client/public/assets/themes/sunnyside/` (composited spritesheets, assembled buildings, re-laid tilesets — see `scripts/bake-sunnyside/`), not the pack itself. If you fork this repo, please buy the pack before reusing the art.
+- Pokémon art: © Nintendo / Game Freak / The Pokémon Company, used here for educational, non-commercial purposes only. Baked by `scripts/bake-pokemon/` from the [pret/pokefirered](https://github.com/pret/pokefirered) decompilation and [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
 
 ## License
 
