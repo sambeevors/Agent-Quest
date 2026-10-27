@@ -2,8 +2,7 @@ import * as Phaser from 'phaser';
 import { eventBridge } from '../EventBridge';
 import { Building } from '../entities/Building';
 import { HeroSprite } from '../entities/HeroSprite';
-import { BUILDING_DEFS, VILLAGE_GATE, WORLD_WIDTH, WORLD_HEIGHT, computeVillageAnnexes, getBuildingForActivity } from '../data/building-layout';
-import type { VillageAnnexes } from '../data/building-layout';
+import { BUILDING_DEFS, VILLAGE_GATE, WORLD_WIDTH, WORLD_HEIGHT, getBuildingForActivity } from '../data/building-layout';
 import { TerrainRenderer, PROCEDURAL_WATER_BOUNDS } from '../terrain/TerrainRenderer';
 import { renderMapConfig } from '../terrain/MapConfigRenderer';
 import { ensureAssetsLoaded } from '../data/asset-loader';
@@ -17,8 +16,7 @@ import { waterKeepOut } from '../data/water';
 import { Critter } from '../entities/Critter';
 import { ArenaFighters } from '../entities/ArenaFighters';
 import { FarmWork } from '../entities/FarmWork';
-import { ConstructionSite } from '../entities/ConstructionSite';
-import type { AgentState, LinearProject } from '../../types/agent';
+import type { AgentState } from '../../types/agent';
 import { heroNameFor } from '../../naming/hero-names';
 import type { AssetManifest, MapConfig, BuildingPosition } from '../data/map-config';
 import { SERVER_URL as API_BASE } from '../../config';
@@ -69,18 +67,6 @@ export class VillageScene extends Phaser.Scene {
   private onNightToggle: ((on: unknown) => void) | null = null;
   private onRainToggle: ((on: unknown) => void) | null = null;
 
-  /** Linear construction sites, keyed by project id. */
-  private constructionSites = new Map<string, ConstructionSite>();
-  /** Which plot index each site occupies, so a site never migrates or collides. */
-  private sitePlots = new Map<string, number>();
-  private onLinearUpdated: ((projects: unknown) => void) | null = null;
-  private onConstructionFocus: ((projectId: unknown) => void) | null = null;
-  /** Projects received before the world was ready — replayed once it is. */
-  private pendingProjects: LinearProject[] | null = null;
-
-  /** Construction-plot placement derived from the spawned buildings. Null pre-bootstrap. */
-  private annexes: VillageAnnexes | null = null;
-
   /** Rendered desire-path roads. Rebuilt whenever the set of buildings changes. */
   private roadLayer: Phaser.GameObjects.Container | null = null;
 
@@ -112,7 +98,7 @@ export class VillageScene extends Phaser.Scene {
   /** Ground the generator must leave alone — water and other placed features. */
   private sceneryExclusions: Rect[] = [];
 
-  /** World rect the camera fits, widened once the Linear hamlet is populated. */
+  /** World rect the camera fits. */
   private contentBounds: Phaser.Geom.Rectangle | null = null;
 
 
@@ -372,26 +358,6 @@ export class VillageScene extends Phaser.Scene {
     };
     eventBridge.on('agents:updated', this.onAgentsUpdated);
 
-    // Linear projects → construction sites. Buffered until bootstrapWorld()
-    // finishes, same as agent updates, since both need the world to exist.
-    this.onLinearUpdated = (projects: unknown) => {
-      try { if (!this.sys.isActive()) return; } catch { return; }
-      if (!Array.isArray(projects)) return;
-      this.handleLinearUpdate(projects as LinearProject[]);
-    };
-    eventBridge.on('linear:updated', this.onLinearUpdated);
-
-    // Pan to a construction site when the panel asks for it.
-    this.onConstructionFocus = (projectId: unknown) => {
-      if (typeof projectId !== 'string') return;
-      try { if (!this.sys.isActive()) return; } catch { return; }
-      const site = this.constructionSites.get(projectId);
-      if (site === undefined) return;
-      const { x, y } = site.position;
-      this.cameras.main.pan(x, y, 600, 'Sine.easeInOut');
-    };
-    eventBridge.on('construction:focus', this.onConstructionFocus);
-
     // Pan the camera to a hero when the Activity Feed requests it
     // (user clicks an agent sprite in the feed).
     this.onCameraFollow = (agentId: unknown) => {
@@ -459,17 +425,6 @@ export class VillageScene extends Phaser.Scene {
       this.buildings = [];
       this.buildingSlots.clear();
       this.heroBuildingMap.clear();
-      if (this.onLinearUpdated !== null) {
-        eventBridge.off('linear:updated', this.onLinearUpdated);
-        this.onLinearUpdated = null;
-      }
-      if (this.onConstructionFocus !== null) {
-        eventBridge.off('construction:focus', this.onConstructionFocus);
-        this.onConstructionFocus = null;
-      }
-      for (const site of this.constructionSites.values()) site.destroy();
-      this.constructionSites.clear();
-      this.sitePlots.clear();
       this.arenaFighters?.destroy();
       this.arenaFighters = null;
       this.farmWork?.destroy();
@@ -481,7 +436,6 @@ export class VillageScene extends Phaser.Scene {
       this.scenerySprites = [];
       this.sceneryExclusions = [];
       this.contentBounds = null;
-      this.annexes = null;
     };
     this.events.on('shutdown', cleanup);
     this.events.on('destroy', cleanup);
@@ -534,9 +488,6 @@ export class VillageScene extends Phaser.Scene {
       console.log('[VillageScene] rendering the village from /api/map');
       await ensureAssetsLoaded(this, manifest, mapConfig);
       try { if (!this.sys.isActive()) return; } catch { return; }
-      // Annexes are derived from the map's building positions, which are known
-      // before anything is drawn.
-      this.annexes = computeVillageAnnexes(mapConfig.buildings);
       const rendered = renderMapConfig(this, mapConfig, manifest);
       // Placed features are keep-out ground for the scenery generator, and so
       // is the painted water: the lake is terrain tiles, not a feature, so
@@ -565,10 +516,6 @@ export class VillageScene extends Phaser.Scene {
       this.spawnBuildings(null);
     }
 
-    // The procedural branch has no saved positions to read ahead of time, so
-    // the hamlet is derived from the buildings that just spawned.
-    this.annexes ??= computeVillageAnnexes(this.buildings.map((b) => ({ x: b.def.x, y: b.def.y })));
-
     // The arena's cast stands inside the enclosure that just spawned; created
     // here (after heroScale is settled) so the fighters match hero size.
     this.setupArenaFighters();
@@ -584,11 +531,6 @@ export class VillageScene extends Phaser.Scene {
       const pending = this.pendingAgentUpdate;
       this.pendingAgentUpdate = null;
       this.handleAgentUpdate(pending);
-    }
-    if (this.pendingProjects !== null) {
-      const pending = this.pendingProjects;
-      this.pendingProjects = null;
-      this.handleLinearUpdate(pending);
     }
   }
 
@@ -627,9 +569,7 @@ export class VillageScene extends Phaser.Scene {
   /**
    * Regenerate and redraw the road network from whatever is currently standing.
    *
-   * Called after the world boots and again whenever the Linear hamlet gains or
-   * loses a site, because a settlement that appears with no track to it looks
-   * abandoned. Any `paths` painted in the map editor are deliberately ignored:
+   * Called once the world boots. Any `paths` painted in the map editor are deliberately ignored:
    * the whole point of generating roads is that they follow the buildings, and
    * mixing a stale hand-drawn layer underneath would contradict them.
    */
@@ -640,11 +580,6 @@ export class VillageScene extends Phaser.Scene {
     for (const b of this.buildings) {
       nodes.push({ id: `b:${b.def.id}`, x: b.doorX, y: b.doorY });
       obstacles.push(b.footprint);
-    }
-    for (const [id, site] of this.constructionSites) {
-      const door = site.door;
-      nodes.push({ id: `c:${id}`, x: door.x, y: door.y });
-      obstacles.push(site.footprint);
     }
     // The gate is where heroes arrive, so it needs a track even though nothing
     // stands there.
@@ -677,12 +612,8 @@ export class VillageScene extends Phaser.Scene {
       bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
       buildings: obstacles,
       roads: network.roads.map((r) => r.points),
-      // Placed features (the lake, the mines) plus the hamlet's own ground,
-      // so its plots stand in a meadow rather than having to clear-fell a
-      // wood the moment a Linear project appears.
-      exclusions: this.annexes === null
-        ? this.sceneryExclusions
-        : [...this.sceneryExclusions, this.annexes.clearing],
+      // Placed features (the lake's rocks and bridge) and the water.
+      exclusions: this.sceneryExclusions,
     });
     // Animals become moving critters rather than static scatter — the
     // generator still owns WHERE they live (clearances, spacing, seed).
@@ -741,12 +672,8 @@ export class VillageScene extends Phaser.Scene {
   }
 
   /**
-   * Track the world rect worth looking at and re-fit the camera when it grows.
-   *
-   * The hamlet sits well west of the village, so a view framed on the village
-   * alone would cut it off — but framing for it before any sites exist would
-   * zoom out over empty forest for no reason. Fitting to what's actually
-   * standing handles both.
+   * Track the world rect worth looking at and re-fit the camera when it
+   * changes, so the view frames what's actually standing.
    */
   private updateContentBounds(nodes: DesireNode[]): void {
     if (nodes.length === 0) return;
@@ -770,68 +697,6 @@ export class VillageScene extends Phaser.Scene {
       this.fitCamera();
       this.cameras.main.centerOn(next.centerX, next.centerY);
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Linear construction sites
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Reconcile the construction yard against the latest project list: update
-   * sites that persist, tear down ones whose project is gone, raise new ones on
-   * whichever plots are free. Projects beyond the available plots aren't placed
-   * — the panel still lists every one of them.
-   *
-   * A site KEEPS its plot for as long as its project is in progress, even when
-   * the sort order shifts underneath it. Re-deriving the plot from the list
-   * index each poll would make buildings hop around the map whenever one
-   * project overtook another, and would let two sites claim the same plot.
-   */
-  private handleLinearUpdate(projects: LinearProject[]): void {
-    const annexes = this.annexes;
-    if (!this.buildingsReady || annexes === null) {
-      this.pendingProjects = projects;
-      return;
-    }
-
-    const byId = new Map(projects.map((p) => [p.id, p]));
-
-    // Retire sites whose project is no longer in progress, freeing their plots.
-    let retired = false;
-    for (const [id, site] of this.constructionSites) {
-      if (byId.has(id)) continue;
-      site.destroy();
-      this.constructionSites.delete(id);
-      this.sitePlots.delete(id);
-      retired = true;
-    }
-
-    // Update the sites that survived, in place.
-    for (const [id, site] of this.constructionSites) {
-      const project = byId.get(id);
-      if (project !== undefined) site.update(project);
-    }
-
-    // Fill free plots with new projects, most-built first (the list already
-    // arrives sorted that way).
-    const takenPlots = new Set(this.sitePlots.values());
-    let membershipChanged = false;
-    for (const project of projects) {
-      if (this.constructionSites.has(project.id)) continue;
-      const plotIndex = annexes.plots.findIndex((_, i) => !takenPlots.has(i));
-      if (plotIndex === -1) break; // hamlet is full
-      const plot = annexes.plots[plotIndex]!;
-      takenPlots.add(plotIndex);
-      this.sitePlots.set(project.id, plotIndex);
-      this.constructionSites.set(project.id, new ConstructionSite(this, project, plot, plotIndex));
-      membershipChanged = true;
-    }
-
-    // Only regenerate when the hamlet actually gained or lost a building.
-    // Progress ticking on an existing site changes how it looks, not where the
-    // tracks run, and rebuilding on every poll would rewrite the whole road
-    // layer for nothing.
-    if (membershipChanged || retired) this.rebuildRoads();
   }
 
 

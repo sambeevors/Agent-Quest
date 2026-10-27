@@ -46,7 +46,8 @@ CLAUDE.local.md
 docs/superpowers/
 docs/plans/
 
-# Linear API key stored from the app. A live credential in plaintext — never commit.
+# Linear API key stored by the (removed) Linear integration. Older checkouts may
+# still hold a live credential here in plaintext — never commit.
 server/data/linear.json
 
 # Conductor machine-local overrides. The shared .conductor/settings.toml is

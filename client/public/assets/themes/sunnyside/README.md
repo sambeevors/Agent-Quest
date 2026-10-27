@@ -10,7 +10,7 @@ asset pack by **Daniel Diggle**. Nothing here is the pack as shipped:
   `portrait-*.png` are content-cropped idle frames for the React avatars.
   `goblin.png` is the Codex-session character; `skeleton.png` is the
   arena's sparring NPC.
-- `buildings/` — the 8 activity buildings plus construction-site sprites,
+- `buildings/` — the 8 activity buildings,
   assembled from the pack's modular building sheet, tileset pieces and deco
   sprites at one consistent zoom (×4), roofs recoloured per building. The
   arena and farm are fenced enclosures with a separate `-ground.png` floor

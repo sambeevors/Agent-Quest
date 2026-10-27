@@ -6,8 +6,7 @@ import type { PathTilemap } from '../data/path-tiles';
  *
  * Everything is placed into one container at a single depth: roads are ground,
  * so nothing in the world ever needs to sort between two of their tiles. That
- * also makes a rebuild — when the Linear hamlet gains or loses a site — a
- * matter of destroying one object.
+ * also makes a rebuild a matter of destroying one object.
  *
  * Tiles are drawn at `cell / tileSize` scale rather than at their native size.
  * The source tiles are 64px, which would make even a footpath as wide as the

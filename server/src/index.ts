@@ -9,9 +9,6 @@ import { registerMapRoutes } from './map/routes';
 import { registerHookRoutes } from './hooks/routes';
 import { ClaudeProvider } from './providers/claude-provider';
 import { CodexProvider } from './providers/codex-provider';
-import { LinearProvider } from './linear/linear-provider';
-import { LinearConfigStore } from './linear/linear-config';
-import { registerLinearRoutes } from './linear/routes';
 import { registerClientRoutes } from './static/client-routes';
 import type { ProviderHandlers, SessionStartPayload, SessionEventsPayload } from './providers/types';
 import type { ParsedEvent } from './parsers/session-parser';
@@ -49,7 +46,6 @@ const SUBAGENT_COMPLETED_THRESHOLD_MS = 5 * 60_000;        // 5 min idle → com
 const SUBAGENT_BUSY_COMPLETED_THRESHOLD_MS = 15 * 60_000;  // 15 min busy silent → presumed crashed
 
 const CLIENT_DIR = process.env.AGENT_QUEST_CLIENT_DIR;
-const LINEAR_POLL_MS = Number(process.env.AGENT_QUEST_LINEAR_POLL_MS) || 2 * 60_000;
 
 const app = new Hono();
 const sessionRegistry = new SessionRegistry({ configDirs: [] });
@@ -62,11 +58,6 @@ const stateManager = new AgentStateManager({
   livenessOracle: sessionRegistry,
 });
 const wsServer = new WebSocketServer();
-const linearConfig = new LinearConfigStore();
-const linearProvider = new LinearProvider({
-  pollMs: LINEAR_POLL_MS,
-  onStatus: (status) => wsServer.broadcastLinearStatus(status),
-});
 
 // --- CORS for client on :4445 ---
 // In LAN mode we reflect any origin (the client is served from the host's
@@ -85,8 +76,6 @@ app.use('*', cors({
 app.get('/api/health', (c) => c.json({ status: 'ok', agents: stateManager.getAll().length, clients: wsServer.clientCount }));
 
 app.get('/api/agents', (c) => c.json(stateManager.getAll()));
-
-registerLinearRoutes(app, { provider: linearProvider, config: linearConfig });
 
 registerMapRoutes(app);
 
@@ -226,14 +215,6 @@ setInterval(() => {
 await claudeProvider.start(providerHandlers);
 await codexProvider.start(providerHandlers);
 
-// Linear construction sites — opt-in, configured either via LINEAR_API_KEY or
-// from the app itself. Deliberately NOT awaited: a slow or unreachable Linear
-// must not delay the village coming up.
-void linearConfig.ready().then(() => {
-  const resolved = linearConfig.resolve();
-  return linearProvider.setKey({ ...resolved, envManaged: linearConfig.isEnvManaged });
-});
-
 // If neither provider found anything on disk, emit a single aggregated
 // warning so the user sees one clear diagnostic line instead of per-provider
 // chatter. The client banner shows the equivalent message to the user.
@@ -280,9 +261,6 @@ const server = Bun.serve({
     open(ws: WsClient) {
       wsServer.handleOpen(ws);
       wsServer.sendSnapshot(ws, stateManager.getAll(), allConfigDirs());
-      // Prime the new socket with the Linear feed so construction sites render
-      // on first paint rather than after the next poll tick.
-      wsServer.send(ws, { type: 'linear:status', status: linearProvider.getStatus() });
     },
     close(ws: WsClient) {
       wsServer.handleClose(ws);

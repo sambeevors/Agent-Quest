@@ -202,12 +202,6 @@ export const sunnysideTheme: ThemeManifest = {
       { key: 'terrain-water', path: `${BASE}/terrain/water.png`, frameWidth: 64, frameHeight: 64 },
       { key: 'terrain-meadow', path: `${BASE}/terrain/meadow.png` },
       { key: 'terrain-bridge', path: `${BASE}/terrain/bridge.png` },
-      // Construction sites.
-      { key: 'site-scaffold', path: `${BASE}/buildings/site-scaffold.png` },
-      { key: 'house-blue', path: `${BASE}/buildings/house-blue.png` },
-      { key: 'house-yellow', path: `${BASE}/buildings/house-yellow.png` },
-      { key: 'house-red', path: `${BASE}/buildings/house-red.png` },
-      { key: 'house-purple', path: `${BASE}/buildings/house-purple.png` },
       // Enclosure floors — drawn beneath the y-sorted world by Building so
       // heroes stand ON the arena's earth and the farm's soil rows.
       { key: 'building-arena-ground', path: `${BASE}/buildings/arena-ground.png` },

@@ -76,10 +76,6 @@ function startServer(): void {
       CLIENT_URL: ORIGIN,
       AGENT_QUEST_CLIENT_DIR: launch.clientDir,
       AGENT_QUEST_MAP_PATH: launch.mapPath,
-      // Packaged, keep the Linear key with the user's app data — the app
-      // bundle is read-only and replaced on every reinstall. From source,
-      // keep sharing `server/data/` with `bun start`.
-      ...(app.isPackaged ? { AGENT_QUEST_DATA_DIR: app.getPath('userData') } : {}),
       AGENT_QUEST_EXIT_WITH_PARENT: '1',
     },
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -120,7 +116,7 @@ function createWindow(): void {
     show: false,
     webPreferences: { contextIsolation: true, sandbox: true },
   });
-  // Links out of the app (Linear projects, docs) open in the real browser.
+  // Links out of the app open in the real browser.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: 'deny' };

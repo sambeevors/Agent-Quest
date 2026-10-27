@@ -15,7 +15,6 @@
 .detail-panel,
 .activity-feed,
 .topbar,
-.construction-popover,
 .building-info-panel,
 .notif-menu,
 .settings-modal,
@@ -39,7 +38,6 @@
 .partybar,
 .detail-panel,
 .activity-feed,
-.construction-popover,
 .building-info-panel,
 .notif-menu,
 .settings-modal,
@@ -50,8 +48,7 @@
 
 /* Wooden label plate for the section headers. */
 .partybar-header,
-.feed-header-row,
-.construction-pop-header {
+.feed-header-row {
   border: 6px solid transparent;
   border-image: url('/assets/ui/sunnyside/label.png') 6 fill stretch;
   image-rendering: pixelated;
