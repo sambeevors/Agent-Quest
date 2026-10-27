@@ -55,10 +55,6 @@ export function walkFrames(facing: Facing): number[] {
   return [s + 1, s, s + 2, s];
 }
 
-/** A working trainer marks time on the spot, like an NPC busy at a counter;
- * a resting or waiting one just stands. */
-export const BUSY_STATES: readonly string[] = ['reading', 'editing', 'bash', 'debugging', 'git', 'reviewing', 'thinking'];
-export const BUSY_FRAME_RATE = 4;
 
 export function trainerTextureKey(trainer: Trainer): string {
   return `trainer-${trainer.sprite}`;

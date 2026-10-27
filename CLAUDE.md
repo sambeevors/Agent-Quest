@@ -62,7 +62,7 @@ If something about the town looks wrong, fix the bake (`town.py`) and re-run it 
 
 `scripts/bake-pokemon/bake.py` reads two local checkouts (sparse is enough — see its docstring), neither committed: **pret/pokefirered** for the town, the trainer table, overworld sprites (`overworld.py` resolves each pic's real palette through the decomp's object-event tables) and battle portraits; **PokeAPI/sprites** for Gen III party icons (partners, and the bridge's Pokémon). It writes PNGs under `client/public/assets/pokemon/` and three generated modules: `game/town/town-data.ts`, `naming/trainer-roster.ts`, `game/pokemon-sheet.ts`. The outputs are committed, so nobody else ever runs the bake. `bun run check:assets` verifies every path the game loads; `pokemon.test.ts` pins the bake's sizes.
 
-- **Trainers** are 16x32 four-way walkers re-laid as 12 frames (down/up/left/right × stand, step, step; right is left mirrored), rendered at x2. A parked trainer marks time on the spot while working and stands while resting or waiting (`BUSY_STATES` in `game/pokemon.ts`).
+- **Trainers** are 16x32 four-way walkers re-laid as 12 frames (down/up/left/right × stand, step, step; right is left mirrored), rendered at x2. A parked trainer always stands on its stand frame, facing its spot — it only steps while it is actually walking (`HeroSprite.playStationary`).
 - **Portraits** are the battle front pics, cropped square to the face, for every React avatar.
 - **Panel chrome** is a FireRed-style 9-slice (`pokemon-ui.css`, `assets/pokemon/ui/`) — chrome only; layout, text palette and RuneScape type unchanged.
 
