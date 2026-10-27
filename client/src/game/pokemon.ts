@@ -89,10 +89,24 @@ export interface ArenaNpcSpec {
   scale: number;
 }
 
+/** One exchange of blows, as frames of a bridge Pokémon's sheet. A battling
+ * partner runs the same beats (see `battleBeat`), so both sides of the bridge
+ * fight in one rhythm. */
+export const BATTLE_FRAMES = [0, 2, 3, 2, 0, 1];
+export const BATTLE_FRAME_RATE = 7;
+/** How far a lunge carries, in source pixels — the bake's lunge offset. */
+export const BATTLE_LUNGE_PX = 4;
+
+/** What a beat of `BATTLE_FRAMES` does to a Pokémon that has no baked attack
+ * frames: a partner's party-icon strip only holds rest and hop. */
+export function battleBeat(frame: number): { lunge: boolean; flash: boolean; hop: boolean } {
+  return { lunge: frame === 2 || frame === 3, flash: frame === 3, hop: frame === 1 };
+}
+
 export const ARENA_NPCS: ArenaNpcSpec[] = PKMN.arena.map((w) => ({
   textureKey: `npc-${w.key}`,
   idle: { frameIndices: [0, 1], frameRate: 3 },
-  attack: { frameIndices: [0, 2, 3, 2, 0, 1], frameRate: 7 },
+  attack: { frameIndices: BATTLE_FRAMES, frameRate: BATTLE_FRAME_RATE },
   extent: { frameHeight: 32, headY: w.headY, footY: w.footY },
   scale: 0.75,
 }));

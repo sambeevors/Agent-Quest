@@ -258,13 +258,14 @@ def bake_town(root: Path, out: Path, scale) -> dict:
             'labelInside': spec.get('label_inside', False),
         }
 
-    # Nugget Bridge: planks nearest the town first, so a lone trainer stands
-    # at the south end and a crowd queues back up the bridge.
+    # Nugget Bridge: planks nearest the Pokémon first, so a lone trainer
+    # squares up to them with a tile between for its partner to fight in, and
+    # a crowd queues back down the bridge towards the town.
     c0, c1 = BRIDGE['cols']
     r0, r1 = BRIDGE['rows']
     middle = (c0 + c1) / 2
     across = sorted(range(c0, c1 + 1), key=lambda x: (abs(x - middle), x))
-    planks = [world.world(x, y) for y in range(r1, r0 - 1, -1) for x in across]
+    planks = [world.world(x, y) for y in range(r0, r1 + 1) for x in across]
     planks = [p for p in planks if p in walk]
     fighters = [world.world(*f) for f in BRIDGE['fighters']]
     for f in fighters:
