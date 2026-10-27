@@ -68,8 +68,10 @@ const PARTNER_REST_OFFSET_X = -22;
 /** Hop rate of a partner on the move, and of one waiting at heel. */
 const PARTNER_MOVING_FPS = 6;
 const PARTNER_RESTING_FPS = 2;
-/** How far in front of its trainer, towards the foe, a battling partner
- * stands — most of a tile, so it fights in the gap rather than at heel. */
+/** How far up the bridge from its trainer a battling partner stands — most
+ * of a tile, so it fights in the gap rather than at heel. Straight ahead, not
+ * towards the foe: trainers stand one to a tile, so their partners do too,
+ * where aiming at a shared foe would pile them on top of each other. */
 const PARTNER_BATTLE_DISTANCE = 28;
 /** The flash a struck Pokémon shows — the bake's hit-flash colour. */
 const HIT_FLASH_COLOR = 0xf8f8f8;
@@ -594,8 +596,8 @@ export class HeroSprite {
 
   /**
    * Send the partner out against the Pokémon standing at `foe`, or call it
-   * back to heel with null. Out, it stands between its trainer and the foe
-   * and trades blows on the bridge Pokémon's own beat: lunge, flash as it's
+   * back to heel with null. Out, it stands on the tile in front of its
+   * trainer, turned to the foe, and trades blows on the bridge Pokémon's own beat: lunge, flash as it's
    * struck, fall back, hop. Walking off calls it back on its own.
    */
   setBattling(foe: Point | null): void {
@@ -631,13 +633,13 @@ export class HeroSprite {
 
   /** Stand a battling partner in front of its trainer and play the current beat. */
   private placeBattlingPartner(p: Partner, foe: Point): void {
-    const feet = this.feet;
-    const dx = foe.x - feet.x;
-    const dy = foe.y - feet.y;
+    const stance = { x: this._x, y: this.feet.y - PARTNER_BATTLE_DISTANCE };
+    const dx = foe.x - stance.x;
+    const dy = foe.y - stance.y;
     const len = Math.hypot(dx, dy) || 1;
     const beat = battleBeat(BATTLE_FRAMES[this.battleStep]!);
-    const reach = PARTNER_BATTLE_DISTANCE + (beat.lunge ? BATTLE_LUNGE_PX * p.sprite.scaleX : 0);
-    const at = { x: feet.x + (dx / len) * reach, y: feet.y + (dy / len) * reach };
+    const lunge = beat.lunge ? BATTLE_LUNGE_PX * p.sprite.scaleX : 0;
+    const at = { x: stance.x + (dx / len) * lunge, y: stance.y + (dy / len) * lunge };
     if (Math.abs(dx) > 0.5) p.sprite.setFlipX((dx > 0) === p.spec.facesLeft);
     p.sprite.setFrame(beat.hop ? 1 : 0);
     if (beat.flash) p.sprite.setTint(HIT_FLASH_COLOR).setTintMode(Phaser.TintModes.FILL);

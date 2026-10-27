@@ -581,8 +581,10 @@ export class VillageScene extends Phaser.Scene {
         this.arrived.add(heroId);
         const focus = this.stationFocus(building.def.id, spot);
         if (focus !== null) hero.faceTowards(focus);
-        // On the bridge the partner goes out to fight the Pokémon it faces.
-        if (buildingId === 'arena') hero.setBattling(focus);
+        // On the bridge the front row's partners go out to fight the Pokémon
+        // their trainers face. Further back, the tile in front is another
+        // trainer's, so the partner stays at heel.
+        if (buildingId === 'arena') hero.setBattling(spot.y === spots[0]!.y ? focus : null);
         this.refreshOccupancy(buildingId);
       });
     }
