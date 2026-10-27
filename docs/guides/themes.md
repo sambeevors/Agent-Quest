@@ -33,7 +33,7 @@ design decisions.
   scale is derived from measured doorway heights so a doorway renders at one
   size everywhere (`sunnyside.test.ts` pins it).
 - `getStaticAssetPreload()` — scenery (static images and animated
-  spritesheets), construction-site sprites, VFX.
+  spritesheets), VFX.
 - `getChimneyAnchor(id)` — where smoke rises from an occupied building.
 - `postLoadHook(scene)` — registers looping animations for animated scenery
   and the chimney smoke.

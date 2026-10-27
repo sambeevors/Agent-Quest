@@ -1,4 +1,4 @@
-"""Assemble the 8 activity buildings (plus construction-site sprites) from the
+"""Assemble the 8 activity buildings from the
 Sunnyside modular buildings sheet, the 16px tileset, and the GameMaker deco
 sprites.
 
@@ -324,32 +324,6 @@ ENCLOSURE_RECIPES = {
     "farm": build_farm,
 }
 
-SITE_COLORS = ["blue", "yellow", "red", "purple"]
-
-
-def build_site_house(kit: Kit, color: str) -> Image.Image:
-    img = canvas(56, 46)
-    dark_rect(img, 1 + 19, 2 + 31, 1 + 34, 2 + 43)
-    paste(img, kit.piece("house_small", color), 1, 2)
-    return img
-
-
-def build_scaffold(kit: Kit) -> Image.Image:
-    img = canvas(56, 46)
-    crate1 = kit.gm("spr_deco_crate_01")
-    crate2 = kit.gm("spr_deco_crate_02")
-    paste(img, crate1, 4, 46 - crate1.height)
-    paste(img, crate2, 18, 46 - crate2.height)
-    paste(img, crate2, 10, 46 - crate2.height - 10)
-    wood = kit.src.image("Elements/Crops/wood.png")
-    paste(img, wood, 36, 46 - wood.height)
-    ladder = kit.piece("ladder")
-    paste(img, ladder, 38, 46 - 12 - ladder.height)
-    beam = kit.piece("bracket")
-    paste(img, beam, 22, 40)
-    return img
-
-
 def bake_buildings(src: Sources, out_dir: Path) -> dict:
     kit = Kit(src)
     meta: dict = {"doorHeight": {}, "size": {}, "chimney": {}, "interior": {}, "crops": {}}
@@ -373,7 +347,4 @@ def bake_buildings(src: Sources, out_dir: Path) -> dict:
     # Where the farm's crops stand, for heroes to work row by row. Baked from
     # the same constants that paint the beds, so a recipe change moves both.
     meta["crops"]["farm"] = [[x * SCALE, y * SCALE] for x, y in farm_bed_centres()]
-    for color in SITE_COLORS:
-        save_png(upscale(build_site_house(kit, color)), out_dir / "buildings" / f"house-{color}.png")
-    save_png(upscale(build_scaffold(kit)), out_dir / "buildings" / "site-scaffold.png")
     return meta

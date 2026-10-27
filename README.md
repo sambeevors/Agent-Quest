@@ -40,14 +40,13 @@ Claude Code and Codex sessions happen in a terminal — useful, but not very *al
 - Activity feed, party bar, and detail panel alongside the village scene
 - Sub-2s latency via native WebSocket (optional lower-latency path via Claude Code `postToolUse` hooks — Claude Code only; Codex doesn't expose hooks)
 - **Cost & token tracking** — per-session and fleet-wide spend estimates
-- **Construction sites** — in-progress Linear projects rendered as buildings that finish as their issues close
 - **Generated roads & scenery** — tracks worn between buildings by use, and woodland that never grows through a wall
 
 See [What this fork adds](#what-this-fork-adds) for the details.
 
 ## What this fork adds
 
-This is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiOS/Agent-Quest) with three additions.
+This is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiOS/Agent-Quest) with two additions.
 
 ### Cost & token tracking
 
@@ -66,28 +65,7 @@ Roads are no longer drawn by hand. Every track is a **desire path**: the map wor
 
 Trees, shrubs, rocks and mushrooms are scattered procedurally against the current layout, with per-kind clearances — a mushroom can sit at a road's edge, a tree keeps well back. Woodland follows a low-frequency density field so it clumps and thins naturally, and thins further near settlements so villages sit in their own clearings. Everything is seeded, so the same world regenerates identically on every reload.
 
-Both regenerate when the Linear hamlet gains or loses a building, so a new project arrives with lanes already running to it.
-
 The tracks are tiled from the pack's own dirt tiles, not painted over the grass, so a road meets the meadow with the artist's own wavy fringe. The bake pipeline lays those tiles out in the exact 16-tile edge layout the renderer expects — see `scripts/bake-sunnyside/terrain.py`.
-
-### Construction sites (Linear)
-
-Connect a Linear account and every in-progress project becomes a building site in its own hamlet west of the village, connected back by generated lanes. The building rises out of its scaffolding as the project's issues close, and the site's caption shows `NN% · done/total`.
-
-**Connecting.** Open the 🏗️ panel in the top bar and paste a personal API key — create one in Linear under **Settings → Security & access → API keys**. The key is verified against Linear before it's accepted, so a typo is reported straight away rather than silently failing on the next poll. Sites appear immediately; no restart.
-
-The key is saved to `server/data/linear.json` so it survives restarts. That file is gitignored and written `0600`, but **it holds a live credential in plaintext** — treat it like any other secret on the machine, and revoke the key in Linear if it's exposed. It is never sent back to the browser; the UI only ever shows the last four characters.
-
-Setting `LINEAR_API_KEY` in the environment still works and takes precedence. When it's set, the in-app controls are hidden and the panel says the key is externally managed, so a browser tab can't silently override an operator's explicit configuration.
-
-> **LAN mode.** Like every other endpoint in this project, the connect endpoint is unauthenticated. With `AGENT_QUEST_LAN=1` anyone on your network can change which Linear workspace the dashboard reads (they can't read the key back). Keep LAN mode for trusted networks.
-
-Behaviour worth knowing:
-
-- Only projects in a `started` or `planned` state appear; `completed`, `canceled`, and `backlog` are excluded.
-- Progress comes from Linear's own `progress` field, so it honours your workspace's estimate and canceled-issue rules.
-- The map has six plots; the panel lists **every** in-progress project and can pan the camera to any placed site. Projects still open at 100% sort to the back so the yard shows work actually under way.
-- Polls every 2 minutes (`AGENT_QUEST_LINEAR_POLL_MS`). A failed poll keeps the last good state rather than clearing the map; disconnecting clears it, since sites for a workspace we can no longer read are stale by definition.
 
 ## Requirements
 
@@ -202,8 +180,6 @@ cp client/.env.example client/.env
 | `CLIENT_PORT` | client | `4445` | Vite dev server port |
 | `VITE_SERVER_URL` | client | `http://localhost:4444` | Server HTTP base |
 | `VITE_WS_URL` | client | `ws://localhost:4444/ws` | Server WebSocket URL |
-| `LINEAR_API_KEY` | server | *(unset)* | Linear API key. Optional — the key is normally set from the app. Takes precedence when present |
-| `AGENT_QUEST_LINEAR_POLL_MS` | server | `120000` | How often to poll Linear |
 
 ## Development
 

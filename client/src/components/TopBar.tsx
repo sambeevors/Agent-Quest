@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AgentState, LinearStatus } from '../types/agent';
+import type { AgentState } from '../types/agent';
 import { formatCost, isCostKnown } from '../types/agent';
 import { eventBridge } from '../game/EventBridge';
 import { NotificationMenu, type NotificationEntry } from './NotificationMenu';
-import { ConstructionPanel } from './ConstructionPanel';
 import './TopBar.css';
 
 interface TopBarNotifications {
@@ -19,11 +18,9 @@ interface TopBarProps {
   agents: AgentState[];
   connected: boolean;
   notifications: TopBarNotifications;
-  linear: LinearStatus | null;
-  onLinearStatus: (status: LinearStatus) => void;
 }
 
-export function TopBar({ agents, connected, notifications, linear, onLinearStatus }: TopBarProps) {
+export function TopBar({ agents, connected, notifications }: TopBarProps) {
   const active = agents.filter((a) => a.status === 'active').length;
   const waiting = agents.filter((a) => a.status === 'waiting').length;
   const idle = agents.filter((a) => a.status === 'idle').length;
@@ -151,7 +148,6 @@ export function TopBar({ agents, connected, notifications, linear, onLinearStatu
           </div>
 
           <div className="topbar-effects">
-            <ConstructionPanel linear={linear} onLinearStatus={onLinearStatus} />
             <NotificationMenu
               entries={notifications.entries}
               unread={notifications.unread}

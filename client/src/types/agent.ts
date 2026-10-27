@@ -209,39 +209,9 @@ export interface ActivityLogEntry {
   timestamp: number;
 }
 
-// --- Linear construction sites ---
-
-export interface LinearProject {
-  id: string;
-  name: string;
-  state: string;
-  /** Issue completion ratio, 0..1. */
-  progress: number;
-  completedIssues: number;
-  totalIssues: number;
-  color?: string;
-  targetDate?: string;
-  url: string;
-}
-
-export interface LinearStatus {
-  /** False when no API key is configured — the UI then offers the connect form. */
-  connected: boolean;
-  /** Where the active key came from. `null` when none is configured. */
-  keySource: 'env' | 'stored' | null;
-  /** Last 4 characters of the active key. The key itself is never sent here. */
-  keyHint?: string;
-  /** True when `LINEAR_API_KEY` fixes the key — the UI hides its controls. */
-  envManaged: boolean;
-  projects: LinearProject[];
-  lastSyncedAt: number | null;
-  error?: string;
-}
-
 export type WsEvent =
   | { type: 'agent:update'; agent: AgentState }
   | { type: 'agent:new'; agent: AgentState }
   | { type: 'agent:complete'; id: string }
   | { type: 'activity:log'; agentId: string; action: string; detail: string; timestamp: number }
-  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] }
-  | { type: 'linear:status'; status: LinearStatus };
+  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] };
