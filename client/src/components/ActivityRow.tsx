@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useState, type ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { AgentMarkdown } from './AgentMarkdown';
 import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, type ActivityLogEntry, type AgentState } from '../types/agent';
 import { HeroAvatar } from './HeroAvatar';
 import { isError, isPath, resolvePath, categorizeEntry } from './activityFeedUtils';
@@ -125,7 +125,7 @@ function ActivityRowImpl({
         </div>
         {isMessage ? (
           <div className={`feed-detail is-message ${pillVariant}`}>
-            <ReactMarkdown components={MD_COMPONENTS}>{entry.detail}</ReactMarkdown>
+            <AgentMarkdown components={MD_COMPONENTS}>{entry.detail}</AgentMarkdown>
           </div>
         ) : detailIsPath && absolute !== null ? (
           <a

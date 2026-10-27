@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { AgentMarkdown } from './AgentMarkdown';
 import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, displayActivity, formatCost, isCostKnown, type AgentState } from '../types/agent';
 import { HeroAvatar } from './HeroAvatar';
 import { SessionReport } from './SessionReport';
@@ -207,7 +207,7 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
           <div className="detail-section">
             <div className="detail-section-title">Last Message</div>
             <div ref={lastMessageRef} className="detail-last-message collapsed">
-              <ReactMarkdown>{lastMessage}</ReactMarkdown>
+              <AgentMarkdown>{lastMessage}</AgentMarkdown>
             </div>
             {messageOverflows && (
               <button
@@ -283,7 +283,7 @@ function LastMessageModal({ agentName, message, onClose }: LastMessageModalProps
           <span className="lastmsg-header-name">{agentName}</span>
         </div>
         <div className="lastmsg-body">
-          <ReactMarkdown>{message}</ReactMarkdown>
+          <AgentMarkdown>{message}</AgentMarkdown>
         </div>
       </div>
     </div>

@@ -395,6 +395,21 @@
 }
 .feed-detail.is-message strong { color: #fff; }
 .feed-detail.is-message em { color: #d8d0b8; }
+.feed-detail.is-message del { opacity: 0.6; }
+.feed-detail.is-message table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 2px 0;
+}
+.feed-detail.is-message th,
+.feed-detail.is-message td {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1px 6px;
+  text-align: left;
+}
+.feed-detail.is-message li.task-list-item { list-style: none; }
+.feed-detail.is-message input[type="checkbox"] { margin: 0 4px 0 0; vertical-align: middle; }
 .feed-detail.is-message blockquote {
   margin: 0;
   padding-left: 8px;
