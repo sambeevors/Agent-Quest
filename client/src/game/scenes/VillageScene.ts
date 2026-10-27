@@ -577,6 +577,17 @@ export class VillageScene extends Phaser.Scene {
       // already at this building are just shuffling to make room for a new
       // arrival and stay counted, or the door would swing shut every time
       // the building gained a trainer.
+      const door = building.doorFor(spot, hero.doorway);
+      if (door !== null) {
+        // A building's trainers go in; the slot is where their partner
+        // waits outside. Arrival is the doorstep, so the door is open by
+        // the time they step through it.
+        hero.goInside(door, spot, hero.currentActivity, () => {
+          this.arrived.add(heroId);
+          this.refreshOccupancy(buildingId);
+        });
+        continue;
+      }
       hero.moveTo(spot.x, spot.y, hero.currentActivity, () => {
         this.arrived.add(heroId);
         const focus = this.stationFocus(building.def.id, spot);
@@ -593,15 +604,13 @@ export class VillageScene extends Phaser.Scene {
   }
 
   /**
-   * What a trainer stationed here turns to look at, or null to keep the
-   * direction it walked in. One that freezes mid-stride tends to end up with
-   * its back to the counter it's supposedly at, so a trainer at a building
-   * faces its door, and one on Nugget Bridge faces the nearest of the
-   * Pokémon it battles.
+   * What a trainer stationed out of doors turns to look at, or null to keep
+   * the direction it walked in. One on Nugget Bridge faces the nearest of
+   * the Pokémon it battles; the flower bed's own roster turns its trainers.
    */
   private stationFocus(buildingId: string, feet: Point): Point | null {
     if (buildingId === 'arena') return this.arenaFighters?.nearest(feet) ?? null;
-    return this.buildings.find((b) => b.def.id === buildingId)?.doorFocus(feet) ?? null;
+    return null;
   }
 
   /**
@@ -619,9 +628,9 @@ export class VillageScene extends Phaser.Scene {
   }
 
   /**
-   * Drive a place's ambience from whether a trainer is actually standing at
-   * it: the door standing open, and on Nugget Bridge the Pokémon squaring
-   * up. Both stop the moment the last trainer leaves.
+   * Drive a place's ambience from whether a trainer has actually got there:
+   * the door standing open, and on Nugget Bridge the Pokémon squaring up.
+   * Both stop the moment the last trainer leaves.
    */
   private refreshOccupancy(buildingId: string): void {
     const slots = this.buildingSlots.get(buildingId) ?? [];

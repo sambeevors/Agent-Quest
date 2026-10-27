@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
 import type { Trainer } from '../../naming/hero-names';
 import { findWalk } from '../town/pathfinding';
-import type { Point } from '../town/town';
+import { TILE, type Point } from '../town/town';
 import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
 import { spriteAnchors, type SpriteAnchors } from '../data/sprite-anchors';
@@ -56,7 +56,24 @@ const ERROR_CHATTER_MAX_AGE_MS = 30 * 1000;
 interface Partner {
   sprite: Phaser.GameObjects.Sprite;
   spec: PokemonSpec;
+  headOffset: number;
   footOffset: number;
+}
+
+/** A building a trainer is headed into or is inside: the doorway (the feet of
+ * a trainer standing in it) and the tile its partner waits on outside. */
+interface Indoors {
+  door: Point;
+  post: Point;
+}
+
+/** Every door in town is entered from the tile right below it. */
+function doorstepOf(door: Point): Point {
+  return { x: door.x, y: door.y + TILE };
+}
+
+function samePoint(a: Point, b: Point): boolean {
+  return a.x === b.x && a.y === b.y;
 }
 
 const HALO_TEXTURE_KEY = 'hero-selection-halo';
@@ -149,6 +166,12 @@ export class HeroSprite {
   private battleTimer: Phaser.Time.TimerEvent | null = null;
   /** Index into BATTLE_FRAMES. */
   private battleStep = 0;
+  /** The building the trainer is going into or is in, or null out of doors. */
+  private indoors: Indoors | null = null;
+  /** Through the door: the trainer is hidden and its partner waits outside. */
+  private inside = false;
+  /** The partner walking on its own — to its post, or back to the door. */
+  private partnerTween: Phaser.Tweens.Tween | null = null;
 
   /** Grid base position — used for slot repositioning. */
   gridBaseX = 0;
@@ -227,8 +250,27 @@ export class HeroSprite {
   get x(): number { return this._x; }
   get y(): number { return this._y; }
 
-  /** Whether the hero is walking — a walking hero's labels stay unlifted. */
-  get isMoving(): boolean { return this.moving; }
+  /** Whether the hero is walking — a walking hero's labels stay unlifted.
+   *  Indoors, its labels ride its partner, so that counts too. */
+  get isMoving(): boolean { return this.moving || this.partnerTween !== null; }
+
+  /** The doorway of the building the trainer is inside, or null. */
+  get doorway(): Point | null {
+    return this.inside ? (this.indoors?.door ?? null) : null;
+  }
+
+  /**
+   * What the label stack and the halo hang off: the trainer, or — while it
+   * is inside a building — the partner it left at the door, so the name says
+   * who is in there.
+   */
+  private labelAnchor(): { x: number; head: number; foot: number } {
+    const p = this.partner;
+    if (this.inside && p !== null) {
+      return { x: p.sprite.x, head: p.sprite.y + p.headOffset, foot: p.sprite.y + p.footOffset };
+    }
+    return { x: this._x, head: this._y + this.anchors.headOffset, foot: this._y + this.anchors.footOffset };
+  }
 
   /**
    * The label stack's box at rest (no lift), for the scene's declutter pass.
@@ -236,6 +278,7 @@ export class HeroSprite {
    * closest to its head.
    */
   labelBox(): LabelBox {
+    const anchor = this.labelAnchor();
     const nameH = this.nameText.displayHeight;
     const badgeH = this.badgeRowHeight();
     const width = Math.max(
@@ -244,11 +287,11 @@ export class HeroSprite {
     );
     return {
       id: this.id,
-      x: this._x,
-      bottom: this._y + this.anchors.headOffset - NAME_HEAD_GAP,
+      x: anchor.x,
+      bottom: anchor.head - NAME_HEAD_GAP,
       width,
       height: nameH + (badgeH > 0 ? BADGE_GAP + badgeH : 0),
-      priority: this._y + this.anchors.footOffset,
+      priority: anchor.foot,
     };
   }
 
@@ -267,6 +310,12 @@ export class HeroSprite {
     // The `isHero` tag is set in the constructor so it's present even for
     // spawn paths that never call this method.
     this.sprite.on('pointerdown', onClick);
+    // The partner answers for its trainer — it is all there is to click
+    // while the trainer is indoors.
+    if (this.partner !== null) {
+      this.partner.sprite.setInteractive({ useHandCursor: true });
+      this.partner.sprite.on('pointerdown', onClick);
+    }
   }
 
   /**
@@ -292,11 +341,11 @@ export class HeroSprite {
       // half the neighbouring crowd.
       const bodyH = this.anchors.footOffset - this.anchors.headOffset;
       const diameter = bodyH * HALO_BODY_FACTOR;
-      const halo = this.scene.add.image(this._x, this.bodyCentreY(), HALO_TEXTURE_KEY);
+      const halo = this.scene.add.image(0, 0, HALO_TEXTURE_KEY);
       halo.setDisplaySize(diameter, diameter);
       halo.setAlpha(0.35);
-      halo.setDepth(this.sprite.depth - 0.1);
       this.selectionHalo = halo;
+      this.syncHalo();
       // Capture the baseline scale AFTER setDisplaySize so the tween
       // yoyos between this fixed baseline and baseline × peak factor.
       // Using halo.scaleX directly in the tween target would be the
@@ -418,10 +467,10 @@ export class HeroSprite {
     // behind it because his center-y is well above the building's foot-y.
     const footY = this._y + this.anchors.footOffset;
     this.sprite.setDepth(footY + 0.5);
-    if (this.selectionHalo !== null) this.selectionHalo.setDepth(footY + 0.4);
+    this.syncHalo();
     // Labels sort in their own band above the world (see HERO_LABEL_DEPTH),
     // keyed by foot y so the near hero's name still covers the far one's.
-    const labelDepth = HERO_LABEL_DEPTH + footY / 10000;
+    const labelDepth = HERO_LABEL_DEPTH + this.labelAnchor().foot / 10000;
     this.nameText.setDepth(labelDepth);
     // Just under every name, so a leader passes behind the text it crosses.
     this.leader.setDepth(HERO_LABEL_DEPTH - 0.5);
@@ -465,8 +514,12 @@ export class HeroSprite {
     if (justCreated) this.updateDepth();
   }
 
-  private bodyCentreY(): number {
-    return this._y + (this.anchors.headOffset + this.anchors.footOffset) / 2;
+  /** Centre the halo on whoever the labels hang off, just behind it. */
+  private syncHalo(): void {
+    if (this.selectionHalo === null) return;
+    const a = this.labelAnchor();
+    this.selectionHalo.setPosition(a.x, (a.head + a.foot) / 2);
+    this.selectionHalo.setDepth(a.foot + 0.4);
   }
 
   private badgeRowHeight(): number {
@@ -487,11 +540,12 @@ export class HeroSprite {
    * both — and, for a displaced name, the leader back down to the head.
    */
   private layoutLabels(): void {
-    const headY = this._y + this.anchors.headOffset - NAME_HEAD_GAP;
+    const anchor = this.labelAnchor();
+    const headY = anchor.head - NAME_HEAD_GAP;
     const nameBottom = headY - this.labelOffset.lift;
-    const labelX = this._x + this.labelOffset.dx;
+    const labelX = anchor.x + this.labelOffset.dx;
     this.nameText.setPosition(labelX, nameBottom);
-    this.drawLeader(labelX, nameBottom, headY);
+    this.drawLeader(labelX, nameBottom, anchor.x, headY);
     let top = nameBottom - this.nameText.displayHeight;
     const badgeH = this.badgeRowHeight();
     if (badgeH > 0) {
@@ -507,11 +561,11 @@ export class HeroSprite {
    * settles whose is whose: a thin line from the name down to its own hero's
    * hair, drawn only where the name no longer sits over it.
    */
-  private drawLeader(labelX: number, nameBottom: number, headY: number): void {
+  private drawLeader(labelX: number, nameBottom: number, headX: number, headY: number): void {
     this.leader.clear();
     if (this.labelOffset.dx === 0 && this.labelOffset.lift === 0) return;
     // The name box carries ~3px of descender room below the letters.
-    const seg = leaderSegment(labelX, this.nameText.displayWidth, nameBottom - 3, this._x, headY);
+    const seg = leaderSegment(labelX, this.nameText.displayWidth, nameBottom - 3, headX, headY);
     if (seg === null) return;
     const { x0, y0, x1, y1 } = seg;
     // Pale core in a dark casing, like the names' own stroke, so the line
@@ -590,7 +644,7 @@ export class HeroSprite {
     sprite.setScale(scale);
     sprite.play(animKey);
     sprite.anims.timeScale = PARTNER_RESTING_FPS / PARTNER_MOVING_FPS;
-    this.partner = { sprite, spec, footOffset: spriteAnchors(spec.extent, scale).footOffset };
+    this.partner = { sprite, spec, ...spriteAnchors(spec.extent, scale) };
     this.placePartner();
   }
 
@@ -656,6 +710,8 @@ export class HeroSprite {
   private placePartner(): void {
     const p = this.partner;
     if (p === null) return;
+    // Indoors, the partner walks on its own (walkPartnerTo).
+    if (this.inside) return;
     if (this.battleFoe !== null) {
       this.placeBattlingPartner(p, this.battleFoe);
       return;
@@ -691,10 +747,135 @@ export class HeroSprite {
    * moveTo supersedes this one first.
    */
   moveTo(feetX: number, feetY: number, activity: AgentActivity, onArrive?: () => void): void {
-    const feet = { x: this._x, y: this._y + this.anchors.footOffset };
-    const path = findWalk(feet, { x: feetX, y: feetY })
-      .map((p) => ({ x: p.x, y: p.y - this.anchors.footOffset }));
-    this.walk(path, activity, onArrive);
+    const to = { x: feetX, y: feetY };
+    this.afterLeaving((door) => {
+      this.indoors = null;
+      this.walk(this.route(door, to), activity, onArrive);
+    });
+  }
+
+  /**
+   * Go into a building through the doorway at `door`, leaving the partner on
+   * `post` outside — from the street, the partner waiting at the door is how
+   * you know who is in there. `onArrive` fires on the doorstep, a step before
+   * the trainer goes through. One already inside that is only given a new
+   * post (the queue outside moved up) stays in, and its partner moves over.
+   */
+  goInside(door: Point, post: Point, activity: AgentActivity, onArrive: () => void): void {
+    if (this.inside && this.indoors !== null && samePoint(this.indoors.door, door)) {
+      this.currentActivity = activity;
+      this.indoors.post = post;
+      this.walkPartnerTo(post, () => this.facePartnerTowards(door));
+      onArrive();
+      return;
+    }
+    this.afterLeaving((exited) => {
+      const target: Indoors = { door, post };
+      this.indoors = target;
+      this.walk(this.route(exited, doorstepOf(door)), activity, () => {
+        onArrive();
+        if (this.indoors !== target) return;
+        // The door is open now; one step up and the trainer is through it.
+        this.walk([this.bodyAt(door)], activity, () => this.stepInside());
+      });
+    });
+  }
+
+  /** The sprite position that puts the trainer's feet at `feet`. */
+  private bodyAt(feet: Point): Point {
+    return { x: feet.x, y: feet.y - this.anchors.footOffset };
+  }
+
+  /** The walk to `to`, as sprite positions — starting out of `door` if the
+   *  trainer has just come out of one, since a doorway isn't walkable ground. */
+  private route(door: Point | null, to: Point): Point[] {
+    const feet = door === null ? findWalk(this.feet, to) : [door, ...findWalk(doorstepOf(door), to)];
+    return feet.map((p) => this.bodyAt(p));
+  }
+
+  /**
+   * Run `go` once the trainer is out of doors. One inside a building first
+   * calls its partner back to the doorstep, then reappears in the doorway
+   * with the partner at its heels, and `go` gets the doorway to set off
+   * from. A newer call while the partner is still on its way replaces `go`.
+   */
+  private afterLeaving(go: (door: Point | null) => void): void {
+    const indoors = this.indoors;
+    if (!this.inside || indoors === null) {
+      go(null);
+      return;
+    }
+    this.walkPartnerTo(doorstepOf(indoors.door), () => {
+      this.inside = false;
+      this.sprite.setVisible(true);
+      const p = this.partner;
+      this.trail = p === null ? [] : [{ x: p.sprite.x, y: p.sprite.y + p.footOffset }, indoors.door];
+      this.layoutLabels();
+      this.updateDepth();
+      go(indoors.door);
+    });
+  }
+
+  /** Through the door: hide the trainer and send its partner to its post. */
+  private stepInside(): void {
+    const indoors = this.indoors;
+    if (indoors === null) return;
+    this.inside = true;
+    this.sprite.setVisible(false);
+    this.layoutLabels();
+    this.updateDepth();
+    this.walkPartnerTo(indoors.post, () => this.facePartnerTowards(indoors.door));
+  }
+
+  /**
+   * Walk the partner on its own along the streets to `to` — to its post
+   * while its trainer is indoors, or back to the doorstep to meet it. The
+   * labels ride along. A newer call replaces the walk and its `onDone`.
+   */
+  private walkPartnerTo(to: Point, onDone: () => void): void {
+    this.partnerTween?.stop();
+    this.partnerTween = null;
+    const p = this.partner;
+    if (p === null) {
+      onDone();
+      return;
+    }
+    const at = { x: p.sprite.x, y: p.sprite.y + p.footOffset };
+    const legs = findWalk(at, to).slice(1);
+    const step = (): void => {
+      const leg = legs.shift();
+      if (leg === undefined) {
+        this.partnerTween = null;
+        p.sprite.anims.timeScale = PARTNER_RESTING_FPS / PARTNER_MOVING_FPS;
+        onDone();
+        return;
+      }
+      if (Math.abs(leg.x - at.x) > 0.5) p.sprite.setFlipX((leg.x > at.x) === p.spec.facesLeft);
+      p.sprite.anims.timeScale = 1;
+      this.partnerTween = this.scene.tweens.add({
+        targets: at,
+        x: leg.x,
+        y: leg.y,
+        duration: (Math.hypot(leg.x - at.x, leg.y - at.y) / MOVE_SPEED) * 1000,
+        ease: 'Linear',
+        onUpdate: () => {
+          p.sprite.setPosition(at.x, at.y - p.footOffset);
+          p.sprite.setDepth(at.y + 0.5);
+          this.layoutLabels();
+          this.updateDepth();
+        },
+        onComplete: step,
+      });
+    };
+    step();
+  }
+
+  /** Turn a waiting partner to the door its trainer went through. */
+  private facePartnerTowards(door: Point): void {
+    const p = this.partner;
+    if (p === null) return;
+    const dx = door.x - p.sprite.x;
+    if (Math.abs(dx) > 0.5) p.sprite.setFlipX((dx > 0) === p.spec.facesLeft);
   }
 
   private walk(path: Point[], activity: AgentActivity, onArrive?: () => void): void {
@@ -788,9 +969,6 @@ export class HeroSprite {
         this.sprite.setPosition(this._x, this._y);
         this.placePartner();
         this.layoutLabels();
-        if (this.selectionHalo !== null) {
-          this.selectionHalo.setPosition(this._x, this.bodyCentreY());
-        }
         this.updateDepth();
       },
       onComplete: () => {
@@ -826,6 +1004,8 @@ export class HeroSprite {
     }
     this.battleTimer?.remove();
     this.battleTimer = null;
+    this.partnerTween?.stop();
+    this.partnerTween = null;
     this.sprite.destroy();
     this.partner?.sprite.destroy();
     this.partner = null;
