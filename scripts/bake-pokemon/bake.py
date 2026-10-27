@@ -124,21 +124,24 @@ def bake_trainers(root: Path, out: Path, entries: list[dict]) -> dict:
     """One walker sheet per overworld sprite, one portrait per battle pic."""
     ow = Overworld(root)
     heads, feet = [], []
+    widths: dict[str, int] = {}
     sprites = sorted({e['sprite'] for e in entries})
     for name in sprites:
         sheet = ow.load(f'people/{name}')
-        if sheet.width < 16 * 9:
+        # Most trainers are 16 wide; the Biker is 32x32, astride his bike.
+        w = widths[name] = ow.frame_width(f'people/{name}')
+        if sheet.width < w * 9:
             raise ValueError(f'{name} has no walk cycle ({sheet.width}px wide)')
-        walker = walker_sheet(sheet)
+        walker = walker_sheet(sheet, w)
         save(walker, out / 'trainers' / f'{name}.png')
-        h, f = bbox_extent(walker.crop((0, 0, 16, 32)))
+        h, f = bbox_extent(walker.crop((0, 0, w, 32)))
         heads.append(h)
         feet.append(f)
     portraits = sorted({e['portrait'] for e in entries})
     for name in portraits:
         save(portrait(root, name), out / 'portraits' / f'{name}.png')
     return {
-        'frameWidth': 16, 'frameHeight': 32,
+        'frameWidths': widths, 'frameHeight': 32,
         'headY': min(heads), 'footY': max(feet),
         'sprites': sprites, 'portraits': portraits,
     }

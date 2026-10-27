@@ -37,7 +37,6 @@ export interface FrameExtent {
 const SHEET = POKEMON_SHEET.trainers;
 const PKMN = POKEMON_SHEET.pokemon;
 
-export const TRAINER_FRAME = { width: SHEET.frameWidth, height: SHEET.frameHeight };
 export const TRAINER_EXTENT: FrameExtent = { frameHeight: SHEET.frameHeight, headY: SHEET.headY, footY: SHEET.footY };
 
 /** Sheet layout from overworld.walker_sheet: 3 frames (stand, step, step)
@@ -137,7 +136,8 @@ export function spritesheetPreload(): SheetEntry[] {
   const out: SheetEntry[] = SHEET.sprites.map((sprite) => ({
     key: `trainer-${sprite}`,
     path: `${ASSET_BASE}/trainers/${sprite}.png`,
-    frameWidth: SHEET.frameWidth,
+    // 16 wide, except the Biker, who is 32x32 on his bike.
+    frameWidth: SHEET.frameWidths[sprite as keyof typeof SHEET.frameWidths],
     frameHeight: SHEET.frameHeight,
   }));
   for (const dex of PKMN.partners) {

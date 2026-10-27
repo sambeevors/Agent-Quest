@@ -31,7 +31,7 @@ describe('baked art', () => {
     for (const t of [...TRAINERS, ...ROCKETS]) {
       const walker = sheets.get(trainerTextureKey(t));
       expect(walker).toBeDefined();
-      expect(pngSize(walker!.path)).toEqual([16 * 12, 32]);
+      expect(pngSize(walker!.path)).toEqual([walker!.frameWidth * 12, 32]);
       expect(pngSize(portraitUrl(t))).toEqual([96, 96]);
       expect(sheets.has(partnerSpec(t).textureKey)).toBe(true);
     }
