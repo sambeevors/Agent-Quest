@@ -30,7 +30,8 @@
 
 .activity-feed.fold-full    { height: 390px; }
 .activity-feed.fold-compact { height: 150px; }
-.activity-feed.fold-closed  { height: 32px;  }
+/* Closed is just the header, however tall its chrome makes it. */
+.activity-feed.fold-closed  { height: auto; }
 
 /* === Header === */
 .feed-header { display: flex; flex-direction: column; flex-shrink: 0; }
