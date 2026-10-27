@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './NoInstallBanner.css';
+import { PokeIcon } from './PokeIcon';
 import { isDismissed, setDismissed, resetDismissal } from './noInstallBannerStorage';
 
 interface Props {
@@ -41,12 +42,12 @@ export function NoInstallBanner({ configDirs, connected }: Props) {
 
   return (
     <div className="no-install-banner" role="status">
-      <span className="no-install-icon" aria-hidden>⚠</span>
+      <PokeIcon icon="alert" className="no-install-icon" />
       <div className="no-install-body">
         <div className="no-install-title">No Claude Code or Codex installation detected</div>
         <div className="no-install-text">
           The server found no <code>~/.claude*</code> or <code>~/.codex</code> directory with session logs.
-          {' '}Start a Claude Code or Codex session to see heroes appear here.
+          {' '}Start a Claude Code or Codex session to see trainers appear here.
         </div>
       </div>
       <button

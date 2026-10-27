@@ -1,5 +1,7 @@
-appId: com.agentquest.desktop
-productName: Agent Quest
+appId: com.pokeagent.desktop
+# The bundle, executable and helpers stay ASCII: Electron aborts at launch
+# (SIGTRAP) when they carry the é. Finder and the Dock show the display name.
+productName: PokeAgent
 directories:
   output: release
   buildResources: build-resources
@@ -7,8 +9,8 @@ files:
   - dist/main.js
   - package.json
 extraResources:
-  - from: build/agent-quest-server
-    to: server/agent-quest-server
+  - from: build/pokeagent-server
+    to: server/pokeagent-server
   - from: ../client/dist
     to: client
 mac:
@@ -21,3 +23,5 @@ mac:
   # Hardened runtime only matters for notarization, and would need JIT
   # entitlements for the compiled Bun server; ad-hoc builds skip it.
   hardenedRuntime: false
+  extendInfo:
+    CFBundleDisplayName: PokéAgent

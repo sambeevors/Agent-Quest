@@ -3,7 +3,7 @@ import { TOWN_BUILDINGS } from './town/town';
 import type { Trainer } from '../naming/hero-names';
 
 /**
- * The art Agent Quest draws with — FireRed trainers, their partner Pokémon,
+ * The art PokéAgent draws with — FireRed trainers, their partner Pokémon,
  * and Cerulean City itself.
  *
  * Educational fork only: the art is Nintendo / Game Freak / The Pokémon
@@ -61,6 +61,15 @@ export function trainerTextureKey(trainer: Trainer): string {
 
 export function portraitUrl(trainer: Trainer): string {
   return `/${ASSET_BASE}/portraits/${trainer.portrait}.png`;
+}
+
+/** The panels' icons, in place of emoji: FireRed bag items and emote bubbles
+ * (`ITEM_ICONS` / `EMOTES` in the bake). */
+export const UI_ICONS = ['bell', 'ball', 'alert', 'help', 'sun', 'moon', 'rain', 'settings'] as const;
+export type UiIcon = (typeof UI_ICONS)[number];
+
+export function iconUrl(icon: UiIcon): string {
+  return `/${ASSET_BASE}/icons/${icon}.png`;
 }
 
 /** A Pokémon drawn from a two-frame party-icon strip. */

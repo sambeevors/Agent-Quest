@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import type { ToastPayload } from '../hooks/useAgentNotifications';
+import { ALERT_ICON, type ToastPayload } from '../hooks/useAgentNotifications';
+import { PokeIcon } from './PokeIcon';
 import './NotificationMenu.css';
 
 export interface NotificationEntry extends ToastPayload {
@@ -17,12 +18,6 @@ interface NotificationMenuProps {
   onActivate: (agentId: string) => void;
   onClear: () => void;
 }
-
-const CATEGORY_ICON: Record<ToastPayload['category'], string> = {
-  waiting: '\u{1F514}',
-  error: '\u{26A0}\u{FE0F}',
-  completed: '\u{2705}',
-};
 
 function relativeTime(ts: number): string {
   const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
@@ -69,7 +64,7 @@ export function NotificationMenu({ entries, unread, open, onToggle, onActivate, 
         aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`}
         title="Notifications"
       >
-        {'\u{1F514}'}
+        <PokeIcon icon="bell" />
         {unread > 0 && <span className="notif-badge">{unread > 9 ? '9+' : unread}</span>}
       </button>
 
@@ -92,7 +87,7 @@ export function NotificationMenu({ entries, unread, open, onToggle, onActivate, 
                     className={`notif-item notif-${e.category}`}
                     onClick={() => { onActivate(e.agentId); onToggle(); }}
                   >
-                    <span className="notif-item-icon" aria-hidden="true">{CATEGORY_ICON[e.category]}</span>
+                    <PokeIcon icon={ALERT_ICON[e.category]} className="notif-item-icon" />
                     <span className="notif-item-text">
                       <span className="notif-item-title">{e.title}</span>
                       <span className="notif-item-body">{e.body}</span>

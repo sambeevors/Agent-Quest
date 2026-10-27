@@ -27,6 +27,29 @@ const PILL_ORDER: { id: ActionFilter; label: string }[] = [
   { id: 'other',    label: 'Other'    },
 ];
 
+/**
+ * Each fold mode drawn as the panel it leaves you with — tall, half, just the
+ * header bar — in 8x8 pixel blocks at x2, inked in the button's colour.
+ * [x, y, w, h] per block.
+ */
+const FOLD_ICON: Record<FoldState, [number, number, number, number][]> = {
+  full:    [[0, 0, 8, 1], [0, 7, 8, 1], [0, 0, 1, 8], [7, 0, 1, 8], [2, 2, 4, 1], [2, 4, 4, 1]],
+  compact: [[0, 4, 8, 1], [0, 7, 8, 1], [0, 4, 1, 4], [7, 4, 1, 4], [2, 5, 4, 1]],
+  closed:  [[0, 6, 8, 2]],
+};
+
+const FOLD_LABEL: Record<FoldState, string> = { full: 'Full', compact: 'Compact', closed: 'Close' };
+
+function FoldIcon({ state }: { state: FoldState }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 8 8" shapeRendering="crispEdges" aria-hidden="true">
+      {FOLD_ICON[state].map(([x, y, w, h]) => (
+        <rect key={`${x},${y}`} x={x} y={y} width={w} height={h} fill="currentColor" />
+      ))}
+    </svg>
+  );
+}
+
 export function ActivityFeedHeader({
   foldState, activeHighlights, availableCategories, categoryCounts,
   agentFilter, agents, newCount,
@@ -60,27 +83,17 @@ export function ActivityFeedHeader({
         <span className="feed-spacer" />
 
         <div className="feed-fold-buttons">
-          <button
-            type="button"
-            aria-label="Full"
-            aria-pressed={foldState === 'full'}
-            className={`feed-fold-btn ${foldState === 'full' ? 'active' : ''}`}
-            onClick={() => onFoldChange('full')}
-          >▭</button>
-          <button
-            type="button"
-            aria-label="Compact"
-            aria-pressed={foldState === 'compact'}
-            className={`feed-fold-btn ${foldState === 'compact' ? 'active' : ''}`}
-            onClick={() => onFoldChange('compact')}
-          >▬</button>
-          <button
-            type="button"
-            aria-label="Close"
-            aria-pressed={foldState === 'closed'}
-            className={`feed-fold-btn ${foldState === 'closed' ? 'active' : ''}`}
-            onClick={() => onFoldChange('closed')}
-          >▼</button>
+          {(['full', 'compact', 'closed'] as const).map((state) => (
+            <button
+              type="button"
+              key={state}
+              aria-label={FOLD_LABEL[state]}
+              title={FOLD_LABEL[state]}
+              aria-pressed={foldState === state}
+              className={`feed-fold-btn ${foldState === state ? 'active' : ''}`}
+              onClick={() => onFoldChange(state)}
+            ><FoldIcon state={state} /></button>
+          ))}
         </div>
       </div>
 

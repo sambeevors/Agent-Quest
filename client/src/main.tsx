@@ -5,6 +5,7 @@ import './fonts.css';
 // Loaded after App (and therefore after every component stylesheet) so the
 // FireRed chrome overrides win the cascade at equal specificity.
 import './pokemon-ui.css';
+import { migrateLegacyKeys } from './storage/legacy-keys';
 
 // Phaser bakes each label into a texture on first draw and never re-renders it,
 // so mount behind the font. The cap keeps a stalled font from blocking the app.
@@ -20,6 +21,9 @@ function fontReady(): Promise<unknown> {
     new Promise((resolve) => setTimeout(resolve, MOUNT_TIMEOUT_MS)),
   ]);
 }
+
+// Before anything reads its settings: carry them over from the Agent Quest keys.
+try { migrateLegacyKeys(localStorage); } catch {}
 
 void fontReady().then(() => {
   createRoot(document.getElementById('root')!).render(

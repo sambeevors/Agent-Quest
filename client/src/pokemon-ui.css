@@ -15,7 +15,7 @@
 .activity-feed,
 .topbar,
 .building-info-panel,
-.notif-menu,
+.notif-dropdown,
 .settings-modal,
 .tutorial-modal,
 .report,
@@ -29,7 +29,7 @@
 }
 
 .partybar-header,
-.feed-header-row {
+.feed-header-row:not(.feed-filter-row) {
   border: 8px solid transparent;
   border-image: url('/assets/pokemon/ui/plate.png') 4 fill stretch;
   image-rendering: pixelated;
@@ -37,8 +37,49 @@
 }
 
 .partybar-header .partybar-title,
+.partybar-header .partybar-title-compact,
 .feed-header-row .feed-title {
   /* FireRed's dialogue ink: dark grey with a pale drop shadow. */
   color: #484848;
   text-shadow: 1px 1px 0 #d0d0c8;
+}
+
+.partybar-header .partybar-title-compact {
+  background: none;
+}
+
+/* Header buttons sit on the white plate, so they take its ink rather than
+   the gold-on-dark they were drawn for: bare glyphs, a grey wash on hover,
+   FireRed's selection blue when pressed. */
+.partybar-header .partybar-fold-btn,
+.feed-header-row .feed-fold-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: #484848;
+  text-shadow: 1px 1px 0 #d0d0c8;
+}
+
+.partybar-header .partybar-fold-btn:hover,
+.feed-header-row .feed-fold-btn:hover {
+  background: rgba(72, 72, 72, 0.1);
+}
+
+.feed-header-row .feed-fold-btn.active {
+  background: #d0e0f0;
+  border-color: #6890b0;
+  color: #284870;
+  text-shadow: none;
+}
+
+.partybar-header .partybar-fold-btn:focus-visible,
+.feed-header-row .feed-fold-btn:focus-visible {
+  outline: 2px solid #6890b0;
+}
+
+/* The filter row stays on the panel's slate (its pills are tuned for dark),
+   divided from the plate above by the frame's blue. */
+.feed-filter-row {
+  background: rgba(0, 0, 0, 0.18);
+  border-bottom-color: rgba(104, 144, 176, 0.4);
 }

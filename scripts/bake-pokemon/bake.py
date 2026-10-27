@@ -1,4 +1,4 @@
-"""Bake Agent Quest's world: Cerulean City, its trainers and their Pokémon.
+"""Bake PokéAgent's world: Cerulean City, its trainers and their Pokémon.
 
 Usage:
   python3 scripts/bake-pokemon/bake.py --firered <pret/pokefirered checkout> --pokeapi <PokeAPI/sprites checkout>
@@ -18,6 +18,7 @@ A sparse checkout is enough:
   firered: data/tilesets data/layouts data/maps/{CeruleanCity,Route4,Route5,Route9,Route24}
            graphics/object_events graphics/trainers graphics/door_anims
            src/data/object_events src/data/trainers.h src/data/trainer_parties.h
+           graphics/items graphics/misc/emoticons.png
            include/constants/species.h
   pokeapi: sprites/pokemon/versions/generation-iii/icons
 
@@ -202,6 +203,50 @@ def bake_ui() -> None:
     save(frame([outline, (200, 208, 216, 255), white, white], white), OUT / 'ui' / 'plate.png')
 
 
+# The panels' icons, in place of emoji: FireRed's own item icons and the
+# emote bubbles trainers pop over their heads. key -> item icon name.
+ITEM_ICONS = {
+    'bell': 'soothe_bell',      # an agent is waiting on you
+    'ball': 'poke_ball',        # an agent finished
+    'sun': 'sun_stone',         # day
+    'moon': 'moon_stone',       # night
+    'rain': 'water_stone',      # rain
+    'settings': 'teachy_tv',    # settings
+}
+# key -> row of the 16x16 bubble in graphics/misc/emoticons.png's last column.
+EMOTES = {'alert': 0, 'help': 4}
+
+
+def opaque(img: Image.Image) -> Image.Image:
+    """Alpha mask of an indexed GBA image: index 0 is transparent."""
+    return Image.frombytes('L', img.size, img.tobytes()).point(lambda i: 255 if i else 0)
+
+
+def item_icon(root: Path, name: str) -> Image.Image:
+    """A 24x24 bag icon in its own palette."""
+    img = Image.open(root / 'graphics/items/icons' / f'{name}.png')
+    pal = _read_pal(root / 'graphics/items/icon_palettes' / f'{name}.pal')
+    img.putpalette([c for rgba in pal for c in rgba[:3]])
+    out = img.convert('RGBA')
+    out.putalpha(opaque(img))
+    return out
+
+
+def bake_icons(root: Path, out: Path) -> None:
+    """Icons for the React panels, at 1x: CSS scales them, pixelated.
+
+    The emote sheet carries the palette its bubbles are drawn in.
+    """
+    for key, name in ITEM_ICONS.items():
+        save(item_icon(root, name), out / 'icons' / f'{key}.png')
+    sheet = Image.open(root / 'graphics/misc/emoticons.png')
+    emotes = sheet.convert('RGBA')
+    emotes.putalpha(opaque(sheet))
+    x0 = sheet.width - 16
+    for key, row in EMOTES.items():
+        save(emotes.crop((x0, row * 16, x0 + 16, row * 16 + 16)), out / 'icons' / f'{key}.png')
+
+
 def ts(name: str, value: object) -> str:
     return GENERATED + f'export const {name} = {json.dumps(value, indent=2, ensure_ascii=False)} as const;\n'
 
@@ -222,6 +267,7 @@ def main() -> None:
         'pokemon': bake_pokemon(args.pokeapi, OUT, partners),
     }
     bake_ui()
+    bake_icons(args.firered, OUT)
 
     TOWN_TS.parent.mkdir(parents=True, exist_ok=True)
     TOWN_TS.write_text(ts('TOWN_DATA', town))

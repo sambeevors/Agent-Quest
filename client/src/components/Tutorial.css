@@ -187,3 +187,7 @@
   color: #C4D4E8;
   border-bottom-color: rgba(159, 183, 212, 0.9);
 }
+
+.tutorial-inline-icon {
+  margin: -6px 0 -4px;
+}

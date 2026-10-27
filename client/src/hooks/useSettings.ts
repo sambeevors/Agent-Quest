@@ -43,7 +43,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   notifyCompleted: false,
 };
 
-const STORAGE_KEY = 'agentquest:settings';
+const STORAGE_KEY = 'pokeagent:settings';
 const SCHEMA_VERSION = 1;
 const WRITE_DEBOUNCE_MS = 200;
 

@@ -104,7 +104,7 @@
 .notif-error     { border-left-color: #FF6B6B; }
 .notif-completed { border-left-color: #9a9a9a; }
 
-.notif-item-icon { font-size: 14px; line-height: 1.2; flex-shrink: 0; }
+.notif-item-icon { margin-top: -4px; }
 
 .notif-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .notif-item-title {

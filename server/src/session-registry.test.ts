@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { SessionRegistry } from './session-registry';
 
 async function makeClaudeDir(withSessions: Array<{ pid: number; sessionId: string }>): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'agent-quest-test-'));
+  const root = await mkdtemp(join(tmpdir(), 'pokeagent-test-'));
   const sessionsDir = join(root, 'sessions');
   await mkdir(sessionsDir, { recursive: true });
   for (const { pid, sessionId } of withSessions) {

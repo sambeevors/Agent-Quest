@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import type { AgentState } from '../types/agent';
 import { formatCost, isCostKnown } from '../types/agent';
 import { eventBridge } from '../game/EventBridge';
 import { NotificationMenu, type NotificationEntry } from './NotificationMenu';
+import { PokeIcon } from './PokeIcon';
 import './TopBar.css';
 
 interface TopBarNotifications {
@@ -37,6 +38,18 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
   const [rainOn, setRainOn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+  // One FireRed frame for the whole button row, slid onto whichever button is
+  // hovered or focused, rather than a border on every button.
+  const effectsRef = useRef<HTMLDivElement>(null);
+  const [frame, setFrame] = useState<{ x: number; w: number } | null>(null);
+  const moveFrame = (e: SyntheticEvent) => {
+    const row = effectsRef.current;
+    const btn = (e.target as HTMLElement).closest('.topbar-effect-btn');
+    if (row === null || btn === null || !row.contains(btn)) return;
+    const r = row.getBoundingClientRect();
+    const b = btn.getBoundingClientRect();
+    setFrame({ x: b.left - r.left, w: b.width });
+  };
 
   const toggleNight = () => {
     const next = !nightOn;
@@ -86,7 +99,7 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
           title="Show tutorial"
           aria-label="Show tutorial"
         >
-          <img src="assets/logo.png" alt="Agent Quest" className="topbar-logo" />
+          <img src="assets/logo.png" alt="PokéAgent" className="topbar-logo" />
         </button>
 
         <span
@@ -147,7 +160,19 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
             )}
           </div>
 
-          <div className="topbar-effects">
+          <div
+            className="topbar-effects"
+            ref={effectsRef}
+            onPointerOver={moveFrame}
+            onFocus={moveFrame}
+            onPointerLeave={() => setFrame(null)}
+            onBlur={() => setFrame(null)}
+          >
+            <span
+              className={`topbar-hover-frame ${frame === null ? '' : 'shown'}`}
+              style={frame === null ? undefined : { transform: `translateX(${frame.x}px)`, width: frame.w }}
+              aria-hidden="true"
+            />
             <NotificationMenu
               entries={notifications.entries}
               unread={notifications.unread}
@@ -161,14 +186,14 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
               onClick={toggleNight}
               title={nightOn ? 'Day mode' : 'Night mode'}
             >
-              {nightOn ? '\u{1F319}' : '\u{2600}\u{FE0F}'}
+              <PokeIcon icon={nightOn ? 'moon' : 'sun'} />
             </button>
             <button
               className={`topbar-effect-btn ${rainOn ? 'active' : ''}`}
               onClick={toggleRain}
               title={rainOn ? 'Stop rain' : 'Start rain'}
             >
-              {'\u{1F327}\u{FE0F}'}
+              <PokeIcon icon="rain" />
             </button>
             <button
               className="topbar-effect-btn"
@@ -176,14 +201,15 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
               title="Settings"
               aria-label="Settings"
             >
-              {'\u{2699}\u{FE0F}'}
+              <PokeIcon icon="settings" />
             </button>
             <button
               className="topbar-effect-btn"
               onClick={() => eventBridge.emit('tutorial:open')}
               title="Show tutorial"
+              aria-label="Show tutorial"
             >
-              {'\u{2753}'}
+              <PokeIcon icon="help" />
             </button>
           </div>
         </div>

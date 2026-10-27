@@ -1,5 +1,5 @@
 {
-  "name": "agent-quest-server",
+  "name": "pokeagent-server",
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/index.ts",

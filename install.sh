@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Agent Quest — one-line installer for macOS.
-# Usage: curl -fsSL https://raw.githubusercontent.com/sambeevors/Agent-Quest/main/install.sh | bash
+# PokéAgent — one-line installer for macOS.
+# Usage: curl -fsSL https://raw.githubusercontent.com/sambeevors/PokeAgent/main/install.sh | bash
 set -euo pipefail
 
-REPO_URL="https://github.com/sambeevors/Agent-Quest.git"
-DEFAULT_DIR="$HOME/agent-quest"
+REPO_URL="https://github.com/sambeevors/PokeAgent.git"
+DEFAULT_DIR="$HOME/pokeagent"
 MIN_BUN="1.1.0"
 
 INSTALL_DIR="$DEFAULT_DIR"
@@ -13,13 +13,13 @@ NO_START=0
 
 usage() {
   cat <<USAGE
-Agent Quest installer (macOS)
+PokéAgent installer (macOS)
 
 Usage:
   install.sh [options]
 
 Options:
-  --dir <path>   Install directory (default: \$HOME/agent-quest)
+  --dir <path>   Install directory (default: \$HOME/pokeagent)
   --yes          Skip all confirmation prompts (defaults to Y)
   --no-start     Don't offer to launch after install
   --help, -h     Show this help
@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
       # Validate before assignment: under `set -u`, a bare "$2" when $2
       # is unset aborts with a cryptic bash error. Give a clear one instead.
       if [[ -z "${2:-}" ]]; then
-        printf 'ERROR: --dir requires a path argument (e.g. --dir ~/agent-quest)\n' >&2
+        printf 'ERROR: --dir requires a path argument (e.g. --dir ~/pokeagent)\n' >&2
         exit 1
       fi
       INSTALL_DIR="$2"
@@ -88,16 +88,16 @@ semver_ge() {
 
 # ------------------------------------------------------------------ banner
 cat <<BANNER
-${C_BLUE}Agent Quest${C_RESET} — a local dashboard for Claude Code and Codex agents
+${C_BLUE}PokéAgent${C_RESET} — a local dashboard for Claude Code and Codex agents
   License: MIT (open source, hobby project)
   Runs entirely on your machine — no API keys, no telemetry, no cloud
-  Source: https://github.com/sambeevors/Agent-Quest
+  Source: https://github.com/sambeevors/PokeAgent
 
 This installer will:
   • Check/install Bun (via bun.sh official installer, if missing)
   • Clone the repo into ${INSTALL_DIR}
   • Install dependencies (bun install)
-  • Create a CLI shortcut in ~/.local/bin/agentquest
+  • Create a CLI shortcut in ~/.local/bin/pokeagent
 
 BANNER
 
@@ -140,8 +140,8 @@ ok "Bun v$BUN_VERSION"
 
 # ------------------------------------------------------------------ clone
 if [[ -d "$INSTALL_DIR/.git" ]]; then
-  if ( cd "$INSTALL_DIR" && git remote get-url origin 2>/dev/null | grep -q "agent-quest" ); then
-    info "Existing Agent Quest install at $INSTALL_DIR."
+  if ( cd "$INSTALL_DIR" && git remote get-url origin 2>/dev/null | grep -qiE "pokeagent|agent-quest" ); then
+    info "Existing PokéAgent install at $INSTALL_DIR."
     if prompt_yn "Update it with git pull? [Y/n]" "Y"; then
       if ! ( cd "$INSTALL_DIR" \
                && git fetch origin main --quiet \
@@ -149,7 +149,7 @@ if [[ -d "$INSTALL_DIR/.git" ]]; then
         err "git pull failed — your existing checkout may have local changes or"
         err "have diverged from origin/main. Resolve manually, then re-run:"
         err "  cd $INSTALL_DIR && git status"
-        err "  agentquest update   (safer: handles dirty trees with stash)"
+        err "  pokeagent update   (safer: handles dirty trees with stash)"
         exit 3
       fi
       ok "Repo updated."
@@ -157,7 +157,7 @@ if [[ -d "$INSTALL_DIR/.git" ]]; then
       info "Leaving existing install alone."
     fi
   else
-    err "Directory $INSTALL_DIR exists but is not an Agent Quest checkout."
+    err "Directory $INSTALL_DIR exists but is not a PokéAgent checkout."
     err "Remove it or use --dir <other-path> to install elsewhere."
     exit 3
   fi
@@ -177,19 +177,19 @@ ok "Dependencies installed."
 
 # ------------------------------------------------------------------ symlink
 BIN_DIR="$HOME/.local/bin"
-LINK="$BIN_DIR/agentquest"
-TARGET="$INSTALL_DIR/bin/agentquest"
+LINK="$BIN_DIR/pokeagent"
+TARGET="$INSTALL_DIR/bin/pokeagent"
 mkdir -p "$BIN_DIR"
 if [[ -L "$LINK" ]]; then
   current_target="$(readlink "$LINK")"
   if [[ "$current_target" == "$TARGET" ]]; then
     ok "CLI shortcut already up to date."
-  elif [[ "$current_target" == *"/bin/agentquest" ]]; then
-    # Previous target is another Agent Quest checkout — safe to overwrite.
+  elif [[ "$current_target" == *"/bin/pokeagent" ]]; then
+    # Previous target is another PokéAgent checkout — safe to overwrite.
     ln -sf "$TARGET" "$LINK"
     ok "CLI shortcut updated (was: $current_target)."
   else
-    err "$LINK already points at $current_target (not an Agent Quest install)."
+    err "$LINK already points at $current_target (not a PokéAgent install)."
     if prompt_yn "Overwrite it? [y/N]" "n"; then
       ln -sf "$TARGET" "$LINK"
       ok "CLI shortcut replaced."
@@ -218,13 +218,13 @@ ok "Installation complete."
 
 # ------------------------------------------------------------------ start?
 if [[ $NO_START -eq 1 ]]; then
-  printf 'Run: %sagentquest start%s\n' "$C_GREEN" "$C_RESET"
+  printf 'Run: %spokeagent start%s\n' "$C_GREEN" "$C_RESET"
   exit 0
 fi
 
-if prompt_yn "Start Agent Quest now? [Y/n]" "Y"; then
+if prompt_yn "Start PokéAgent now? [Y/n]" "Y"; then
   exec "$TARGET" start
 else
-  printf 'Run: %sagentquest start%s\n' "$C_GREEN" "$C_RESET"
+  printf 'Run: %spokeagent start%s\n' "$C_GREEN" "$C_RESET"
 fi
 exit 0

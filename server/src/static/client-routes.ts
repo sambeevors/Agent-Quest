@@ -8,7 +8,7 @@ import { getMimeType } from 'hono/utils/mime';
  * has no Vite dev server — and loading the UI from the API's own origin means
  * `config.ts` resolves the server to itself with no build-time URL baked in.
  *
- * Opt-in via `AGENT_QUEST_CLIENT_DIR`; `bun start` keeps using Vite on :4445.
+ * Opt-in via `POKEAGENT_CLIENT_DIR`; `bun start` keeps using Vite on :4445.
  *
  * A missing `/assets/...` file is a real 404 rather than the index page, for
  * the same reason `strictAssets404` exists in the Vite config: Phaser would

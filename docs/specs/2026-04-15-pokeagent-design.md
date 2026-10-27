@@ -1,4 +1,4 @@
-# Agent Quest — Design Spec
+# PokéAgent — Design Spec
 
 Dashboard di monitoring per agenti Claude Code, stile villaggio fantasy World of Warcraft. Browser-based, 2D top-down, con personaggi che si muovono tra edifici in base all'attività degli agenti.
 
@@ -163,7 +163,7 @@ type HeroClass = 'warrior' | 'mage' | 'ranger' | 'paladin' | 'rogue' | 'druid' |
 ## Struttura Progetto
 
 ```
-agent-quest/
+pokeagent/
 ├── client/                    # Frontend React + Phaser 4
 │   ├── src/
 │   │   ├── game/              # Phaser scenes, entities, config
@@ -204,7 +204,7 @@ agent-quest/
 ## Comandi
 
 ```bash
-cd agent-quest
+cd pokeagent
 bun start              # Avvia server + client (concurrently)
 bun run dev:client     # Solo frontend su localhost:5174
 bun run dev:server     # Solo server su localhost:3333

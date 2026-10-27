@@ -45,7 +45,7 @@ function strictAssets404() {
 }
 
 function isLanEnabled(env: Record<string, string>): boolean {
-  const v = (env.AGENT_QUEST_LAN ?? '').toLowerCase();
+  const v = (env.POKEAGENT_LAN ?? env.AGENT_QUEST_LAN ?? '').toLowerCase(); // old name still honoured
   return v === '1' || v === 'true' || v === 'yes' || v === 'on';
 }
 
@@ -56,7 +56,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), strictAssets404()],
     server: {
       // `host: true` binds to 0.0.0.0 so other devices on the LAN can reach
-      // the dev server. Opt-in via AGENT_QUEST_LAN=1 — default stays on
+      // the dev server. Opt-in via POKEAGENT_LAN=1 — default stays on
       // localhost so nothing leaks to the network without explicit consent.
       host: lan ? true : 'localhost',
       port: Number(env.CLIENT_PORT) || 4445,

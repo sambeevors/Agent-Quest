@@ -21,10 +21,7 @@
 }
 
 .no-install-icon {
-  font-size: 18px;
-  color: #E07838;
-  flex-shrink: 0;
-  line-height: 1.4;
+  margin-top: -2px;
 }
 
 .no-install-body {

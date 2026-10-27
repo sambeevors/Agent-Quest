@@ -1,0 +1,9 @@
+.poke-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  object-fit: none;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  flex-shrink: 0;
+}

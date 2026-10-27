@@ -1,5 +1,5 @@
 {
-  "name": "agent-quest-client",
+  "name": "pokeagent-client",
   "private": true,
   "type": "module",
   "scripts": {

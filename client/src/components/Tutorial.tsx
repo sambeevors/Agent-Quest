@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BUILDING_DEFS } from '../game/data/building-layout';
+import { PokeIcon } from './PokeIcon';
 import './Tutorial.css';
 
 interface TutorialProps {
@@ -29,18 +30,18 @@ export function Tutorial({ onClose }: TutorialProps) {
       <div className="tutorial-modal" onClick={(e) => e.stopPropagation()}>
         <button className="tutorial-close" onClick={onClose} title="Close (Esc)">×</button>
 
-        <img src="assets/logo.png" alt="Agent Quest" className="tutorial-logo" />
+        <img src="assets/logo.png" alt="PokéAgent" className="tutorial-logo" />
 
-        <h2 className="tutorial-title">Welcome to Agent Quest</h2>
+        <h2 className="tutorial-title">Welcome to PokéAgent</h2>
 
         <div className="tutorial-tagline">
-          Use <strong>Claude Code CLI</strong> or <strong>Codex</strong> as usual — each session auto-spawns a hero on the dashboard, live.
+          Use <strong>Claude Code CLI</strong> or <strong>Codex</strong> as usual — each session auto-spawns a trainer on the dashboard, live.
         </div>
 
         <p className="tutorial-text">
-          Agent Quest is a live dashboard that turns your{' '}
-          <strong>Claude Code</strong> and <strong>Codex</strong> sessions into a 2D
-          fantasy village. Every running agent becomes a <strong>hero</strong> who
+          PokéAgent is a live dashboard that turns your{' '}
+          <strong>Claude Code</strong> and <strong>Codex</strong> sessions into
+          Cerulean City. Every running agent becomes a Pokémon <strong>trainer</strong> who
           walks between buildings based on what it's doing.
         </p>
         <p className="tutorial-text">
@@ -78,17 +79,17 @@ export function Tutorial({ onClose }: TutorialProps) {
         </table>
 
         <p className="tutorial-text">
-          When both Claude Code and Codex have active agents, each hero shows a small{' '}
+          When both Claude Code and Codex have active agents, each trainer shows a small{' '}
           <strong>CLAUDE</strong> or <strong>CODEX</strong> badge so you can tell which
           CLI it came from.
         </p>
 
         <div className="tutorial-section-label">How to use it</div>
         <p className="tutorial-text">
-          Heroes appear in real time as you spawn new Claude Code or Codex sessions. Click a
-          hero in the <em>Party Bar</em> (bottom) to see what it's doing; click any
-          building to see which heroes are there. Reopen this tutorial any time with the{' '}
-          <strong>❓</strong> button, or press <code>Esc</code> to close it.
+          Trainers appear in real time as you spawn new Claude Code or Codex sessions. Click a
+          trainer in the <em>Party Bar</em> (bottom) to see what it's doing; click any
+          building to see which trainers are there. Reopen this tutorial any time with the{' '}
+          <PokeIcon icon="help" className="tutorial-inline-icon" /> button, or press <code>Esc</code> to close it.
         </p>
 
         <div className="tutorial-section-label">Getting started</div>
@@ -96,19 +97,19 @@ export function Tutorial({ onClose }: TutorialProps) {
           Requires <code>bun ≥ 1.1.0</code>. Two equivalent ways to run it:
         </p>
         <ul className="tutorial-list">
-          <li><code>agentquest</code> — if you installed via the one-line installer (<code>curl&nbsp;|&nbsp;bash</code>)</li>
+          <li><code>pokeagent</code> — if you installed via the one-line installer (<code>curl&nbsp;|&nbsp;bash</code>)</li>
           <li><code>bun start</code> — classic form, server + client together from the project root</li>
           <li><code>bun run dev:server</code> — server only on <code>:4444</code></li>
           <li><code>bun run dev:client</code> — client only on <code>:4445</code></li>
         </ul>
         <p className="tutorial-text">
           Once running, open <code>http://localhost:4445</code> in your browser to see the
-          village. To pull upstream changes later: <code>agentquest update</code> (or{' '}
+          village. To pull upstream changes later: <code>pokeagent update</code> (or{' '}
           <code>git pull --ff-only && bun install</code>).
         </p>
         <p className="tutorial-text">
           To share the village with other devices on the same Wi-Fi, prefix either form with{' '}
-          <code>AGENT_QUEST_LAN=1</code> (e.g. <code>AGENT_QUEST_LAN=1 agentquest</code>) —
+          <code>POKEAGENT_LAN=1</code> (e.g. <code>POKEAGENT_LAN=1 pokeagent</code>) —
           the server will print the reachable LAN URLs at boot.
         </p>
 
@@ -120,7 +121,7 @@ export function Tutorial({ onClose }: TutorialProps) {
         <div className="tutorial-section-label">Privacy</div>
         <p className="tutorial-text">
           Everything runs locally on your machine. Nothing is uploaded, shared or
-          persisted — Agent Quest only reads the logs Claude Code and Codex already
+          persisted — PokéAgent only reads the logs Claude Code and Codex already
           keep on your disk.
         </p>
 
@@ -137,20 +138,24 @@ export function Tutorial({ onClose }: TutorialProps) {
 
         <div className="tutorial-section-label">About</div>
         <p className="tutorial-text">
-          Built by <strong>Fulvio Scichilone</strong> (
+          A Pokémon-inspired fan project, open source under the MIT license —{' '}
           <a
             className="tutorial-link"
-            href="https://github.com/FulAppiOS"
+            href="https://github.com/sambeevors/PokeAgent"
             target="_blank"
             rel="noreferrer"
-          >@FulAppiOS</a>
-          {' '}on GitHub). Open source under the MIT license —{' '}
+          >source on GitHub</a>. Based on{' '}
           <a
             className="tutorial-link"
-            href="https://github.com/FulAppiOS/agent-quest"
+            href="https://github.com/FulAppiOS/Agent-Quest"
             target="_blank"
             rel="noreferrer"
-          >source on GitHub</a>.
+          >Agent Quest</a>{' '}by <strong>Fulvio Scichilone</strong>.
+        </p>
+        <p className="tutorial-text">
+          Not affiliated with, endorsed or sponsored by Nintendo, Game Freak,
+          Creatures Inc. or The Pokémon Company. Pokémon art © its owners, used
+          for educational, non-commercial purposes.
         </p>
       </div>
     </div>

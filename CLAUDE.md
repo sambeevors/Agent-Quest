@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Agent Quest is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as Pokémon trainers walking around **Cerulean City, exactly as Pokémon FireRed draws it**. Each agent is a real FireRed trainer who walks the town's streets to the place matching its current activity (Read → Trade House, Edit → Bike Shop, Bash → Nugget Bridge, etc.), trailed by the Pokémon it sends out last.
+PokéAgent is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as Pokémon trainers walking around **Cerulean City, exactly as Pokémon FireRed draws it**. Each agent is a real FireRed trainer who walks the town's streets to the place matching its current activity (Read → Trade House, Edit → Bike Shop, Bash → Nugget Bridge, etc.), trailed by the Pokémon it sends out last.
+
+PokéAgent is a Pokémon-inspired fan project, not affiliated with Nintendo, Game Freak, Creatures Inc. or The Pokémon Company. It was called Agent Quest until the rebrand; the slug everywhere else is `pokeagent` (CLI, package names, `pokeagent:` localStorage keys, `POKEAGENT_*` env vars, `sambeevors/PokeAgent` on GitHub). A few shims keep pre-rename installs working: `storage/legacy-keys.ts` moves old `agentquest:`/`agent-quest:` keys on boot, `AGENT_QUEST_LAN` is still read as a fallback, and `bin/agentquest` forwards to `bin/pokeagent`. The logo, app icon and README banner are drawn by `scripts/brand.py` — re-run it rather than editing the images.
 
 This repository is a fork of [FulAppiOS/Agent-Quest](https://github.com/FulAppiOS/Agent-Quest). Beyond upstream it adds cost tracking and replaces the whole world with FireRed's (an educational, non-commercial branch: the art is Nintendo / Game Freak / The Pokémon Company's) — see "Fork additions", "The town" and "Art pipeline" below. There is one world and one art set; there is no theme switch.
 
@@ -15,7 +17,7 @@ Two-process monorepo:
 - **server/** — Bun + Hono backend. Two providers run in parallel: `ClaudeProvider` auto-discovers every `~/.claude*` directory with a `projects/` subdir (e.g. `~/.claude`, `~/.claude-work`, `~/.claude-personale`); `CodexProvider` watches `~/.codex/sessions/` for Codex rollout files. Both poll their session logs every 2-3s, parse events into `AgentState` objects, push updates over native Bun WebSocket. Each `AgentState` carries its `configDir` and a `source` field (`'claude' | 'codex'`) so the UI can distinguish installations and providers. Optional Hono endpoint receives Claude Code `postToolUse` hooks for lower-latency events — **Claude Code only**; Codex doesn't expose hooks. `SessionRegistry` (pidfile oracle) is also **Claude-only by design**; Codex liveness is inferred purely from rollout-file activity.
 - **client/** — React 19 + Phaser 4 "Caladan" frontend. The world is Cerulean City, baked into the client (`client/src/game/town/`, `client/public/assets/pokemon/town/`); the server knows nothing about the map. Fullscreen Phaser canvas renders the town; React overlay panels (Party Bar, Activity Feed, Detail Panel, Minimap, Top Bar) sit on top via ref-based bridge pattern (useRef + useEffect + EventEmitter).
 
-- **desktop/** — Electron shell (macOS). `src/main.ts` spawns the server as a child process (Bun can't run inside Electron's Node: packaged it is a `bun build --compile` binary, from source it is `bun run`) and points it at the built client via `AGENT_QUEST_CLIENT_DIR`, so the window loads everything from :4444 (`server/src/static/client-routes.ts`). The server exits when its stdin closes (`AGENT_QUEST_EXIT_WITH_PARENT`), so a crashed shell doesn't strand :4444. Open-at-login is enabled once on first run of the installed app and is the user's after that.
+- **desktop/** — Electron shell (macOS). `src/main.ts` spawns the server as a child process (Bun can't run inside Electron's Node: packaged it is a `bun build --compile` binary, from source it is `bun run`) and points it at the built client via `POKEAGENT_CLIENT_DIR`, so the window loads everything from :4444 (`server/src/static/client-routes.ts`). The server exits when its stdin closes (`POKEAGENT_EXIT_WITH_PARENT`), so a crashed shell doesn't strand :4444. Open-at-login is enabled once on first run of the installed app and is the user's after that.
 
 Data flow: `~/.claude*/projects/**/*.jsonl` and `~/.codex/sessions/**/rollout-*.jsonl` → ClaudeProvider / CodexProvider → SessionParser (per-format) → AgentStateManager → WebSocket → Browser (React state + Phaser scene).
 
@@ -27,7 +29,7 @@ Features this fork adds on top of upstream. Each is isolated in its own module w
 |---|---|---|
 | Cost tracking | `server/src/pricing/model-pricing.ts` — family-keyed USD rates; `AgentStateManager.addUsage` prices each deduped record against the model that produced it | `formatCost`/`isCostKnown` in `types/agent.ts`; shown in TopBar, DetailPanel, SessionReport |
 | Trainers | — | `naming/hero-names.ts` — `trainerFor(agentId, source)` / `heroNameFor`; roster generated into `naming/trainer-roster.ts` |
-| Hero chatter | — | `game/data/hero-chatter.ts` (lines + timing) drawn by `game/entities/ThoughtBubble.ts`; scheduled per hero in `HeroSprite` |
+| Trainer chatter | — | `game/data/hero-chatter.ts` (lines + timing) drawn by `game/entities/ThoughtBubble.ts`; scheduled per hero in `HeroSprite` |
 | Cerulean City | — | `game/town/` (generated `town-data.ts`, `town.ts`, `pathfinding.ts`); `Building`, `ArenaFighters`, `FarmWork` hang meaning on it |
 | FireRed art | — | `game/pokemon.ts` + generated `pokemon-sheet.ts`; baked assets under `client/public/assets/pokemon/`; bake pipeline in `scripts/bake-pokemon/` |
 
@@ -48,7 +50,7 @@ The world is **FireRed's Cerulean City, block for block** — not a map drawn fo
 | Walk grid | collision bits clear, behaviour not water or a ledge, reachable from the spawn | `town-data.ts` `walk` |
 | Doors | the map's warp events | `town-data.ts` per building; open frame = last frame of the door's real animation (`graphics/door_anims`, palette per `field_door.c`) |
 
-Everything is at x2: one 16px block is one 32px tile. A hero's position on a tile is its **feet** (`footOf`), the way an overworld sprite stands in the game; `HeroSprite.moveTo` takes feet.
+Everything is at x2: one 16px block is one 32px tile. A trainer's position on a tile is its **feet** (`footOf`), the way an overworld sprite stands in the game; `HeroSprite.moveTo` takes feet.
 
 **Trainers move the way FireRed characters do.** `town/pathfinding.ts` is 4-way A* over the walk grid, preferring straight runs on ties so routes read as streets rather than staircases, and returns only the corners. There is no road network and no desire-path generator any more — the old village's generated roads, scenery, shoreline and critters were all removed with it, because the real town already has streets. Only the part of the map reachable from the spawn is walkable: the flower garden north of the Badge House is reached through that house's back door in the game, so here it is scenery.
 
@@ -64,6 +66,7 @@ If something about the town looks wrong, fix the bake (`town.py`) and re-run it 
 
 - **Trainers** are 16x32 four-way walkers re-laid as 12 frames (down/up/left/right × stand, step, step; right is left mirrored), rendered at x2. A parked trainer always stands on its stand frame, facing its spot — it only steps while it is actually walking (`HeroSprite.playStationary`).
 - **Portraits** are the battle front pics, cropped square to the face, for every React avatar.
+- **Icons** in the panels are FireRed's own, never emoji: bag item icons in their palettes (Soothe Bell = waiting, Poké Ball = done, Sun/Moon/Water Stone = day/night/rain, Teachy TV = settings) and the trainer emote bubbles (`!` = error, `?` = help). `ITEM_ICONS`/`EMOTES` in `bake.py` pick them, `UI_ICONS` in `game/pokemon.ts` lists them, `<PokeIcon>` draws one at native size, and `ALERT_ICON` maps alert kinds to them.
 - **Panel chrome** is a FireRed-style 9-slice (`pokemon-ui.css`, `assets/pokemon/ui/`) — chrome only; layout, text palette and RuneScape type unchanged.
 
 ## Typography
@@ -88,7 +91,7 @@ bun run dev:server     # Server only on localhost:4444
 bun run dev:client     # Client only on localhost:4445
 bun run check:assets   # Verify every baked asset the game loads exists on disk
 bun run desktop        # Electron shell from source (builds the client first)
-bun run desktop:install # Package Agent Quest.app and install it to /Applications
+bun run desktop:install # Package PokeAgent.app (shown as PokéAgent) and install it to /Applications
 ```
 
 ## Ports
@@ -118,4 +121,4 @@ The central data model flows from server to client. Defined in shared types. Map
 
 ## Design Spec
 
-Full spec with building mappings, hero classes, VFX, panel layouts, and asset pipeline: `docs/specs/2026-04-15-agent-quest-design.md`
+Full spec with building mappings, trainer classes, VFX, panel layouts, and asset pipeline: `docs/specs/2026-04-15-pokeagent-design.md`

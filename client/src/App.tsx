@@ -69,7 +69,7 @@ export default function App() {
 
   const closeTutorial = useCallback(() => {
     setTutorialOpen(false);
-    try { localStorage.setItem('agent-quest:tutorial-seen', '1'); } catch {}
+    try { localStorage.setItem('pokeagent:tutorial-seen', '1'); } catch {}
   }, []);
 
   const selectedAgent = selectedAgentId !== null
@@ -142,7 +142,7 @@ export default function App() {
     const onReady = () => {
       setVillageReady(true);
       try {
-        if (localStorage.getItem('agent-quest:tutorial-seen') !== '1') {
+        if (localStorage.getItem('pokeagent:tutorial-seen') !== '1') {
           setTutorialOpen(true);
         }
       } catch {

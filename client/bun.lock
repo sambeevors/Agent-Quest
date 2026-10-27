@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "agent-quest-client",
+      "name": "pokeagent-client",
       "dependencies": {
         "phaser": "^4.0.0",
         "react": "^19.0.0",
