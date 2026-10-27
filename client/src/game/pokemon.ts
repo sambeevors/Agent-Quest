@@ -55,7 +55,6 @@ export function walkFrames(facing: Facing): number[] {
   return [s + 1, s, s + 2, s];
 }
 
-
 export function trainerTextureKey(trainer: Trainer): string {
   return `trainer-${trainer.sprite}`;
 }
