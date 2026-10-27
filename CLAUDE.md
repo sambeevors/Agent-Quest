@@ -91,7 +91,7 @@ bun run dev:server     # Server only on localhost:4444
 bun run dev:client     # Client only on localhost:4445
 bun run check:assets   # Verify every baked asset the game loads exists on disk
 bun run desktop        # Electron shell from source (builds the client first)
-bun run desktop:install # Package PokéAgent.app and install it to /Applications
+bun run desktop:install # Package PokeAgent.app (shown as PokéAgent) and install it to /Applications
 ```
 
 ## Ports

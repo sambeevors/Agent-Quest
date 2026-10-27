@@ -1,6 +1,6 @@
 {
   "name": "pokeagent-desktop",
-  "productName": "PokéAgent",
+  "productName": "PokeAgent",
   "private": true,
   "version": "0.0.3",
   "description": "PokéAgent as a macOS app",

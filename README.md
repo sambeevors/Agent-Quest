@@ -152,7 +152,7 @@ pokeagent update     # git pull + bun install (preserves local map edits)
 ### Desktop app (macOS)
 
 ```bash
-bun run desktop:install   # build "PokéAgent.app", copy it to /Applications, launch it
+bun run desktop:install   # build "PokeAgent.app" (shown as PokéAgent), copy it to /Applications, launch it
 bun run desktop           # or: run the Electron shell from source, without installing
 ```
 
