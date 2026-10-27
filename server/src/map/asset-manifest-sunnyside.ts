@@ -18,14 +18,14 @@ import type {
  * other via the generated sheet metadata.
  */
 
-const BASE = '/assets/themes/sunnyside';
+const SUNNYSIDE_BASE = '/assets/themes/sunnyside';
 
-function buildTilesets(): TilesetManifest[] {
+function buildTilesets(base: string): TilesetManifest[] {
   return [
     {
       key: 'terrain-grass',
       label: 'Terrain — Grass',
-      path: `${BASE}/terrain/grass.png`,
+      path: `${base}/terrain/grass.png`,
       tileWidth: 64,
       tileHeight: 64,
       columns: 6,
@@ -34,7 +34,7 @@ function buildTilesets(): TilesetManifest[] {
     {
       key: 'terrain-water',
       label: 'Terrain — Water',
-      path: `${BASE}/terrain/water.png`,
+      path: `${base}/terrain/water.png`,
       tileWidth: 64,
       tileHeight: 64,
       columns: 5,
@@ -44,7 +44,7 @@ function buildTilesets(): TilesetManifest[] {
       // 4x4-tile seamless grass mix used as the map's base tileSprite.
       key: 'terrain-meadow',
       label: 'Terrain — Meadow base',
-      path: `${BASE}/terrain/meadow.png`,
+      path: `${base}/terrain/meadow.png`,
       tileWidth: 256,
       tileHeight: 256,
       columns: 1,
@@ -53,7 +53,7 @@ function buildTilesets(): TilesetManifest[] {
     {
       key: 'terrain-road',
       label: 'Terrain — Road',
-      path: `${BASE}/terrain/road.png`,
+      path: `${base}/terrain/road.png`,
       tileWidth: 64,
       tileHeight: 64,
       columns: 6,
@@ -62,7 +62,7 @@ function buildTilesets(): TilesetManifest[] {
   ];
 }
 
-function buildDecorations(): DecorationManifest[] {
+function buildDecorations(base: string): DecorationManifest[] {
   const out: DecorationManifest[] = [];
   const add = (
     key: string,
@@ -74,16 +74,16 @@ function buildDecorations(): DecorationManifest[] {
     out.push({ key, label, path, category, group: '', folderPath: [], defaultScale: 0.45, ...extra });
   };
 
-  for (let i = 1; i <= 4; i++) add(`tree-${i}`, `Tree ${i}`, `${BASE}/scenery/tree-${i}.png`, 'tree');
-  for (let i = 1; i <= 3; i++) add(`bush-${i}`, `Bush ${i}`, `${BASE}/scenery/bush-${i}.png`, 'bush');
-  for (let i = 1; i <= 5; i++) add(`rock-${i}`, `Rock ${i}`, `${BASE}/scenery/rock-${i}.png`, 'rock');
-  for (let i = 1; i <= 2; i++) add(`stump-${i}`, `Stump ${i}`, `${BASE}/scenery/stump-${i}.png`, 'stump');
-  for (let i = 1; i <= 3; i++) add(`flower-${i}`, `Flowers ${i}`, `${BASE}/scenery/flower-${i}.png`, 'prop');
+  for (let i = 1; i <= 4; i++) add(`tree-${i}`, `Tree ${i}`, `${base}/scenery/tree-${i}.png`, 'tree');
+  for (let i = 1; i <= 3; i++) add(`bush-${i}`, `Bush ${i}`, `${base}/scenery/bush-${i}.png`, 'bush');
+  for (let i = 1; i <= 5; i++) add(`rock-${i}`, `Rock ${i}`, `${base}/scenery/rock-${i}.png`, 'rock');
+  for (let i = 1; i <= 2; i++) add(`stump-${i}`, `Stump ${i}`, `${base}/scenery/stump-${i}.png`, 'stump');
+  for (let i = 1; i <= 3; i++) add(`flower-${i}`, `Flowers ${i}`, `${base}/scenery/flower-${i}.png`, 'prop');
 
   // The lake itself is `terrain-water` cells (its shore is derived from them on
   // the client), so the only water-side feature is the jetty heroes arrive on.
   // Baked at the terrain's x4, so it places at scale 1.
-  add('terrain-bridge', 'Jetty', `${BASE}/terrain/bridge.png`, 'prop', { defaultScale: 1.0 });
+  add('terrain-bridge', 'Jetty', `${base}/terrain/bridge.png`, 'prop', { defaultScale: 1.0 });
 
   return out;
 }
@@ -107,7 +107,7 @@ function buildingScale(id: string): number {
   return 0.58 * (52 / DOOR_HEIGHT[id]!);
 }
 
-function buildProtectedBuildings(): ProtectedBuildingManifest[] {
+function buildProtectedBuildings(base: string, scaleFor: (id: string) => number): ProtectedBuildingManifest[] {
   const defs: Array<[string, string, string]> = [
     ['library', 'Library', 'reading'],
     ['alchemist', 'Alchemist', 'debugging'],
@@ -121,16 +121,25 @@ function buildProtectedBuildings(): ProtectedBuildingManifest[] {
   return defs.map(([id, label, activity]) => ({
     id,
     label,
-    path: `${BASE}/buildings/${id}.png`,
+    path: `${base}/buildings/${id}.png`,
     activity,
-    defaultScale: Number(buildingScale(id).toFixed(4)),
+    defaultScale: Number(scaleFor(id).toFixed(4)),
   }));
 }
 
 export function buildAssetManifestSunnyside(): AssetManifest {
+  return buildBakedManifest(SUNNYSIDE_BASE, buildingScale);
+}
+
+/**
+ * Any theme whose bake emits the same regular tree (same keys, same sheet
+ * shapes) under its own base path — the Pokémon theme's bake does, so it
+ * shares this table rather than copying it.
+ */
+export function buildBakedManifest(base: string, scaleFor: (id: string) => number): AssetManifest {
   return {
-    tilesets: buildTilesets(),
-    decorations: buildDecorations(),
-    protectedBuildings: buildProtectedBuildings(),
+    tilesets: buildTilesets(base),
+    decorations: buildDecorations(base),
+    protectedBuildings: buildProtectedBuildings(base, scaleFor),
   };
 }

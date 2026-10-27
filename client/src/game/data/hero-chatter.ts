@@ -200,13 +200,16 @@ export function nextChatterDelay(random: () => number = Math.random): number {
 /**
  * A line for the mood, never the one that was just shown — repeating the same
  * thought back-to-back is the one thing that makes the pool feel small.
+ * `lines` lets a theme speak in its own voice; moods it leaves out fall back
+ * to the defaults above.
  */
 export function pickChatterLine(
   mood: ChatterMood,
   previous: string | null = null,
   random: () => number = Math.random,
+  lines: Partial<Record<string, readonly string[]>> = CHATTER_LINES,
 ): string {
-  const pool = CHATTER_LINES[mood];
+  const pool = lines[mood] ?? CHATTER_LINES[mood];
   const choices = pool.length > 1 ? pool.filter((line) => line !== previous) : pool;
   const index = Math.min(choices.length - 1, Math.floor(random() * choices.length));
   return choices[index]!;

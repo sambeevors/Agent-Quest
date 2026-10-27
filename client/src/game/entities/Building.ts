@@ -3,7 +3,7 @@ import type { BuildingDef } from '../data/building-layout';
 import { spriteRect } from '../data/building-plan';
 import { eventBridge } from '../EventBridge';
 import { addCrispText, LABEL_FONT } from '../text';
-import { getActiveTheme } from '../themes/registry';
+import { buildingLabel, getActiveTheme } from '../themes/registry';
 
 /** Clear air between the building's top (chimney included) and its subtitle. */
 const BUILDING_LABEL_GAP = 6;
@@ -23,6 +23,8 @@ export class Building {
   readonly doorY: number;
   private readonly scene: Phaser.Scene;
   private smoke: Phaser.GameObjects.Sprite | null = null;
+  /** The open-door overlay some themes show instead of smoke. */
+  private openDoor: Phaser.GameObjects.Image | null = null;
   /** Interior rect in image pixels — set for enclosures heroes walk into. */
   private readonly interior: readonly [number, number, number, number] | null;
   private ground: Phaser.GameObjects.Image | null = null;
@@ -82,6 +84,7 @@ export class Building {
     // hang 5px into the image, which on every roofed hall was exactly where
     // the chimney is drawn.
     const top = def.y - this.image.displayHeight;
+    const label = buildingLabel(def);
     const subtitle = addCrispText(scene, def.x, top - BUILDING_LABEL_GAP, def.activity, {
       fontSize: '13px',
       color: '#d8d8d8',
@@ -91,7 +94,7 @@ export class Building {
       shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 2, fill: true },
     }).setOrigin(0.5, 1);
 
-    this.label = addCrispText(scene, def.x, subtitle.y - subtitle.displayHeight + BUILDING_LABEL_LEADING, def.label, {
+    this.label = addCrispText(scene, def.x, subtitle.y - subtitle.displayHeight + BUILDING_LABEL_LEADING, label, {
       fontSize: '17px',
       fontStyle: '600',
       color: '#F5E6C8',
@@ -116,6 +119,7 @@ export class Building {
    * proportionate.
    */
   setSmoking(smoking: boolean): void {
+    this.setDoorOpen(smoking);
     if (!smoking) {
       this.smoke?.destroy();
       this.smoke = null;
@@ -142,6 +146,26 @@ export class Building {
    * (arena, farm). Ordinary buildings return null and their heroes gather at
    * the door.
    */
+  /**
+   * The same occupancy signal as smoke, for themes whose buildings have no
+   * chimney: the door stands open while a hero is inside. The overlay is the
+   * building image's own size, so it lines up by construction.
+   */
+  private setDoorOpen(open: boolean): void {
+    if (!open) {
+      this.openDoor?.destroy();
+      this.openDoor = null;
+      return;
+    }
+    if (this.openDoor !== null) return;
+    const key = `${this.def.imageKey}-open`;
+    if (getActiveTheme().hasOpenDoorOverlay?.(this.def.id) !== true || !this.scene.textures.exists(key)) return;
+    this.openDoor = this.scene.add.image(this.def.x, this.def.y, key);
+    this.openDoor.setOrigin(0.5, 1);
+    this.openDoor.setScale(this.image.scaleX);
+    this.openDoor.setDepth(this.doorY + SMOKE_DEPTH_OFFSET);
+  }
+
   interiorWorldRect(): { x: number; y: number; w: number; h: number } | null {
     if (this.interior === null) return null;
     const scale = this.image.scaleX;

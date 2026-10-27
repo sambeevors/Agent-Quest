@@ -1,19 +1,20 @@
 import { useEffect } from 'react';
+import { buildingLabel } from '../game/themes/registry';
 import './Tutorial.css';
 
 interface TutorialProps {
   onClose: () => void;
 }
 
-const ACTIVITY_LEGEND: { activity: string; building: string; tools: string }[] = [
-  { activity: 'Read / Grep / Glob',     building: 'Library',     tools: 'search & read code' },
-  { activity: 'Edit / Write',           building: 'Forge',       tools: 'write & edit code' },
-  { activity: 'Bash',                   building: 'Arena',       tools: 'run commands & tests' },
-  { activity: 'Thinking',               building: 'Castle',      tools: 'reason & plan' },
-  { activity: 'Reviewing / subagents',  building: 'Watchtower',  tools: 'dispatch review' },
-  { activity: 'Git commit / push',      building: 'Farm',        tools: 'commit & push' },
-  { activity: 'Debugging',              building: 'Alchemist',   tools: 'fix errors' },
-  { activity: 'Idle / waiting',         building: 'Tavern',      tools: 'rest between tasks' },
+const ACTIVITY_LEGEND: { activity: string; id: string; building: string; tools: string }[] = [
+  { activity: 'Read / Grep / Glob',     id: 'library', building: 'Library',     tools: 'search & read code' },
+  { activity: 'Edit / Write',           id: 'forge', building: 'Forge',       tools: 'write & edit code' },
+  { activity: 'Bash',                   id: 'arena', building: 'Arena',       tools: 'run commands & tests' },
+  { activity: 'Thinking',               id: 'castle', building: 'Castle',      tools: 'reason & plan' },
+  { activity: 'Reviewing / subagents',  id: 'watchtower', building: 'Watchtower',  tools: 'dispatch review' },
+  { activity: 'Git commit / push',      id: 'farm', building: 'Farm',        tools: 'commit & push' },
+  { activity: 'Debugging',              id: 'alchemist', building: 'Alchemist',   tools: 'fix errors' },
+  { activity: 'Idle / waiting',         id: 'tavern', building: 'Tavern',      tools: 'rest between tasks' },
 ];
 
 export function Tutorial({ onClose }: TutorialProps) {
@@ -69,7 +70,7 @@ export function Tutorial({ onClose }: TutorialProps) {
             {ACTIVITY_LEGEND.map((row) => (
               <tr key={row.building}>
                 <td className="tutorial-legend-k">{row.activity}</td>
-                <td className="tutorial-legend-v">{row.building}</td>
+                <td className="tutorial-legend-v">{buildingLabel({ id: row.id, label: row.building })}</td>
                 <td className="tutorial-legend-desc">{row.tools}</td>
               </tr>
             ))}

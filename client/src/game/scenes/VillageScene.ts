@@ -11,7 +11,7 @@ import { buildDesireNetwork, type DesireNode, type Rect } from '../data/desire-p
 import { planRoads, type RoadSite } from '../data/building-plan';
 import { buildPathTilemap } from '../data/path-tiles';
 import { renderPathTiles } from '../terrain/PathTileRenderer';
-import { generateScenery } from '../data/scenery';
+import { generateScenery, setSceneryStyle } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
 import { largestClearRect, waterKeepOut } from '../data/water';
 import { Critter } from '../entities/Critter';
@@ -627,6 +627,7 @@ export class VillageScene extends Phaser.Scene {
     // Scenery is generated against the road tiles that were just laid and the
     // building sprites as drawn, so no sprite can end up sitting on either.
     for (const sprite of this.scenerySprites) sprite.destroy();
+    setSceneryStyle(getActiveTheme().scenery);
     const items = generateScenery({
       bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
       buildings: obstacles,
@@ -657,12 +658,13 @@ export class VillageScene extends Phaser.Scene {
   private spawnCritters(animals: ReturnType<typeof generateScenery>): void {
     for (const c of this.critters) c.destroy();
     this.critters = [];
+    const critterScale = getActiveTheme().critterScale;
     for (const a of animals) {
       this.critters.push(new Critter(this, {
         textureKey: `animal-${a.variant}`,
         x: a.x,
         y: a.y,
-        scale: a.scale,
+        scale: critterScale ?? a.scale,
         roamRadius: 50,
       }));
     }
@@ -698,7 +700,7 @@ export class VillageScene extends Phaser.Scene {
           textureKey: 'duck',
           x: inner.x + rand() * inner.w,
           y: inner.y + rand() * inner.h,
-          scale: 0.45,
+          scale: critterScale ?? 0.45,
           roamRadius: 120,
           bounds: inner,
         }));
@@ -792,8 +794,9 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private spawnBuildings(overrides: BuildingPosition[] | null): void {
+    const themed = getActiveTheme().buildingPositions;
     for (const def of BUILDING_DEFS) {
-      const override = overrides?.find((p) => p.id === def.id);
+      const override = themed?.[def.id] ?? overrides?.find((p) => p.id === def.id);
       const resolved = override !== undefined
         ? { ...def, x: override.x, y: override.y }
         : def;
@@ -936,7 +939,7 @@ export class VillageScene extends Phaser.Scene {
       // the building gained a hero.
       hero.moveTo(pos.x, y, hero.currentActivity, () => {
         this.arrived.add(heroId);
-        if (focusX !== null) hero.faceTowards(focusX);
+        if (focusX !== null) hero.faceTowards(focusX, interior === null ? doorY : undefined);
         this.refreshOccupancy(buildingId);
       });
     }

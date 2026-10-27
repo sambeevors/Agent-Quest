@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { AgentState } from '../types/agent';
 import { BUILDING_DEFS } from '../game/data/building-layout';
+import { buildingLabel } from '../game/themes/registry';
 import './BuildingInfoPanel.css';
 
 interface BuildingInfoPanelProps {
@@ -57,7 +58,7 @@ export function BuildingInfoPanel({ buildingId, anchor, agents, onClose }: Build
       <button className="building-info-close" onClick={onClose}>&#x2715;</button>
 
       <div className="building-info-header">
-        <div className="building-info-name">{building.label}</div>
+        <div className="building-info-name">{buildingLabel(building)}</div>
         <div className="building-info-activity">{building.activity}</div>
       </div>
 

@@ -1,4 +1,6 @@
-export type ThemeId = 'sunnyside';
+import type { SceneryStyle } from '../data/scenery';
+
+export type ThemeId = 'sunnyside' | 'pokemon';
 
 export type UnitType = 'warrior' | 'archer' | 'pawn';
 /** Sunnyside hero sheets are baked per hero colour (shirt palette swap), so
@@ -57,7 +59,45 @@ export interface HeroSpriteConfig {
   extraAnims?: Record<string, { frameIndices: number[]; frameRate: number }>;
   /** Where the character stands inside its frame — see FrameExtent. */
   extent: FrameExtent;
+  /**
+   * Four-way walkers (top-down RPG sprites) instead of one side-view strip
+   * flipped left/right. When set, HeroSprite picks the row for the direction
+   * of travel, and a parked hero keeps facing the way it last looked —
+   * towards its building's door, or whoever it is battling.
+   */
+  directional?: DirectionalAnims;
 }
+
+export type Facing = 'down' | 'up' | 'left' | 'right';
+
+export interface DirectionalAnims {
+  /** One standing frame per direction. */
+  stand: Record<Facing, number>;
+  /** The walk cycle per direction. */
+  walk: Record<Facing, number[]>;
+  /**
+   * States a parked hero marks time in — stepping on the spot through its
+   * walk cycle, the way an NPC busy at a counter does — at this frame rate.
+   * Every other state just stands.
+   */
+  busy: { states: readonly string[]; frameRate: number };
+}
+
+/** A small companion that trots at its hero's heels. */
+export interface PartnerSpec {
+  textureKey: string;
+  /** Frames to loop while it moves (and, slower, while it waits). */
+  frameIndices: number[];
+  /** Where the creature stands inside its frame. */
+  extent: FrameExtent;
+  /** Natively-left-facing art is flipped when it heads right. */
+  facesLeft: boolean;
+  /** Size relative to its hero (default 1). */
+  scale?: number;
+}
+
+/** How the theme's scenery art is sized on the map — see data/scenery.ts. */
+export type { SceneryStyle };
 
 /**
  * The character's vertical extent inside its sprite frame, in native frame
@@ -84,6 +124,8 @@ export interface ArenaNpcSpec {
   attack: { frameIndices: number[]; frameRate: number };
   /** Where the NPC stands inside its frame, for foot-anchored depth sorting. */
   extent: FrameExtent;
+  /** Size relative to a hero (default 1). */
+  scale?: number;
 }
 
 /** Static preview of a hero's idle sheet — used by React UI (PartyBar). */
@@ -200,6 +242,38 @@ export interface ThemeManifest {
    * chimney smoke). Absent when the theme has no arena cast.
    */
   getArenaNpcs?(): ArenaNpcSpec[];
+  /**
+   * Multiplier from a MapConfig-saved scale (authored against the original
+   * Tiny Swords baseline) to this theme's sprites — see rebaseSavedScale.
+   */
+  savedScaleFactor: number;
+  /**
+   * The scale a placed MapConfig feature (lake stones, the jetty) renders at
+   * in this theme, given the scale saved with it. Absent means as saved.
+   */
+  featureScale?(textureKey: string, savedScale: number): number;
+  /** Scenery sizing; absent means the data/scenery.ts defaults (Sunnyside). */
+  scenery?: SceneryStyle;
+  /** Scale for wandering critters and the pond's swimmers. Default 0.45. */
+  critterScale?: number;
+  /**
+   * Where this theme stands a building instead of the shipped map's spot,
+   * for art whose footprint wouldn't fit the shared layout (FireRed's Gym
+   * and Lab are a third wider than the halls they replace).
+   */
+  buildingPositions?: Readonly<Record<string, { x: number; y: number }>>;
+  /** In-world and panel name for a building, when the theme renames it. */
+  getBuildingLabel?(id: string): string | null;
+  /**
+   * An alternative to chimney smoke for themes with no chimneys: a texture
+   * (`<imageKey>-open`, the same size as the building image) laid over the
+   * building while a hero is inside — FireRed's door standing open.
+   */
+  hasOpenDoorOverlay?(id: string): boolean;
+  /** The companion that follows the hero for this agent id, if any. */
+  getPartner?(agentId: string): PartnerSpec | null;
+  /** Thought-bubble lines in the theme's own voice, replacing the defaults per mood. */
+  chatter?: Partial<Record<string, readonly string[]>>;
   /** Optional post-load hook, called from BootScene.create() after the
    * Phaser loader has finished. Useful for canvas-based slicing: e.g.
    * turn one combined tree atlas into 4 separate `tree-1..4` textures. */

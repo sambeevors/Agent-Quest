@@ -5,6 +5,11 @@ import './fonts.css';
 // Loaded after App (and therefore after every component stylesheet) so the
 // Sunnyside chrome overrides win the cascade at equal specificity.
 import './sunnyside-ui.css';
+import './pokemon-ui.css';
+import { getActiveThemeId } from './game/themes/registry';
+
+// Theme-scoped chrome (pokemon-ui.css) keys off this class.
+document.documentElement.classList.add(`theme-${getActiveThemeId()}`);
 
 // Phaser bakes each label into a texture on first draw and never re-renders it,
 // so mount behind the font. The cap keeps a stalled font from blocking the app.

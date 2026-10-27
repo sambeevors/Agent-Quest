@@ -7,6 +7,7 @@ import { ThoughtBubble } from './ThoughtBubble';
 import { spriteAnchors, type SpriteAnchors } from '../data/sprite-anchors';
 import { leaderSegment, type LabelBox, type LabelOffset } from '../data/label-declutter';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
+import type { Facing, PartnerSpec } from '../themes/types';
 
 const MOVE_SPEED = 150;
 /** Ground distance covered by one full run-cycle. Keeps legs synced to travel. */
@@ -48,6 +49,14 @@ const HALO_BODY_FACTOR = 2.2;
 const ERROR_CHATTER_MAX_AGE_MS = 30 * 1000;
 
 const HALO_TEXTURE_KEY = 'hero-selection-halo';
+
+/** How far behind its trainer, along the path walked, a partner trots. */
+const PARTNER_FOLLOW_DISTANCE = 30;
+/** Where a partner waits beside a hero that hasn't walked anywhere yet. */
+const PARTNER_REST_OFFSET_X = -22;
+/** Hop rate of a partner on the move, and of one waiting at heel. */
+const PARTNER_MOVING_FPS = 6;
+const PARTNER_RESTING_FPS = 2;
 
 /**
  * Lazily build a soft radial-gradient texture we can reuse as the selection
@@ -113,6 +122,12 @@ export class HeroSprite {
   private nameBaseColor = '#DDDDDD';
   private selectionTween: Phaser.Tweens.Tween | null = null;
   private selectionHalo: Phaser.GameObjects.Image | null = null;
+  /** Which way a four-way walker is looking (unused by side-view sprites). */
+  private facing: Facing = 'down';
+  /** The partner Pokémon at the hero's heels, when the theme has one. */
+  private partner: { sprite: Phaser.GameObjects.Sprite; spec: PartnerSpec; footOffset: number } | null = null;
+  /** Recent foot positions, newest last — the trail the partner follows. */
+  private trail: Point[] = [];
 
   /** Grid base position — used for slot repositioning. */
   gridBaseX = 0;
@@ -191,6 +206,7 @@ export class HeroSprite {
     }
 
     this.playStationary();
+    this.createPartner(theme.getPartner?.(id) ?? null);
 
     const nameColor = HERO_LABEL_COLOR[heroColor] ?? '#DDDDDD';
     this.nameBaseColor = nameColor;
@@ -235,6 +251,12 @@ export class HeroSprite {
   setHeroScale(scale: number): void {
     this.sprite.setScale(scale);
     this.anchors = spriteAnchors(this.cfg.extent, this.sprite.scaleY);
+    if (this.partner !== null) {
+      const partnerScale = scale * (this.partner.spec.scale ?? 1);
+      this.partner.sprite.setScale(partnerScale);
+      this.partner.footOffset = spriteAnchors(this.partner.spec.extent, partnerScale).footOffset;
+      this.placePartner();
+    }
     this.layoutLabels();
     this.updateDepth();
   }
@@ -364,6 +386,17 @@ export class HeroSprite {
    */
   private playStationary(): void {
     const state = this.isWaiting ? 'waiting' : this.currentActivity;
+    const dir = this.cfg.directional;
+    if (dir !== undefined) {
+      if (dir.busy.states.includes(state)) {
+        this.playDirectional('busy', dir.walk[this.facing], dir.busy.frameRate);
+      } else {
+        this.sprite.stop();
+        this.sprite.setFrame(dir.stand[this.facing]);
+      }
+      this.placePartner();
+      return;
+    }
     const extra = this.cfg.extraAnims?.[state];
     if (extra !== undefined) {
       const key = `${this.idleKey}-${state}`;
@@ -402,7 +435,7 @@ export class HeroSprite {
   }
 
   private speak(mood: ChatterMood): void {
-    const line = pickChatterLine(mood, this.lastChatterLine);
+    const line = pickChatterLine(mood, this.lastChatterLine, Math.random, getActiveTheme().chatter);
     this.lastChatterLine = line;
     this.bubble.say(line, CHATTER_HOLD_MS);
   }
@@ -586,10 +619,85 @@ export class HeroSprite {
    * Motion overrides it, so this is only meaningful once the hero has arrived
    * (the arena stations its heroes facing the fighters they spar with).
    */
-  faceTowards(worldX: number): void {
+  faceTowards(worldX: number, worldY?: number): void {
     const dx = worldX - this._x;
+    if (this.cfg.directional !== undefined) {
+      // A four-way walker at a door turns its back to the camera and faces
+      // the building, the way a trainer in FireRed talks to a counter.
+      if (worldY !== undefined && worldY < this._y + this.anchors.footOffset - 4) this.facing = 'up';
+      else if (Math.abs(dx) >= 1) this.facing = dx < 0 ? 'left' : 'right';
+      else return;
+      if (!this.moving) this.playStationary();
+      return;
+    }
     if (Math.abs(dx) < 1) return;
     this.sprite.setFlipX((dx < 0) !== this.facesLeft);
+  }
+
+  /** Play a per-direction clip, creating it on first use. */
+  private playDirectional(kind: string, frames: number[], frameRate: number): void {
+    const key = `${this.idleKey}-${kind}-${this.facing}`;
+    if (!this.scene.anims.exists(key)) {
+      this.scene.anims.create({
+        key,
+        frames: this.scene.anims.generateFrameNumbers(this.idleKey, { frames }),
+        frameRate,
+        repeat: -1,
+      });
+    }
+    this.sprite.play(key, true);
+  }
+
+  private createPartner(spec: PartnerSpec | null): void {
+    if (spec === null || !this.scene.textures.exists(spec.textureKey)) return;
+    const animKey = `${spec.textureKey}-follow`;
+    if (!this.scene.anims.exists(animKey)) {
+      this.scene.anims.create({
+        key: animKey,
+        frames: this.scene.anims.generateFrameNumbers(spec.textureKey, { frames: spec.frameIndices }),
+        frameRate: PARTNER_MOVING_FPS,
+        repeat: -1,
+      });
+    }
+    const scale = this.sprite.scaleY * (spec.scale ?? 1);
+    const sprite = this.scene.add.sprite(this._x, this._y, spec.textureKey);
+    sprite.setScale(scale);
+    sprite.play(animKey);
+    sprite.anims.timeScale = PARTNER_RESTING_FPS / PARTNER_MOVING_FPS;
+    this.partner = { sprite, spec, footOffset: spriteAnchors(spec.extent, scale).footOffset };
+    this.placePartner();
+  }
+
+  /**
+   * Put the partner on the hero's trail, PARTNER_FOLLOW_DISTANCE back along
+   * the path the hero's feet actually took — so it rounds corners behind its
+   * trainer instead of cutting across them.
+   */
+  private placePartner(): void {
+    const p = this.partner;
+    if (p === null) return;
+    const feet = { x: this._x, y: this._y + this.anchors.footOffset };
+    const last = this.trail[this.trail.length - 1];
+    if (last === undefined || Math.hypot(feet.x - last.x, feet.y - last.y) > 2) this.trail.push(feet);
+    let at: Point = this.trail.length > 1 ? this.trail[0]! : { x: feet.x + PARTNER_REST_OFFSET_X, y: feet.y };
+    let travelled = 0;
+    for (let i = this.trail.length - 1; i > 0; i--) {
+      const a = this.trail[i]!;
+      const b = this.trail[i - 1]!;
+      const seg = Math.hypot(a.x - b.x, a.y - b.y);
+      if (travelled + seg >= PARTNER_FOLLOW_DISTANCE) {
+        const t = (PARTNER_FOLLOW_DISTANCE - travelled) / seg;
+        at = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+        this.trail.splice(0, i - 1);
+        break;
+      }
+      travelled += seg;
+    }
+    const dx = at.x - p.sprite.x;
+    if (Math.abs(dx) > 0.5) p.sprite.setFlipX((dx > 0) === p.spec.facesLeft);
+    p.sprite.setPosition(at.x, at.y - p.footOffset);
+    p.sprite.setDepth(at.y + 0.5);
+    p.sprite.anims.timeScale = this.moving ? 1 : PARTNER_RESTING_FPS / PARTNER_MOVING_FPS;
   }
 
   /**
@@ -679,12 +787,20 @@ export class HeroSprite {
       return;
     }
 
-    // Flip based on horizontal direction (invert for sprites that natively face left)
-    if (Math.abs(dx) > 5) {
-      this.sprite.setFlipX((dx < 0) !== this.facesLeft);
+    const dir = this.cfg.directional;
+    if (dir !== undefined) {
+      // Four-way walkers take the row for the dominant axis of travel.
+      this.facing = Math.abs(dx) >= Math.abs(dy)
+        ? (dx < 0 ? 'left' : 'right')
+        : (dy < 0 ? 'up' : 'down');
+      this.playDirectional('walk', dir.walk[this.facing], this.cfg.runFrames * (MOVE_SPEED / RUN_PIXELS_PER_CYCLE));
+    } else {
+      // Flip based on horizontal direction (invert for sprites that natively face left)
+      if (Math.abs(dx) > 5) {
+        this.sprite.setFlipX((dx < 0) !== this.facesLeft);
+      }
+      this.sprite.play(`${this.runKey}-anim`, true);
     }
-
-    this.sprite.play(`${this.runKey}-anim`, true);
 
     const duration = (distance / MOVE_SPEED) * 1000;
 
@@ -698,6 +814,7 @@ export class HeroSprite {
         this._x = target.x;
         this._y = target.y;
         this.sprite.setPosition(this._x, this._y);
+        this.placePartner();
         this.layoutLabels();
         if (this.selectionHalo !== null) {
           this.selectionHalo.setPosition(this._x, this.bodyCentreY());
@@ -736,6 +853,8 @@ export class HeroSprite {
       this.selectionHalo = null;
     }
     this.sprite.destroy();
+    this.partner?.sprite.destroy();
+    this.partner = null;
     this.nameText.destroy();
     this.leader.destroy();
     if (this.subagentText !== null) this.subagentText.destroy();

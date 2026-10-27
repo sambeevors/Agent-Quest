@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import type { AssetManifest, MapConfig } from '../data/map-config';
 import { TILE_SIZE } from '../data/map-config';
 import { shoreTiles } from '../data/shore';
+import { getActiveTheme } from '../themes/registry';
 
 /** Theme texture holding the shoreline pieces (see `data/shore.ts`). */
 const SHORE_TEXTURE = 'terrain-shore';
@@ -101,7 +102,7 @@ export function renderMapConfig(
     const gameObj = needsSprite
       ? scene.add.sprite(d.x, d.y, d.textureKey, d.frame ?? 0)
       : scene.add.image(d.x, d.y, d.textureKey);
-    gameObj.setScale(d.scale);
+    gameObj.setScale(getActiveTheme().featureScale?.(d.textureKey, d.scale) ?? d.scale);
     if (d.tint !== undefined) gameObj.setTint(d.tint);
     if (d.animated === true && gameObj instanceof Phaser.GameObjects.Sprite) {
       const animKey = `${d.textureKey}:${d.animation ?? 'idle'}`;

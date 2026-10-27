@@ -1,13 +1,16 @@
 import type { AssetManifest } from './types';
-import { buildAssetManifestSunnyside } from './asset-manifest-sunnyside';
+import { buildAssetManifestSunnyside, buildBakedManifest } from './asset-manifest-sunnyside';
 
-export type ThemeId = 'sunnyside';
+export type ThemeId = 'sunnyside' | 'pokemon';
 
 /**
- * Returns the asset manifest the client consumes. The project ships with a
- * single bundled theme; unknown `theme` strings fall through to the same
- * manifest.
+ * Returns the asset manifest the client consumes for a theme. Unknown `theme`
+ * strings fall through to Sunnyside.
+ *
+ * The Pokémon bake (scripts/bake-pokemon/) emits the Sunnyside tree's exact
+ * keys and sheet shapes, baked so every building renders at scale 1.
  */
-export function buildAssetManifest(_theme: ThemeId | string = 'sunnyside'): AssetManifest {
+export function buildAssetManifest(theme: ThemeId | string = 'sunnyside'): AssetManifest {
+  if (theme === 'pokemon') return buildBakedManifest('/assets/themes/pokemon', () => 1);
   return buildAssetManifestSunnyside();
 }

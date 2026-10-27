@@ -85,6 +85,16 @@ What the bake does, and why it exists at all:
 
 If a sprite looks wrong, fix the **recipe** and re-bake — never edit a baked PNG by hand. Coordinates of every tile the bake pulls from the 16px tileset are named constants in the bake modules.
 
+## Pokémon theme (educational branch)
+
+A second theme, **`pokemon`**, dresses the village as a FireRed/LeafGreen Kanto town and is the default on this branch; `?theme=sunnyside` (remembered in localStorage) switches back. The art is Nintendo / Game Freak / The Pokémon Company's and is here for non-commercial educational use only. Everything is baked by `scripts/bake-pokemon/` from a sparse checkout of **pret/pokefirered** (towns are rendered straight from the decomp's map data in `frlg.py`; buildings are cropped from real towns; terrain, road and shore sheets are composed from the general tileset's metatiles; trainers come from the overworld pics with their in-game palettes in `overworld.py`) and **PokeAPI/sprites** (Gen III icons for every Pokémon). Generated metadata: `client/src/game/themes/pokemon-sheet.ts`.
+
+- **Same contract, different art.** The bake emits the Sunnyside tree's exact keys and sheet shapes, so roads, shore, scenery and the server manifest (`buildBakedManifest`) run unchanged. Map art is baked at x2 (one 16px metatile = 32 world px = one road cell) and renders at scale 1.
+- **Buildings**: Pokémon Center = idle, Poké Mart = debugging, Oak's Lab = thinking, Gym = reviewing, Trainer School = reading, Bike Shop = editing; Tall Grass (arena, wild Rattata/Spearow) = bash; Flower Garden (farm) = git. Labels come from `theme.getBuildingLabel` via `buildingLabel()`. The Gym/Lab/School are wider than the halls they replace, so the theme moves four buildings (`buildingPositions`); `pokemon.test.ts` pins the ≥48px gaps.
+- **Occupancy** has no chimney here: the door stands open (`<id>-open.png` overlay, `Building.setDoorOpen`) while a hero is inside — same `arrived`-set contract as smoke.
+- **Heroes are four-way walkers** (`HeroSpriteConfig.directional`): class × colour picks a trainer; Codex is Team Rocket. Parked trainers face their building's door and mark time while busy. Each trainer is trailed by a **partner Pokémon** chosen from its agent id (`theme.getPartner`), which follows the hero's foot trail.
+- Theme hooks added for this: `savedScaleFactor`, `featureScale`, `scenery` (`setSceneryStyle` — no jitter or mirroring for tile art), `critterScale`, `chatter` (thought bubbles in Pokémon voice), `ArenaNpcSpec.scale`. Panel chrome: `pokemon-ui.css`, scoped to `html.theme-pokemon`.
+
 ## Typography
 
 Everything the user reads — React panels and Phaser's in-world labels alike — is set in RuneScape (`client/public/assets/fonts/runescape.ttf`, declared in `client/src/fonts.css`).

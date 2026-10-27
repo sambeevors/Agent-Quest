@@ -148,7 +148,7 @@ export class BootScene extends Phaser.Scene {
       }).setOrigin(0.5, 0);
 
       const hintText =
-        'Restore with:\n   git checkout -- client/public/assets/themes/sunnyside/\n' +
+        'Restore with:\n   git checkout -- client/public/assets/themes/\n' +
         'or re-clone the repository.';
       const hint = addCrispText(this, cx, sample.y + sample.displayHeight + 20, hintText, {
         fontSize: '12px',

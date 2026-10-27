@@ -105,6 +105,7 @@ export const sunnysideTheme: ThemeManifest = {
   name: 'Sunnyside World',
   heroScale: HERO_SCALE,
   buildingScale: BUILDING_SCALE,
+  savedScaleFactor: 4,
 
   getHeroPreload(): PreloadEntry[] {
     const entries: PreloadEntry[] = [];

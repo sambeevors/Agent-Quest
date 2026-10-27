@@ -99,6 +99,35 @@ export const SCENERY_ART_SIZE: Readonly<Record<string, readonly [number, number]
   'animal-5': [64, 64],
 };
 
+/**
+ * The sizing in force. Defaults to the Sunnyside numbers above; a theme whose
+ * art is drawn to another grid (Pokémon: tile art at x2, never jittered or
+ * mirrored) swaps it in once, before the world is generated, with
+ * `setSceneryStyle`. Module state rather than a parameter so every helper —
+ * footprints, trunk bands, the clearance test — measures the same art.
+ */
+export interface SceneryStyle {
+  scale: number;
+  jitter: number;
+  artSize: Readonly<Record<string, readonly [number, number]>>;
+  flip: boolean;
+  /** Multiplier on the density field (a tidy town wants less clutter). */
+  density?: number;
+}
+
+const DEFAULT_STYLE: SceneryStyle = {
+  scale: SCENERY_SCALE,
+  jitter: SCALE_JITTER,
+  artSize: SCENERY_ART_SIZE,
+  flip: true,
+};
+
+let style: SceneryStyle = DEFAULT_STYLE;
+
+export function setSceneryStyle(next: SceneryStyle | undefined): void {
+  style = next ?? DEFAULT_STYLE;
+}
+
 const evenly = (n: number): VariantSpec[] => Array.from({ length: n }, () => ({ weight: 1 }));
 
 /**
@@ -200,7 +229,7 @@ export interface SceneryOptions {
 export function sceneryFootprint(
   item: Pick<SceneryItem, 'kind' | 'variant' | 'x' | 'y' | 'scale'>,
 ): Rect {
-  const [fw, fh] = SCENERY_ART_SIZE[`${item.kind}-${item.variant}`] ?? [64, 64];
+  const [fw, fh] = style.artSize[`${item.kind}-${item.variant}`] ?? [64, 64];
   const w = fw * item.scale;
   const h = fh * item.scale;
   return { x: item.x - w / 2, y: item.y - h, w, h };
@@ -417,7 +446,7 @@ function pickWeighted(weights: readonly number[], roll: number): number {
 
 export function generateScenery(opts: SceneryOptions): SceneryItem[] {
   const cell = opts.cell ?? 44;
-  const density = opts.density ?? 1;
+  const density = (opts.density ?? 1) * (style.density ?? 1);
   const rng = mulberry32(opts.seed ?? 0x5eed);
   const exclusions = opts.exclusions ?? [];
   const walls = [...opts.buildings, ...(opts.buildingSprites ?? [])];
@@ -463,8 +492,8 @@ export function generateScenery(opts: SceneryOptions): SceneryItem[] {
       const spec = KIND_SPECS[kind];
       const v = pickWeighted(spec.variants.map((s) => s.weight), rng());
       const variantSpec = spec.variants[v]!;
-      const scale = SCENERY_SCALE * (1 + (rng() * 2 - 1) * SCALE_JITTER);
-      const flipX = rng() < 0.5;
+      const scale = style.scale * (1 + (rng() * 2 - 1) * style.jitter);
+      const flipX = rng() < 0.5 && style.flip;
 
       const wallGap = variantSpec.wallGap ?? spec.wallGap;
       const roadGap = variantSpec.roadGap ?? spec.roadGap;

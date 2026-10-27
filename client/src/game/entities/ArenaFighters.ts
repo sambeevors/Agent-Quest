@@ -39,9 +39,10 @@ export class ArenaFighters {
       const spot = NPC_SPOTS[i % NPC_SPOTS.length]!;
       const x = interior.x + interior.w * spot.fx;
       const footY = interior.y + interior.h * spot.fy;
-      const { footOffset } = spriteAnchors(spec.extent, heroScale);
+      const scale = heroScale * (spec.scale ?? 1);
+      const { footOffset } = spriteAnchors(spec.extent, scale);
       const sprite = scene.add.sprite(x, footY - footOffset, spec.textureKey);
-      sprite.setScale(heroScale);
+      sprite.setScale(scale);
       // Face the heroes' (west) side of the yard.
       sprite.setFlipX(!spec.facesLeft);
       // Same foot-anchored depth rule as HeroSprite, so a hero can pass in

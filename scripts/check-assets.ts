@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Static verification that every asset path referenced by the active theme
+ * Static verification that every asset path referenced by every bundled theme
  * + building layout actually exists under client/public/. Run in CI or
  * pre-commit to catch renames / missing files before a user sees the boot
  * error screen.
@@ -17,6 +17,8 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { sunnysideTheme } from '../client/src/game/themes/sunnyside';
+import { pokemonTheme } from '../client/src/game/themes/pokemon';
+import type { ThemeManifest } from '../client/src/game/themes/types';
 import { BUILDING_DEFS } from '../client/src/game/data/building-layout';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -28,10 +30,13 @@ interface Expected {
 }
 
 function collectExpected(): Expected[] {
-  const out: Expected[] = [];
-  const theme = sunnysideTheme;
+  const out: Expected[] = [{ path: 'assets/logo.png', source: 'BootScene logo' }];
+  for (const theme of [sunnysideTheme, pokemonTheme]) out.push(...collectTheme(theme));
+  return out;
+}
 
-  out.push({ path: 'assets/logo.png', source: 'BootScene logo' });
+function collectTheme(theme: ThemeManifest): Expected[] {
+  const out: Expected[] = [];
 
   for (const def of BUILDING_DEFS) {
     out.push({ path: theme.getBuildingImage(def.id), source: `building:${def.id}` });
@@ -49,7 +54,7 @@ function collectExpected(): Expected[] {
     out.push({ path: e.path, source: `static:${e.key}` });
   }
 
-  return out;
+  return out.map((e) => ({ ...e, source: `${theme.id} ${e.source}` }));
 }
 
 function main(): number {
@@ -76,7 +81,7 @@ function main(): number {
   for (const m of missing) {
     console.error(`  [${m.source}] ${m.path}`);
   }
-  console.error('\nRestore with:  git checkout -- client/public/assets/themes/sunnyside/');
+  console.error('\nRestore with:  git checkout -- client/public/assets/themes/');
   return 1;
 }
 
