@@ -50,15 +50,20 @@ export class ArenaFighters {
     });
   }
 
-  /**
-   * Where the cast stands (mean of their feet), so a hero parked on the
-   * bridge can turn to face them rather than assume a side. Null when no
-   * fighter's texture loaded.
-   */
-  focus(): Point | null {
-    if (this.sprites.length === 0) return null;
-    const sum = this.sprites.reduce((acc, { feet }) => ({ x: acc.x + feet.x, y: acc.y + feet.y }), { x: 0, y: 0 });
-    return { x: sum.x / this.sprites.length, y: sum.y / this.sprites.length };
+  /** The fighter whose feet are closest to `from` — the one a trainer on the
+   * bridge and its partner square up to. Null when no fighter's texture
+   * loaded. */
+  nearest(from: Point): Point | null {
+    let best: Point | null = null;
+    let bestDist = Infinity;
+    for (const { feet } of this.sprites) {
+      const d = Math.hypot(feet.x - from.x, feet.y - from.y);
+      if (d < bestDist) {
+        best = feet;
+        bestDist = d;
+      }
+    }
+    return best;
   }
 
   /** Switch the cast between idling and sparring. Idempotent. */

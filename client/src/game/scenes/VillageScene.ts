@@ -581,6 +581,10 @@ export class VillageScene extends Phaser.Scene {
         this.arrived.add(heroId);
         const focus = this.stationFocus(building.def.id, spot);
         if (focus !== null) hero.faceTowards(focus);
+        // On the bridge the front row's partners go out to fight the Pokémon
+        // their trainers face. Further back, the tile in front is another
+        // trainer's, so the partner stays at heel.
+        if (buildingId === 'arena') hero.setBattling(spot.y === spots[0]!.y ? focus : null);
         this.refreshOccupancy(buildingId);
       });
     }
@@ -592,10 +596,11 @@ export class VillageScene extends Phaser.Scene {
    * What a trainer stationed here turns to look at, or null to keep the
    * direction it walked in. One that freezes mid-stride tends to end up with
    * its back to the counter it's supposedly at, so a trainer at a building
-   * faces its door, and one on Nugget Bridge faces the Pokémon it battles.
+   * faces its door, and one on Nugget Bridge faces the nearest of the
+   * Pokémon it battles.
    */
   private stationFocus(buildingId: string, feet: Point): Point | null {
-    if (buildingId === 'arena') return this.arenaFighters?.focus() ?? null;
+    if (buildingId === 'arena') return this.arenaFighters?.nearest(feet) ?? null;
     return this.buildings.find((b) => b.def.id === buildingId)?.doorFocus(feet) ?? null;
   }
 

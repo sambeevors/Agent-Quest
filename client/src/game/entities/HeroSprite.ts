@@ -9,6 +9,7 @@ import { spriteAnchors, type SpriteAnchors } from '../data/sprite-anchors';
 import { leaderSegment, type LabelBox, type LabelOffset } from '../data/label-declutter';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
 import {
+  BATTLE_FRAME_RATE, BATTLE_FRAMES, BATTLE_LUNGE_PX, battleBeat,
   partnerSpec, SPRITE_SCALE, standFrame, TRAINER_EXTENT, trainerTextureKey, walkFrames,
   type Facing, type PokemonSpec,
 } from '../pokemon';
@@ -52,6 +53,12 @@ const HALO_BODY_FACTOR = 2.2;
  */
 const ERROR_CHATTER_MAX_AGE_MS = 30 * 1000;
 
+interface Partner {
+  sprite: Phaser.GameObjects.Sprite;
+  spec: PokemonSpec;
+  footOffset: number;
+}
+
 const HALO_TEXTURE_KEY = 'hero-selection-halo';
 
 /** How far behind its trainer, along the path walked, a partner trots. */
@@ -61,6 +68,13 @@ const PARTNER_REST_OFFSET_X = -22;
 /** Hop rate of a partner on the move, and of one waiting at heel. */
 const PARTNER_MOVING_FPS = 6;
 const PARTNER_RESTING_FPS = 2;
+/** How far up the bridge from its trainer a battling partner stands — most
+ * of a tile, so it fights in the gap rather than at heel. Straight ahead, not
+ * towards the foe: trainers stand one to a tile, so their partners do too,
+ * where aiming at a shared foe would pile them on top of each other. */
+const PARTNER_BATTLE_DISTANCE = 28;
+/** The flash a struck Pokémon shows — the bake's hit-flash colour. */
+const HIT_FLASH_COLOR = 0xf8f8f8;
 
 /**
  * Lazily build a soft radial-gradient texture we can reuse as the selection
@@ -127,9 +141,14 @@ export class HeroSprite {
   /** Which way the trainer is looking — kept while parked. */
   private facing: Facing = 'down';
   /** The partner Pokémon at the trainer's heels. */
-  private partner: { sprite: Phaser.GameObjects.Sprite; spec: PokemonSpec; footOffset: number } | null = null;
+  private partner: Partner | null = null;
   /** Recent foot positions, newest last — the trail the partner follows. */
   private trail: Point[] = [];
+  /** Feet of the Pokémon the partner is battling, or null when it's at heel. */
+  private battleFoe: Point | null = null;
+  private battleTimer: Phaser.Time.TimerEvent | null = null;
+  /** Index into BATTLE_FRAMES. */
+  private battleStep = 0;
 
   /** Grid base position — used for slot repositioning. */
   gridBaseX = 0;
@@ -576,6 +595,60 @@ export class HeroSprite {
   }
 
   /**
+   * Send the partner out against the Pokémon standing at `foe`, or call it
+   * back to heel with null. Out, it stands on the tile in front of its
+   * trainer, turned to the foe, and trades blows on the bridge Pokémon's own beat: lunge, flash as it's
+   * struck, fall back, hop. Walking off calls it back on its own.
+   */
+  setBattling(foe: Point | null): void {
+    const p = this.partner;
+    if (p === null) return;
+    if (foe === null && this.battleFoe === null) return;
+    this.battleTimer?.remove();
+    this.battleTimer = null;
+    if (foe === null) {
+      // Leave the trail starting where it fought, so it rejoins its trainer
+      // from there instead of jumping back to heel.
+      const stance = { x: p.sprite.x, y: p.sprite.y + p.footOffset };
+      this.battleFoe = null;
+      p.sprite.clearTint();
+      p.sprite.play(`${p.spec.textureKey}-follow`);
+      this.trail = [stance, this.feet];
+      this.placePartner();
+      return;
+    }
+    this.battleFoe = foe;
+    this.battleStep = 0;
+    p.sprite.stop();
+    this.battleTimer = this.scene.time.addEvent({
+      delay: 1000 / BATTLE_FRAME_RATE,
+      loop: true,
+      callback: () => {
+        this.battleStep = (this.battleStep + 1) % BATTLE_FRAMES.length;
+        this.placePartner();
+      },
+    });
+    this.placePartner();
+  }
+
+  /** Stand a battling partner in front of its trainer and play the current beat. */
+  private placeBattlingPartner(p: Partner, foe: Point): void {
+    const stance = { x: this._x, y: this.feet.y - PARTNER_BATTLE_DISTANCE };
+    const dx = foe.x - stance.x;
+    const dy = foe.y - stance.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const beat = battleBeat(BATTLE_FRAMES[this.battleStep]!);
+    const lunge = beat.lunge ? BATTLE_LUNGE_PX * p.sprite.scaleX : 0;
+    const at = { x: stance.x + (dx / len) * lunge, y: stance.y + (dy / len) * lunge };
+    if (Math.abs(dx) > 0.5) p.sprite.setFlipX((dx > 0) === p.spec.facesLeft);
+    p.sprite.setFrame(beat.hop ? 1 : 0);
+    if (beat.flash) p.sprite.setTint(HIT_FLASH_COLOR).setTintMode(Phaser.TintModes.FILL);
+    else p.sprite.clearTint();
+    p.sprite.setPosition(at.x, at.y - p.footOffset);
+    p.sprite.setDepth(at.y + 0.5);
+  }
+
+  /**
    * Put the partner on the hero's trail, PARTNER_FOLLOW_DISTANCE back along
    * the path the hero's feet actually took — so it rounds corners behind its
    * trainer instead of cutting across them.
@@ -583,6 +656,10 @@ export class HeroSprite {
   private placePartner(): void {
     const p = this.partner;
     if (p === null) return;
+    if (this.battleFoe !== null) {
+      this.placeBattlingPartner(p, this.battleFoe);
+      return;
+    }
     const feet = { x: this._x, y: this._y + this.anchors.footOffset };
     const last = this.trail[this.trail.length - 1];
     if (last === undefined || Math.hypot(feet.x - last.x, feet.y - last.y) > 2) this.trail.push(feet);
@@ -645,6 +722,8 @@ export class HeroSprite {
       return;
     }
 
+    // Setting off calls the partner back to heel.
+    this.setBattling(null);
     this.moving = true;
     this.moveAlongPath(path);
   }
@@ -745,6 +824,8 @@ export class HeroSprite {
       this.selectionHalo.destroy();
       this.selectionHalo = null;
     }
+    this.battleTimer?.remove();
+    this.battleTimer = null;
     this.sprite.destroy();
     this.partner?.sprite.destroy();
     this.partner = null;
