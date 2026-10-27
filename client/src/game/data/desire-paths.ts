@@ -42,6 +42,42 @@ export interface DesireNode {
   id: string;
   x: number;
   y: number;
+  /**
+   * Optional fixed approach. The network is routed to `lead` instead of the
+   * node, and a dead-straight track then runs from `lead` to the node — for
+   * a destination the road has to meet head-on rather than at whatever angle
+   * the nearest link arrives from (the jetty: a road that reaches it on the
+   * diagonal lands on one corner of the deck).
+   */
+  lead?: Point;
+}
+
+/**
+ * Lead tracks are worn at least this broad: half-width ≥ one 32px cell's
+ * half, so the straight track rasterises two cells wide — symmetric about
+ * the cell boundary it runs along. Below it a track is one cell, centred on a
+ * cell, and can never sit square on anything 64px wide.
+ */
+export const LEAD_MIN_TRAFFIC = 0.5;
+
+/** How far north of the spawn the gate's straight lead track begins, in cells. */
+export const GATE_LEAD_CELLS = 3;
+
+/**
+ * The village gate as a routing node: the spawn, snapped to the nearest road
+ * cell boundary, with a straight lead running due north from it.
+ *
+ * The spawn is the bank end of the lake's jetty, a deck two road cells wide.
+ * Left to itself the network reaches it on whatever diagonal the nearest link
+ * takes, and the rasterised track lands on one corner of the deck. A straight
+ * north-south lead, at the minimum lead traffic, rasterises to exactly the two
+ * cells either side of the line it runs along — so running it along a cell
+ * boundary through the deck's centre makes the road meet the deck square and
+ * symmetric, edge to edge.
+ */
+export function gateNode(spawn: Point, cell: number): DesireNode {
+  const x = Math.round(spawn.x / cell) * cell;
+  return { id: 'gate', x, y: spawn.y, lead: { x, y: spawn.y - GATE_LEAD_CELLS * cell } };
 }
 
 export interface DesireRoad {
@@ -77,9 +113,12 @@ export interface DesireOptions {
   maxLinkLength?: number;
 }
 
+/** Default maximum sideways wobble of a routed track, world px. */
+export const DESIRE_JITTER = 6;
+
 const DEFAULTS = {
   clearance: 26,
-  jitter: 6,
+  jitter: DESIRE_JITTER,
   step: 34,
   maxLinkLength: 520,
 } as const;
@@ -120,12 +159,38 @@ export function segmentHitsRect(a: Point, b: Point, r: Rect): boolean {
   const tr = { x: r.x + r.w, y: r.y };
   const br = { x: r.x + r.w, y: r.y + r.h };
   const bl = { x: r.x, y: r.y + r.h };
-  return (
+  if (
     segmentsIntersect(a, b, tl, tr) ||
     segmentsIntersect(a, b, tr, br) ||
     segmentsIntersect(a, b, br, bl) ||
     segmentsIntersect(a, b, bl, tl)
-  );
+  ) return true;
+  // A segment can also cross the interior while touching the boundary only
+  // at corners — corner to opposite corner is exactly the leg a router finds
+  // between two waypoints of the same ring, and it properly crosses no edge.
+  // Clip it to the rect and test the middle of whatever survives.
+  return chordMidpointInside(a, b, r);
+}
+
+/** Liang–Barsky clip of [a,b] to the rect; true when the clipped part's
+ *  midpoint lies strictly inside. Grazing along an edge stays clear. */
+function chordMidpointInside(a: Point, b: Point, r: Rect): boolean {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  let t0 = 0;
+  let t1 = 1;
+  const clip = (p: number, q: number): boolean => {
+    if (Math.abs(p) < 1e-12) return q >= 0;
+    const t = q / p;
+    if (p < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
+    else { if (t < t0) return false; if (t < t1) t1 = t; }
+    return true;
+  };
+  if (!clip(-dx, a.x - r.x) || !clip(dx, r.x + r.w - a.x)
+    || !clip(-dy, a.y - r.y) || !clip(dy, r.y + r.h - a.y)) return false;
+  if (t1 - t0 < 1e-9) return false;
+  const tm = (t0 + t1) / 2;
+  return pointInRect({ x: a.x + dx * tm, y: a.y + dy * tm }, r);
 }
 
 function isClear(a: Point, b: Point, obstacles: Rect[]): boolean {
@@ -412,6 +477,10 @@ export function buildDesireNetwork(
   const maxLinkLength = opts.maxLinkLength ?? DEFAULTS.maxLinkLength;
 
   if (nodes.length < 2) return { roads: [], waypoints: [], edges: [] };
+  const requested = nodes;
+  // Everything below routes to a node's lead where it has one; the lead
+  // tracks themselves are added once the network is built.
+  nodes = nodes.map((n) => (n.lead === undefined ? n : { id: n.id, x: n.lead.x, y: n.lead.y }));
 
   const inflated = obstacles.map((r) => inflate(r, clearance));
   const corners = obstacleCorners(obstacles, clearance);
@@ -462,6 +531,19 @@ export function buildDesireNetwork(
     points: organicise(r.points, step, jitter, obstacles),
     traffic: traffic[i] ?? 0,
   }));
+
+  // Lead tracks: straight, unjittered (the point is that they meet their node
+  // square), and as worn as the busiest track arriving at their lead.
+  for (const node of requested) {
+    if (node.lead === undefined) continue;
+    const arriving = roads.filter((r) => r.a === node.id || r.b === node.id);
+    roads.push({
+      a: node.id,
+      b: node.id,
+      points: [{ ...node.lead }, { x: node.x, y: node.y }],
+      traffic: Math.max(LEAD_MIN_TRAFFIC, ...arriving.map((r) => r.traffic)),
+    });
+  }
 
   // Flatten into the routing graph heroes walk. Vertices close enough to be
   // the same junction are merged so tracks meeting at a building actually

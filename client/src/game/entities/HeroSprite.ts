@@ -4,6 +4,8 @@ import { getActiveTheme } from '../themes/registry';
 import { directPath, findRoadPath, type Point } from '../data/road-network';
 import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
+import { spriteAnchors, type SpriteAnchors } from '../data/sprite-anchors';
+import { leaderSegment, type LabelBox, type LabelOffset } from '../data/label-declutter';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
 
 const MOVE_SPEED = 150;
@@ -11,13 +13,33 @@ const MOVE_SPEED = 150;
 const RUN_PIXELS_PER_CYCLE = 60;
 
 /**
- * Label offsets are computed per-instance from the sprite's actual
- * displayHeight so they adapt to whatever scale the active theme uses.
- * Only the name (and the subagent / source badges tucked under it) is drawn
- * on the hero — activity, model, file and prompt used to stack below the
- * sprite, four rows deep, and buried the village in log text. That detail
- * lives in the React panels; the canvas says what a hero is thinking instead.
+ * The label stack hangs off the character's HEAD, as measured by the bake
+ * (`HeroSpriteConfig.extent`), not off the frame top: a Sunnyside frame is
+ * 64 rows with a ~19-row hero in it, so the frame top is ~35 world px above
+ * the hair. Bottom to top the stack is name, then the subagent / source
+ * badge row, then the thought bubble.
+ *
+ * Only the name (and those badges) is drawn on the hero — activity, model,
+ * file and prompt used to stack below the sprite, four rows deep, and buried
+ * the village in log text. That detail lives in the React panels; the canvas
+ * says what a hero is thinking instead.
  */
+
+/** Clear air between the top of the hair and the bottom of the name's box
+ *  (the box already carries a few px of descender room). */
+const NAME_HEAD_GAP = 0;
+/** Clear air between the name and the badge row above it. */
+const BADGE_GAP = 1;
+/** Clear air between the top label and the bubble's tail. */
+const BUBBLE_GAP = 2;
+/** Leader line from a displaced name back to its hero (see leaderSegment). */
+const LEADER_COLOR = 0xf4ead2;
+const LEADER_OUTLINE = 0x000000;
+const LEADER_WIDTH = 1.5;
+const LEADER_OUTLINE_WIDTH = 3.5;
+const LEADER_ALPHA = 0.85;
+/** Selection halo diameter, as a multiple of the character's height. */
+const HALO_BODY_FACTOR = 2.2;
 
 /**
  * A hero speaks again this soon after an error, whatever its chatter timer
@@ -59,6 +81,8 @@ export class HeroSprite {
   private sprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
   private subagentText: Phaser.GameObjects.Text | null = null;
+  /** Thin line from a displaced name to the head it belongs to. */
+  private leader: Phaser.GameObjects.Graphics;
   private sourceText: Phaser.GameObjects.Text | null = null;
   private source: AgentSource;
   private isSubagent: boolean;
@@ -80,9 +104,10 @@ export class HeroSprite {
   private facesLeft: boolean;
   private cfg!: import('../themes/types').HeroSpriteConfig;
   private moving = false;
-  private nameOffsetY: number;
-  private subagentOffsetY: number;
-  private bubbleOffsetY: number;
+  /** Head and feet relative to the sprite centre, at the current scale. */
+  private anchors: SpriteAnchors;
+  /** Where the label stack is moved to clear its neighbours' (see label-declutter). */
+  private labelOffset: LabelOffset = { dx: 0, lift: 0 };
   currentActivity: AgentActivity = 'idle';
   private isWaiting = false;
   private nameBaseColor = '#DDDDDD';
@@ -134,15 +159,7 @@ export class HeroSprite {
     // regardless of which code path later wires up interactivity.
     this.sprite.setData('isHero', true);
 
-    // Label offsets derived from actual sprite height — scale with theme.
-    const halfH = this.sprite.displayHeight / 2;
-    this.nameOffsetY = -(halfH + 2);
-    // Subagent marker sits ~16px below the name (standard "subtitle" placement,
-    // so the name stays the primary anchor for the eye).
-    this.subagentOffsetY = this.nameOffsetY + 16;
-    // The bubble hangs off the top of the name rather than the sprite, so it
-    // clears the label whatever the theme's hero scale is.
-    this.bubbleOffsetY = this.nameOffsetY - 12;
+    this.anchors = spriteAnchors(cfg.extent, this.sprite.scaleY);
 
     // Create idle animation if it doesn't exist yet
     const idleAnimKey = `${this.idleKey}-anim`;
@@ -177,18 +194,19 @@ export class HeroSprite {
 
     const nameColor = HERO_LABEL_COLOR[heroColor] ?? '#DDDDDD';
     this.nameBaseColor = nameColor;
-    this.nameText = addCrispText(scene, x, y + this.nameOffsetY, name, {
+    this.nameText = addCrispText(scene, x, y, name, {
       fontSize: '16px',
       color: nameColor,
       fontFamily: LABEL_FONT,
       stroke: '#000000',
       strokeThickness: 3,
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, 1);
 
     // Subagent marker: only created for spawned subagents — sits just above
     // the name to visually distinguish child heroes from parent sessions.
+    // (Below the name would be on the hero's face.)
     if (isSubagent) {
-      this.subagentText = addCrispText(scene, x, y + this.subagentOffsetY, 'subagent', {
+      this.subagentText = addCrispText(scene, x, y, 'subagent', {
         fontSize: '10px',
         color: '#9AA4B0',
         fontFamily: LABEL_FONT,
@@ -201,7 +219,9 @@ export class HeroSprite {
     // Source badge is created lazily by setSourceBadgeVisible(true) — shown
     // only when the UI is in mixed-provider mode.
 
-    this.bubble = new ThoughtBubble(scene, x, y + this.bubbleOffsetY);
+    this.leader = scene.add.graphics();
+    this.bubble = new ThoughtBubble(scene, x, y);
+    this.layoutLabels();
     this.scheduleChatter();
 
     // Set initial Y-based depth
@@ -214,6 +234,41 @@ export class HeroSprite {
   /** Override the default hero scale (e.g. from MapConfig settings). */
   setHeroScale(scale: number): void {
     this.sprite.setScale(scale);
+    this.anchors = spriteAnchors(this.cfg.extent, this.sprite.scaleY);
+    this.layoutLabels();
+    this.updateDepth();
+  }
+
+  /** Whether the hero is walking — a walking hero's labels stay unlifted. */
+  get isMoving(): boolean { return this.moving; }
+
+  /**
+   * The label stack's box at rest (no lift), for the scene's declutter pass.
+   * Prioritised by foot y, so the hero nearest the viewer keeps its name
+   * closest to its head.
+   */
+  labelBox(): LabelBox {
+    const nameH = this.nameText.displayHeight;
+    const badgeH = this.badgeRowHeight();
+    const width = Math.max(
+      this.nameText.displayWidth,
+      badgeH > 0 ? this.badgeRowWidth() : 0,
+    );
+    return {
+      id: this.id,
+      x: this._x,
+      bottom: this._y + this.anchors.headOffset - NAME_HEAD_GAP,
+      width,
+      height: nameH + (badgeH > 0 ? BADGE_GAP + badgeH : 0),
+      priority: this._y + this.anchors.footOffset,
+    };
+  }
+
+  /** Move the label stack off its rest spot ({0, 0} = right above the head). */
+  setLabelOffset(offset: LabelOffset): void {
+    if (Math.abs(offset.dx - this.labelOffset.dx) < 0.5 && Math.abs(offset.lift - this.labelOffset.lift) < 0.5) return;
+    this.labelOffset = { dx: offset.dx, lift: offset.lift };
+    this.layoutLabels();
   }
 
   /** Make the sprite respond to pointerdown with the supplied callback. */
@@ -244,8 +299,12 @@ export class HeroSprite {
     }
     if (selected) {
       ensureHaloTexture(this.scene);
-      const diameter = Math.max(this.sprite.displayWidth, this.sprite.displayHeight) * 1.1;
-      const halo = this.scene.add.image(this._x, this._y, HALO_TEXTURE_KEY);
+      // Sized and centred on the character, not the frame — the frame is
+      // several times larger than the figure, and a frame-sized glow lit up
+      // half the neighbouring crowd.
+      const bodyH = this.anchors.footOffset - this.anchors.headOffset;
+      const diameter = bodyH * HALO_BODY_FACTOR;
+      const halo = this.scene.add.image(this._x, this.bodyCentreY(), HALO_TEXTURE_KEY);
       halo.setDisplaySize(diameter, diameter);
       halo.setAlpha(0.35);
       halo.setDepth(this.sprite.depth - 0.1);
@@ -393,13 +452,15 @@ export class HeroSprite {
     // (bottom-anchored, origin 0.5/1) and decorations that sort on their base.
     // Without this, a hero whose feet align with a building's foot would render
     // behind it because his center-y is well above the building's foot-y.
-    const footY = this._y + this.sprite.displayHeight * 0.5;
+    const footY = this._y + this.anchors.footOffset;
     this.sprite.setDepth(footY + 0.5);
     if (this.selectionHalo !== null) this.selectionHalo.setDepth(footY + 0.4);
     // Labels sort in their own band above the world (see HERO_LABEL_DEPTH),
     // keyed by foot y so the near hero's name still covers the far one's.
     const labelDepth = HERO_LABEL_DEPTH + footY / 10000;
     this.nameText.setDepth(labelDepth);
+    // Just under every name, so a leader passes behind the text it crosses.
+    this.leader.setDepth(HERO_LABEL_DEPTH - 0.5);
     if (this.subagentText !== null) this.subagentText.setDepth(labelDepth);
     if (this.sourceText !== null) this.sourceText.setDepth(labelDepth);
     this.bubble.setDepth(labelDepth + 0.00005);
@@ -419,7 +480,7 @@ export class HeroSprite {
       this.sourceText = addCrispText(
         this.scene,
         this._x,
-        this._y + this.subagentOffsetY,
+        this._y,
         this.source.toUpperCase(),
         {
           fontSize: '10px',
@@ -433,34 +494,90 @@ export class HeroSprite {
     if (this.sourceText !== null) {
       this.sourceText.setVisible(visible);
     }
-    this.layoutSubagentAndSource();
+    this.layoutLabels();
     // A hero parked at its building has no active move tween, so the text
     // would keep its default depth (0) and render behind buildings until the
     // next move. Force a depth sweep so the new badge is visible immediately.
     if (justCreated) this.updateDepth();
   }
 
+  private bodyCentreY(): number {
+    return this._y + (this.anchors.headOffset + this.anchors.footOffset) / 2;
+  }
+
+  private badgeRowHeight(): number {
+    const sub = this.subagentText?.displayHeight ?? 0;
+    const src = this.sourceBadgeVisible ? (this.sourceText?.displayHeight ?? 0) : 0;
+    return Math.max(sub, src);
+  }
+
+  private badgeRowWidth(): number {
+    const sub = this.subagentText?.displayWidth ?? 0;
+    const src = this.sourceBadgeVisible ? (this.sourceText?.displayWidth ?? 0) : 0;
+    return sub > 0 && src > 0 ? sub + src + 6 : Math.max(sub, src);
+  }
+
   /**
-   * Position the subagent marker and source badge on the shared subagent row.
+   * Position the whole label stack: the name right above the head (moved by
+   * any declutter offset), the badge row above the name, the bubble above
+   * both — and, for a displaced name, the leader back down to the head.
+   */
+  private layoutLabels(): void {
+    const headY = this._y + this.anchors.headOffset - NAME_HEAD_GAP;
+    const nameBottom = headY - this.labelOffset.lift;
+    const labelX = this._x + this.labelOffset.dx;
+    this.nameText.setPosition(labelX, nameBottom);
+    this.drawLeader(labelX, nameBottom, headY);
+    let top = nameBottom - this.nameText.displayHeight;
+    const badgeH = this.badgeRowHeight();
+    if (badgeH > 0) {
+      this.layoutBadges(labelX, top - BADGE_GAP - badgeH / 2);
+      top -= BADGE_GAP + badgeH;
+    }
+    this.bubble.setPosition(labelX, top - BUBBLE_GAP);
+  }
+
+  /**
+   * A crowd's names spread out to stay legible, which leaves some of them
+   * off to the side of, or a row above, the hero they belong to. The leader
+   * settles whose is whose: a thin line from the name down to its own hero's
+   * hair, drawn only where the name no longer sits over it.
+   */
+  private drawLeader(labelX: number, nameBottom: number, headY: number): void {
+    this.leader.clear();
+    if (this.labelOffset.dx === 0 && this.labelOffset.lift === 0) return;
+    // The name box carries ~3px of descender room below the letters.
+    const seg = leaderSegment(labelX, this.nameText.displayWidth, nameBottom - 3, this._x, headY);
+    if (seg === null) return;
+    const { x0, y0, x1, y1 } = seg;
+    // Pale core in a dark casing, like the names' own stroke, so the line
+    // reads over grass, road and roof alike.
+    this.leader.lineStyle(LEADER_OUTLINE_WIDTH, LEADER_OUTLINE, LEADER_ALPHA * 0.7);
+    this.leader.lineBetween(x0, y0, x1, y1);
+    this.leader.lineStyle(LEADER_WIDTH, LEADER_COLOR, LEADER_ALPHA);
+    this.leader.lineBetween(x0, y0, x1, y1);
+  }
+
+  /**
+   * Position the subagent marker and source badge on the shared badge row.
    * When both are visible they sit side-by-side (centered as a pair); when
    * only one is visible it sits centered on its own.
    */
-  private layoutSubagentAndSource(): void {
-    const y = this._y + this.subagentOffsetY;
+  private layoutBadges(x: number, y: number): void {
     if (this.sourceBadgeVisible && this.isSubagent && this.subagentText !== null && this.sourceText !== null) {
       this.subagentText.setOrigin(1, 0.5);
-      this.subagentText.setPosition(this._x - 3, y);
+      this.subagentText.setPosition(x - 3, y);
       this.sourceText.setOrigin(0, 0.5);
-      this.sourceText.setPosition(this._x + 3, y);
+      this.sourceText.setPosition(x + 3, y);
       return;
     }
     if (this.subagentText !== null) {
       this.subagentText.setOrigin(0.5);
-      this.subagentText.setPosition(this._x, y);
+      this.subagentText.setPosition(x, y);
     }
     if (this.sourceText !== null) {
       this.sourceText.setOrigin(0.5);
-      this.sourceText.setPosition(this._x, y);
+      this.sourceText.setPosition(x, y);
     }
   }
 
@@ -495,6 +612,9 @@ export class HeroSprite {
 
   private walk(path: Point[], activity: AgentActivity, onArrive?: () => void): void {
     this.currentActivity = activity;
+    // An offset only makes sense among a parked crowd; on the road the name
+    // goes back over the head it belongs to. The scene re-spreads it on arrival.
+    this.setLabelOffset({ dx: 0, lift: 0 });
 
     // Cancel existing move
     if (this.moveTween !== null) {
@@ -521,7 +641,7 @@ export class HeroSprite {
 
   /** Distance from the sprite's centre to its feet — where it stands. */
   get footOffset(): number {
-    return this.sprite.displayHeight / 2;
+    return this.anchors.footOffset;
   }
 
   private notifyArrival(): void {
@@ -578,11 +698,9 @@ export class HeroSprite {
         this._x = target.x;
         this._y = target.y;
         this.sprite.setPosition(this._x, this._y);
-        this.nameText.setPosition(this._x, this._y + this.nameOffsetY);
-        this.layoutSubagentAndSource();
-        this.bubble.setPosition(this._x, this._y + this.bubbleOffsetY);
+        this.layoutLabels();
         if (this.selectionHalo !== null) {
-          this.selectionHalo.setPosition(this._x, this._y);
+          this.selectionHalo.setPosition(this._x, this.bodyCentreY());
         }
         this.updateDepth();
       },
@@ -619,6 +737,7 @@ export class HeroSprite {
     }
     this.sprite.destroy();
     this.nameText.destroy();
+    this.leader.destroy();
     if (this.subagentText !== null) this.subagentText.destroy();
     if (this.sourceText !== null) this.sourceText.destroy();
     this.bubble.destroy();

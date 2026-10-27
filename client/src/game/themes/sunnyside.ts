@@ -1,6 +1,7 @@
 import { SUNNYSIDE_SHEET } from './sunnyside-sheet';
 import type {
   ArenaNpcSpec,
+  FrameExtent,
   HeroPreview,
   HeroSpriteConfig,
   PreloadEntry,
@@ -29,8 +30,14 @@ const SHEET = SUNNYSIDE_SHEET.heroes;
 const GOBLIN = SUNNYSIDE_SHEET.goblin;
 const SKELETON = SUNNYSIDE_SHEET.skeleton;
 
+/** Where each species stands in its frame, as measured by the bake. All three
+ *  sheets share the 96x64 hero frame. */
+export const HERO_EXTENT: FrameExtent = { frameHeight: SHEET.frameHeight, headY: SHEET.headY, footY: SHEET.footY };
+export const GOBLIN_EXTENT: FrameExtent = { frameHeight: SHEET.frameHeight, headY: GOBLIN.headY, footY: GOBLIN.footY };
+export const SKELETON_EXTENT: FrameExtent = { frameHeight: SKELETON.frameHeight, headY: SKELETON.headY, footY: SKELETON.footY };
+
 /**
- * How large a hero renders. The baked frames are 96x64 with an ~15px-tall
+ * How large a hero renders. The baked frames are 96x64 with an ~19px-tall
  * character inside, so unlike Tiny Swords (192px frames, scale 0.55) the
  * scale is above 1. MapConfig-saved scales are rebased in registry.ts.
  */
@@ -69,7 +76,7 @@ function humanKey(color: UnitColor, unit: UnitType): string {
 
 type AnimTable = Record<string, { row: number; frames: number }>;
 
-function buildConfig(textureKey: string, anims: AnimTable): HeroSpriteConfig {
+function buildConfig(textureKey: string, anims: AnimTable, extent: FrameExtent): HeroSpriteConfig {
   const idle = anims['idle']!;
   const walk = anims['walk']!;
   const extraAnims: Record<string, { frameIndices: number[]; frameRate: number }> = {};
@@ -89,6 +96,7 @@ function buildConfig(textureKey: string, anims: AnimTable): HeroSpriteConfig {
     facesLeft: false,
     tint: null,
     extraAnims,
+    extent,
   };
 }
 
@@ -121,9 +129,9 @@ export const sunnysideTheme: ThemeManifest = {
 
   getHeroConfig(color: UnitColor, unit: UnitType, source?: UnitSource): HeroSpriteConfig {
     if (source === 'codex') {
-      return buildConfig('hero-goblin', GOBLIN.anims as AnimTable);
+      return buildConfig('hero-goblin', GOBLIN.anims as AnimTable, GOBLIN_EXTENT);
     }
-    return buildConfig(humanKey(color, unit), SHEET.anims as AnimTable);
+    return buildConfig(humanKey(color, unit), SHEET.anims as AnimTable, HERO_EXTENT);
   },
 
   getHeroPreview(color: UnitColor, unit: UnitType, source?: UnitSource): HeroPreview {
@@ -183,12 +191,14 @@ export const sunnysideTheme: ThemeManifest = {
         facesLeft: false,
         idle: { frameIndices: rowIndices(goblinIdle.row, goblinIdle.frames), frameRate: 8 },
         attack: { frameIndices: rowIndices(goblinAttack.row, goblinAttack.frames), frameRate: 10 },
+        extent: GOBLIN_EXTENT,
       },
       {
         textureKey: 'npc-skeleton',
         facesLeft: false,
         idle: { frameIndices: rowIndices(SKELETON.anims.idle.row, SKELETON.anims.idle.frames, SKELETON.columns), frameRate: 8 },
         attack: { frameIndices: rowIndices(SKELETON.anims.attack.row, SKELETON.anims.attack.frames, SKELETON.columns), frameRate: 10 },
+        extent: SKELETON_EXTENT,
       },
     ];
   },
@@ -200,6 +210,9 @@ export const sunnysideTheme: ThemeManifest = {
       // lake keep-out in game/data/water.ts matches on it.
       { key: 'terrain-road', path: `${BASE}/terrain/road.png`, frameWidth: 64, frameHeight: 64 },
       { key: 'terrain-water', path: `${BASE}/terrain/water.png`, frameWidth: 64, frameHeight: 64 },
+      // Shoreline pieces, laid along the lake by MapConfigRenderer (frame
+      // order: data/shore.ts SHORE_FRAME).
+      { key: 'terrain-shore', path: `${BASE}/terrain/shore.png`, frameWidth: 64, frameHeight: 64 },
       { key: 'terrain-meadow', path: `${BASE}/terrain/meadow.png` },
       { key: 'terrain-bridge', path: `${BASE}/terrain/bridge.png` },
       // Enclosure floors — drawn beneath the y-sorted world by Building so

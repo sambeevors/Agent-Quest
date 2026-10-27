@@ -8,11 +8,12 @@ import { renderMapConfig } from '../terrain/MapConfigRenderer';
 import { ensureAssetsLoaded } from '../data/asset-loader';
 import { setRoadNetworkFromDesire } from '../data/road-network';
 import { buildDesireNetwork, type DesireNode, type Rect } from '../data/desire-paths';
+import { planRoads, type RoadSite } from '../data/building-plan';
 import { buildPathTilemap } from '../data/path-tiles';
 import { renderPathTiles } from '../terrain/PathTileRenderer';
 import { generateScenery } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
-import { waterKeepOut } from '../data/water';
+import { largestClearRect, waterKeepOut } from '../data/water';
 import { Critter } from '../entities/Critter';
 import { ArenaFighters } from '../entities/ArenaFighters';
 import { FarmWork } from '../entities/FarmWork';
@@ -22,6 +23,7 @@ import type { AssetManifest, MapConfig, BuildingPosition } from '../data/map-con
 import { SERVER_URL as API_BASE } from '../../config';
 import { getActiveTheme, rebaseSavedScale } from '../themes/registry';
 import { sceneRenderScale } from '../dpr';
+import { declutterLabels } from '../data/label-declutter';
 
 /** Set `cam.zoom` to `newZoom` while keeping the world point currently
  * under screen coordinates (sx, sy) pinned to the same screen spot.
@@ -38,9 +40,17 @@ function zoomAroundPointer(cam: Phaser.Cameras.Scene2D.Camera, sx: number, sy: n
 /** Hide agents idle for longer than this from the Phaser scene (kept in PartyBar). */
 const IDLE_HIDE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
-/** Grid spacing between heroes at the same building. */
-const GRID_SPACING_X = 40;
-const GRID_SPACING_Y = 35;
+/** How often parked heroes' name labels are re-spread to clear each other. */
+const LABEL_DECLUTTER_INTERVAL_MS = 200;
+
+/** Grid spacing between heroes at the same building. Still narrower than a
+ * name (~95px), but wide enough that the label declutter pass can spread a
+ * rank of three names up to ~104px side by side with each hero still
+ * standing under its own (see declutterHeroLabels) — the old 40px grid
+ * forced the names into a column over the roof. A 3×3 crowd spans ±68px,
+ * which keeps it on the forecourt the door's road arrives at. */
+const GRID_SPACING_X = 68;
+const GRID_SPACING_Y = 36;
 
 export class VillageScene extends Phaser.Scene {
   private buildings: Building[] = [];
@@ -94,6 +104,9 @@ export class VillageScene extends Phaser.Scene {
 
   /** Water keep-out rects — also where the ducks live. */
   private waterRects: Rect[] = [];
+
+  /** Placed floors (the jetty) — kept clear of swimming ducks. */
+  private floorRects: Rect[] = [];
 
   /** Ground the generator must leave alone — water and other placed features. */
   private sceneryExclusions: Rect[] = [];
@@ -391,6 +404,13 @@ export class VillageScene extends Phaser.Scene {
     };
     this.input.on('pointerdown', this.onBackgroundPointerDown);
 
+    // The scene clock is torn down with the scene, so no cleanup entry.
+    this.time.addEvent({
+      delay: LABEL_DECLUTTER_INTERVAL_MS,
+      loop: true,
+      callback: () => this.declutterHeroLabels(),
+    });
+
     const cleanup = () => {
       if (this.onAgentsUpdated !== null) {
         eventBridge.off('agents:updated', this.onAgentsUpdated);
@@ -493,6 +513,7 @@ export class VillageScene extends Phaser.Scene {
       // is the painted water: the lake is terrain tiles, not a feature, so
       // nothing in `featureBounds` describes it.
       this.waterRects = waterKeepOut(mapConfig.terrain);
+      this.floorRects = rendered.floorBounds;
       this.sceneryExclusions = [...rendered.featureBounds, ...this.waterRects];
       this.spawnBuildings(mapConfig.buildings);
 
@@ -574,45 +595,49 @@ export class VillageScene extends Phaser.Scene {
    * mixing a stale hand-drawn layer underneath would contradict them.
    */
   private rebuildRoads(): void {
-    const nodes: DesireNode[] = [];
-    const obstacles: Rect[] = [];
-
+    const sites: RoadSite[] = [];
     for (const b of this.buildings) {
-      nodes.push({ id: `b:${b.def.id}`, x: b.doorX, y: b.doorY });
-      obstacles.push(b.footprint);
+      sites.push({ id: `b:${b.def.id}`, door: { x: b.doorX, y: b.doorY }, keepOut: b.footprint });
     }
-    // The gate is where heroes arrive, so it needs a track even though nothing
-    // stands there.
-    nodes.push({ id: 'gate', x: this.heroSpawn.x, y: this.heroSpawn.y });
+    const cell = (getActiveTheme().terrain?.tileSize ?? 64) / 2;
+    // Keep-out rects, door leads and the jetty gate — shared with the tests
+    // that lay out the shipped map, so both route the same roads.
+    const { nodes, obstacles, clearance } = planRoads(sites, this.heroSpawn, cell);
 
-    const network = buildDesireNetwork(nodes, obstacles);
+    const network = buildDesireNetwork(nodes, obstacles, { clearance });
 
     this.roadLayer?.destroy();
     const terrain = getActiveTheme().terrain;
     const road = terrain?.road;
-    if (terrain !== undefined && road !== undefined) {
-      const tilemap = buildPathTilemap(network, {
-        cell: terrain.tileSize / 2,
-        tilesetColumns: road.columns,
-        roadBlockFrame: road.blockFrame,
-        gravelFrame: road.gravelFrame,
-        tuftFrame: road.tuftFrame,
-        bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
-      });
-      this.roadLayer = renderPathTiles(this, tilemap, road.tilesetKey, terrain.tileSize);
-    } else {
-      this.roadLayer = null;
-    }
+    // Rasterised even with no road art to draw it with: the scenery keeps off
+    // this surface, and the tiles are the honest width of a track.
+    const tilemap = buildPathTilemap(network, {
+      cell,
+      tilesetColumns: road?.columns,
+      roadBlockFrame: road?.blockFrame,
+      gravelFrame: road?.gravelFrame,
+      tuftFrame: road?.tuftFrame,
+      bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
+    });
+    this.roadLayer = terrain !== undefined && road !== undefined
+      ? renderPathTiles(this, tilemap, road.tilesetKey, terrain.tileSize)
+      : null;
     setRoadNetworkFromDesire(network.waypoints, network.edges);
 
-    // Scenery is generated against the roads that were just laid, so it can
-    // never end up sitting on one.
+    // Scenery is generated against the road tiles that were just laid and the
+    // building sprites as drawn, so no sprite can end up sitting on either.
     for (const sprite of this.scenerySprites) sprite.destroy();
     const items = generateScenery({
       bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
       buildings: obstacles,
-      roads: network.roads.map((r) => r.points),
-      // Placed features (the lake's rocks and bridge) and the water.
+      buildingSprites: this.buildings.map((b) => ({
+        x: b.def.x - b.image.displayWidth / 2,
+        y: b.def.y - b.image.displayHeight,
+        w: b.image.displayWidth,
+        h: b.image.displayHeight,
+      })),
+      roads: tilemap,
+      // Placed features (the lake's rocks and jetty) and the water.
       exclusions: this.sceneryExclusions,
     });
     // Animals become moving critters rather than static scatter — the
@@ -643,14 +668,24 @@ export class VillageScene extends Phaser.Scene {
     }
     // waterKeepOut rects reach ~24px past the shoreline onto land, so the
     // inset has to clear that margin AND keep a body's width of open water.
+    // That inset is measured to the duck's FEET (its origin): the body above
+    // them is ~25px tall and ~30 wide at this scale, so it stays well clear of
+    // the waterline, and of the jetty by FLOOR_CLEARANCE.
     const SHORE_INSET = 88;
+    const FLOOR_CLEARANCE = 24;
+    const floors = this.floorRects.map((f) => ({
+      x: f.x - FLOOR_CLEARANCE,
+      y: f.y - FLOOR_CLEARANCE,
+      w: f.w + FLOOR_CLEARANCE * 2,
+      h: f.h + FLOOR_CLEARANCE * 2,
+    }));
     for (const r of this.waterRects) {
-      const inner = {
+      const inner = largestClearRect({
         x: r.x + SHORE_INSET,
         y: r.y + SHORE_INSET,
         w: r.w - SHORE_INSET * 2,
         h: r.h - SHORE_INSET * 2,
-      };
+      }, floors);
       if (inner.w < 64 || inner.h < 64) continue;
       const count = Math.max(1, Math.min(3, Math.floor((inner.w * inner.h) / 150_000)));
       let seed = (Math.round(r.x) * 73856093) ^ (Math.round(r.y) * 19349663) ^ Math.round(r.w * 7);
@@ -887,14 +922,19 @@ export class VillageScene extends Phaser.Scene {
       if (hero === undefined) continue;
       const pos = positions[i]!;
 
+      // Inside an enclosure the grid point is where the hero's FEET go, so
+      // the clamp to the interior rect keeps the hero standing in the yard
+      // rather than its centre. At a door the point is the sprite centre,
+      // as the road network's endpoints are.
+      const y = interior !== null ? pos.y - hero.footOffset : pos.y;
       hero.gridBaseX = pos.x;
-      hero.gridBaseY = pos.y;
+      hero.gridBaseY = y;
       // Arrival is cleared by removeFromSlot, which runs when a hero changes
       // building — the only case where it genuinely isn't there. Heroes
       // already at this building are just shuffling to make room for a new
       // arrival and stay counted, or the chimney would puff out every time
       // the building gained a hero.
-      hero.moveTo(pos.x, pos.y, hero.currentActivity, () => {
+      hero.moveTo(pos.x, y, hero.currentActivity, () => {
         this.arrived.add(heroId);
         if (focusX !== null) hero.faceTowards(focusX);
         this.refreshOccupancy(buildingId);
@@ -915,6 +955,20 @@ export class VillageScene extends Phaser.Scene {
   private stationFocusX(buildingId: string, doorX: number, isEnclosure: boolean): number | null {
     if (buildingId === 'arena') return this.arenaFighters?.focusX() ?? null;
     return isEnclosure ? null : doorX;
+  }
+
+  /**
+   * Spread the names of parked heroes so none prints over another — a crowd
+   * at a door stands closer together than a name is wide. Walking heroes are
+   * left out (their names sit on their heads; a passer-by shouldn't make a
+   * whole crowd's labels jump) and reset their own offset when they set off.
+   * Runs on a timer rather than on arrival because the farm's heroes hop
+   * between beds on their own schedule.
+   */
+  private declutterHeroLabels(): void {
+    const parked = [...this.heroes.values()].filter((h) => !h.isMoving);
+    const offsets = declutterLabels(parked.map((h) => h.labelBox()));
+    for (const hero of parked) hero.setLabelOffset(offsets.get(hero.id) ?? { dx: 0, lift: 0 });
   }
 
   /**

@@ -80,14 +80,10 @@ function buildDecorations(): DecorationManifest[] {
   for (let i = 1; i <= 2; i++) add(`stump-${i}`, `Stump ${i}`, `${BASE}/scenery/stump-${i}.png`, 'stump');
   for (let i = 1; i <= 3; i++) add(`flower-${i}`, `Flowers ${i}`, `${BASE}/scenery/flower-${i}.png`, 'prop');
 
-  // The shipped village paints its lake as `terrain-water` cells with
-  // `water-bg` decorations tucked under the shoreline — keep that key working.
-  add('water-bg', 'Water', `${BASE}/terrain/water.png`, 'water', {
-    frameWidth: 64,
-    frameHeight: 64,
-    defaultScale: 1.0,
-  });
-  add('terrain-bridge', 'Bridge', `${BASE}/terrain/bridge.png`, 'prop', { defaultScale: 1.0 });
+  // The lake itself is `terrain-water` cells (its shore is derived from them on
+  // the client), so the only water-side feature is the jetty heroes arrive on.
+  // Baked at the terrain's x4, so it places at scale 1.
+  add('terrain-bridge', 'Jetty', `${BASE}/terrain/bridge.png`, 'prop', { defaultScale: 1.0 });
 
   return out;
 }

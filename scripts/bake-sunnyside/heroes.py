@@ -145,6 +145,44 @@ def _square_portrait(frame: Image.Image, pad: int = 1) -> Image.Image:
     return square
 
 
+# Rows a character's standing extent is measured over. Only the body poses:
+# the tool animations swing a hammer or pick well above the head (row 8 of a
+# 64-row frame), and a label hung off THAT would float as far over the hero as
+# the frame top it replaced.
+BODY_ANIMS = ("walk", "idle")
+
+
+def _body_extent(sheet: Image.Image, rows: dict[str, int], frames: dict[str, int]) -> tuple[int, int]:
+    """(headY, footY) of the character in frame pixels, over every frame of the
+    body rows: headY is the topmost opaque row, footY the row just below the
+    lowest opaque one — the ground line the feet stand on.
+
+    The frames are 96x64 but the character fills only ~20 rows of them, so
+    anything that assumes the frame edges are the head and feet (labels, depth
+    sorting, where a hero stands) is off by tens of pixels."""
+    top, bottom = FRAME_H, 0
+    for name in BODY_ANIMS:
+        row = rows[name]
+        for f in range(frames[name]):
+            box = (f * FRAME_W, row * FRAME_H, (f + 1) * FRAME_W, (row + 1) * FRAME_H)
+            bbox = sheet.crop(box).getchannel("A").getbbox()
+            if bbox is None:
+                continue
+            top = min(top, bbox[1])
+            bottom = max(bottom, bbox[3])
+    if bottom <= top:
+        raise AssertionError("no opaque pixels in the body rows")
+    return top, bottom
+
+
+def _anim_extent(sheet: Image.Image, anims: dict[str, dict[str, int]]) -> tuple[int, int]:
+    return _body_extent(
+        sheet,
+        {n: a["row"] for n, a in anims.items()},
+        {n: a["frames"] for n, a in anims.items()},
+    )
+
+
 def bake_heroes(src: Sources, out_dir: Path) -> dict:
     """Returns the sheet metadata destined for the generated TS file."""
     base_strips = {a[0]: _strip(src, "base", a) for a in ANIMS}
@@ -156,6 +194,8 @@ def bake_heroes(src: Sources, out_dir: Path) -> dict:
         for hair in set(CLASS_HAIR.values())
     }
 
+    anim_table = {name: {"row": row, "frames": frames} for row, (name, _, _, frames, _) in enumerate(ANIMS)}
+    head, foot = FRAME_H, 0
     for klass, hair in CLASS_HAIR.items():
         for color, ramp in SHIRT_RAMPS.items():
             sheet = Image.new("RGBA", (FRAME_W * COLUMNS, FRAME_H * len(ANIMS)))
@@ -170,6 +210,10 @@ def bake_heroes(src: Sources, out_dir: Path) -> dict:
                         paste(frame, tools_strips[name].crop((sx, 0, sx + FRAME_W, FRAME_H)), 0, 0)
                     paste(sheet, frame, f * FRAME_W, row * FRAME_H)
             save_png(sheet, out_dir / "heroes" / f"{klass}-{color}.png")
+            # One extent for every class: the tallest hairstyle sets the head,
+            # so a label hung above it clears all of them.
+            sheet_head, sheet_foot = _anim_extent(sheet, anim_table)
+            head, foot = min(head, sheet_head), max(foot, sheet_foot)
 
             # Portrait: idle frame 0, content-cropped then padded to a square
             # canvas (HeroAvatar stretches to its box), x4 for crisp CSS.
@@ -183,9 +227,11 @@ def bake_heroes(src: Sources, out_dir: Path) -> dict:
         "frameWidth": FRAME_W,
         "frameHeight": FRAME_H,
         "columns": COLUMNS,
-        "anims": {name: {"row": row, "frames": frames} for row, (name, _, _, frames, _) in enumerate(ANIMS)},
+        "anims": anim_table,
         "classes": list(CLASS_HAIR),
         "colors": list(SHIRT_RAMPS),
+        "headY": head,
+        "footY": foot,
     }
 
 
@@ -214,11 +260,14 @@ def bake_skeleton(src: Sources, out_dir: Path) -> dict:
         anims[name] = {"row": row, "frames": img.width // FRAME_W}
         paste(sheet, img, 0, row * FRAME_H)
     save_png(sheet, out_dir / "heroes" / "skeleton.png")
+    head, foot = _anim_extent(sheet, anims)
     return {
         "frameWidth": FRAME_W,
         "frameHeight": FRAME_H,
         "columns": columns,
         "anims": anims,
+        "headY": head,
+        "footY": foot,
     }
 
 
@@ -248,4 +297,5 @@ def bake_goblins(src: Sources, out_dir: Path) -> dict:
 
     portrait_src = sheet.crop((0, FRAME_H, FRAME_W, FRAME_H * 2))
     save_png(upscale(_square_portrait(portrait_src), 4), out_dir / "heroes" / "portrait-goblin.png")
-    return {"anims": anims}
+    head, foot = _anim_extent(sheet, anims)
+    return {"anims": anims, "headY": head, "footY": foot}

@@ -81,6 +81,21 @@ const DEFAULTS = {
   seed: 0x0ad,
 } as const;
 
+/**
+ * How far from a track's centreline its drawn tiles can reach, along either
+ * axis. A cell is marked when its centre lies within the half-width of a
+ * sample, so its far edge is up to half-width + half a cell away; and the
+ * cell containing the sample is marked whatever its distance, which can put
+ * its edge a full cell away. Routing keeps a centreline this far (plus its
+ * wobble) from a wall so that no tile of the road touches the wall.
+ *
+ * Fills made by `makeTileable` stay inside the axis extents of the road
+ * around them, so they don't extend this.
+ */
+export function drawnRoadReach(cell: number = DEFAULTS.cell, maxHalfWidth: number = DEFAULTS.maxHalfWidth): number {
+  return Math.max(maxHalfWidth + cell / 2, cell);
+}
+
 /** Chance an eligible cell gets a detail sprite. Sparse on purpose — these are
  * accents, and a dot in every cell would read as a pattern. */
 const GRAVEL_CHANCE = 0.1;

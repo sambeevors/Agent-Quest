@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import type { ArenaNpcSpec } from '../themes/types';
+import { spriteAnchors } from '../data/sprite-anchors';
 
 /**
  * The arena's resident cast: the goblin and skeleton a stationed hero spars
@@ -15,7 +16,7 @@ import type { ArenaNpcSpec } from '../themes/types';
  * session-derived detail beyond that single occupied bit.
  */
 
-/** Where each fighter stands, as fractions of the interior rect. */
+/** Where each fighter's FEET stand, as fractions of the interior rect. */
 const NPC_SPOTS: ReadonlyArray<{ fx: number; fy: number }> = [
   { fx: 0.72, fy: 0.35 },
   { fx: 0.88, fy: 0.8 },
@@ -37,14 +38,16 @@ export class ArenaFighters {
       if (!scene.textures.exists(spec.textureKey)) return;
       const spot = NPC_SPOTS[i % NPC_SPOTS.length]!;
       const x = interior.x + interior.w * spot.fx;
-      const y = interior.y + interior.h * spot.fy;
-      const sprite = scene.add.sprite(x, y, spec.textureKey);
+      const footY = interior.y + interior.h * spot.fy;
+      const { footOffset } = spriteAnchors(spec.extent, heroScale);
+      const sprite = scene.add.sprite(x, footY - footOffset, spec.textureKey);
       sprite.setScale(heroScale);
       // Face the heroes' (west) side of the yard.
       sprite.setFlipX(!spec.facesLeft);
       // Same foot-anchored depth rule as HeroSprite, so a hero can pass in
-      // front of or behind a fighter correctly.
-      sprite.setDepth(y + sprite.displayHeight * 0.5 + 0.5);
+      // front of or behind a fighter correctly. The feet are the art's real
+      // ground line, not the frame bottom ~20 rows below it.
+      sprite.setDepth(footY + 0.5);
       this.ensureAnim(spec, 'idle');
       sprite.play(this.animKey(spec, 'idle'));
       this.sprites.push({ sprite, spec });
