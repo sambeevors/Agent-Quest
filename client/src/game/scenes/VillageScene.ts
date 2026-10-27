@@ -76,6 +76,10 @@ export class VillageScene extends Phaser.Scene {
    */
   private arrived = new Set<string>();
 
+  /** The hero the camera is following, if any. Dropped when the user drags
+   *  the map, the selection moves elsewhere, or the hero leaves town. */
+  private followedId: string | null = null;
+
   /** World rect the camera fits. */
   private contentBounds: Phaser.Geom.Rectangle | null = null;
 
@@ -147,6 +151,7 @@ export class VillageScene extends Phaser.Scene {
       }
       if (isDragging) {
         const cam = this.cameras.main;
+        this.stopFollowing();
         cam.scrollX -= (pointer.x - pointer.prevPosition.x) / cam.zoom;
         cam.scrollY -= (pointer.y - pointer.prevPosition.y) / cam.zoom;
       }
@@ -322,20 +327,23 @@ export class VillageScene extends Phaser.Scene {
     };
     eventBridge.on('agents:updated', this.onAgentsUpdated);
 
-    // Pan the camera to a hero when the Activity Feed requests it
-    // (user clicks an agent sprite in the feed).
+    // Follow a hero around town when the Party Bar asks (user clicks a
+    // trainer there). The lerp glides the camera over from wherever it was,
+    // then keeps the trainer centred as it walks.
     this.onCameraFollow = (agentId: unknown) => {
       if (typeof agentId !== 'string') return;
       try { if (!this.sys.isActive()) return; } catch { return; }
       const hero = this.heroes.get(agentId);
       if (hero === undefined) return;
-      this.cameras.main.pan(hero.x, hero.y, 600, 'Sine.easeInOut');
+      this.followedId = agentId;
+      this.cameras.main.startFollow(hero, true, 0.08, 0.08);
     };
     eventBridge.on('camera:follow', this.onCameraFollow);
 
     // Apply outline/tint to the selected hero whenever selection changes.
     this.onSelectionChanged = (agentId: unknown) => {
       const selectedId = typeof agentId === 'string' ? agentId : null;
+      if (this.followedId !== null && this.followedId !== selectedId) this.stopFollowing();
       for (const [id, hero] of this.heroes) {
         hero.setSelected(id === selectedId);
       }
@@ -401,10 +409,18 @@ export class VillageScene extends Phaser.Scene {
       this.farmWork?.destroy();
       this.farmWork = null;
       this.arrived.clear();
+      this.followedId = null;
       this.contentBounds = null;
     };
     this.events.on('shutdown', cleanup);
     this.events.on('destroy', cleanup);
+  }
+
+  /** Let go of the followed hero; the camera stays where it is. */
+  private stopFollowing(): void {
+    if (this.followedId === null) return;
+    this.followedId = null;
+    this.cameras.main.stopFollow();
   }
 
   // ---------------------------------------------------------------------------
@@ -664,6 +680,7 @@ export class VillageScene extends Phaser.Scene {
     for (const [id, hero] of this.heroes) {
       if (!visible.some((a) => a.id === id)) {
         const oldBuilding = this.removeFromSlot(id);
+        if (this.followedId === id) this.stopFollowing();
         hero.destroy();
         this.heroes.delete(id);
         if (oldBuilding !== undefined) {

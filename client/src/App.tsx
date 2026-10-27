@@ -89,6 +89,13 @@ export default function App() {
     setSelectedBuilding(null);
   }, [selectAgent]);
 
+  // A click in the Party Bar also puts the camera on that trainer and keeps
+  // it there until the user drags the map or selects someone else.
+  const handlePartySelect = useCallback((id: string | null) => {
+    handleSelectAgent(id);
+    if (id !== null) eventBridge.emit('camera:follow', id);
+  }, [handleSelectAgent]);
+
   // Desktop notifications + sounds + in-app toasts on agent state transitions
   // (gated by settings). Toasts are the browser-independent, permission-free
   // channel.
@@ -195,7 +202,7 @@ export default function App() {
           <PartyBar
             agents={agents}
             selectedAgentId={selectedAgentId}
-            onSelectAgent={handleSelectAgent}
+            onSelectAgent={handlePartySelect}
             showSourceBadge={showSourceBadge}
           />
           {selectedAgent !== null && (
