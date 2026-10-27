@@ -2,10 +2,9 @@ export const HERO_CLASSES = ['warrior', 'archer', 'pawn'] as const;
 export type HeroClass = (typeof HERO_CLASSES)[number];
 
 // Kept in sync with server/src/types.ts — the state manager assigns round-robin
-// across the full palette. The 5 original entries map 1:1 to Tiny Swords sprite
-// variants; the extra entries reuse an existing sprite base (see
-// `HERO_COLOR_SPRITE_BASE` below). Only the NAME LABEL gets the expanded color
-// — the sprite itself stays its base variant, untinted.
+// across the full palette. Every entry has its own Sunnyside sprite sheet
+// (the bake palette-swaps the hero's shirt per colour), and the name label
+// uses the matching `HERO_LABEL_COLOR`.
 export const HERO_COLORS = [
   'blue', 'yellow', 'red', 'black', 'purple',
   'teal', 'orange', 'green',
@@ -43,20 +42,20 @@ export const HERO_LABEL_COLOR: Record<HeroColor, string> = {
 };
 
 /**
- * Sprite variant to actually render for each HeroColor. The extra palette
- * entries (teal/orange/green) don't have their own sprite sheets — they
- * piggy-back on an existing one; only the name label reflects the expanded
- * palette, the sprite itself stays the base variant untouched.
+ * Sprite variant to actually render for each HeroColor. The Sunnyside bake
+ * palette-swaps the hero's shirt per colour, so every HeroColor has its own
+ * sheet and the map is the identity. It survives as a seam: a future theme
+ * with fewer sprite variants can collapse colours here again.
  */
-export const HERO_COLOR_SPRITE_BASE: Record<HeroColor, 'blue' | 'yellow' | 'red' | 'black' | 'purple'> = {
+export const HERO_COLOR_SPRITE_BASE: Record<HeroColor, HeroColor> = {
   blue:   'blue',
   yellow: 'yellow',
   red:    'red',
   black:  'black',
   purple: 'purple',
-  teal:   'blue',
-  orange: 'yellow',
-  green:  'yellow',
+  teal:   'teal',
+  orange: 'orange',
+  green:  'green',
 };
 
 export type AgentActivity =

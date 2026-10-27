@@ -20,7 +20,7 @@ const HERO_COLOR_HEX: Record<string, string> = {
 
 const BUILDING_COLORS: Record<string, string> = {
   library: '#4A6FA5', forge: '#D4760A', castle: '#7B2D8B',
-  arena: '#8B0000', tavern: '#8B7355', chapel: '#FFD700',
+  arena: '#8B0000', tavern: '#8B7355', farm: '#FFD700',
   alchemist: '#2E8B57', watchtower: '#4682B4',
 };
 

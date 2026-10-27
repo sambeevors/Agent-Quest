@@ -20,7 +20,9 @@ import type { Point, Rect } from './desire-paths';
  * same forest — scenery that reshuffles on every reload is disorienting.
  */
 
-export type SceneryKind = 'tree' | 'bush' | 'rock' | 'mushroom';
+export type SceneryKind =
+  | 'tree' | 'bush' | 'rock' | 'mushroom'
+  | 'flower' | 'stump' | 'animal';
 
 export interface SceneryItem {
   kind: SceneryKind;
@@ -47,22 +49,17 @@ interface KindSpec {
 }
 
 /**
- * World scale for scenery art. One value for every kind, because the pack draws
- * all of it to one scale: measured on the artwork rather than the frame, a tree
- * is 174px tall, a bush 42 and a mushroom 19. Rendering all three at
- * `SCENERY_SCALE` is what makes the tree nine times the mushroom, as drawn. The
- * per-kind scales this replaces did the opposite — bushes were inflated by 60%
- * against the trees, so a shrub read as a sapling.
+ * World scale for scenery art. One value for every kind, because the bake
+ * upscales the whole pack from one 16px grid (x4, nearest-neighbour), so the
+ * artwork's own proportions are already correct: a Sunnyside tree is drawn
+ * ~34px to a mushroom's ~12, and rendering both at `SCENERY_SCALE` keeps that
+ * ratio. Per-kind scales would re-introduce the bug this replaced, where a
+ * shrub read as a sapling.
  *
- * The value is the old tree scale, so the thing that dominates the view is
- * unchanged and everything else falls into its true place beside it.
- *
- * It is NOT the scale buildings use, and can't be: the buildings under
- * `BuildingsCustom/` are drawn at roughly twice this pack's pixel density (a
- * tavern there is 273px tall where Tiny Swords' own house is 148), so one
- * number cannot serve both. See `buildingScale` in the theme.
+ * The value puts a tree at ~2.5x hero height, which is the proportion the
+ * pack's own example scenes use.
  */
-const SCENERY_SCALE = 0.55;
+const SCENERY_SCALE = 0.45;
 
 /** Per-item size variation, so a stand of trees isn't stamped from one mould. */
 const SCALE_JITTER = 0.15;
@@ -81,16 +78,33 @@ const KIND_SPECS: Record<SceneryKind, KindSpec> = {
     buildingClearance: 46, roadClearance: 52, spacing: 54,
   },
   bush: {
-    variants: 3, weightDense: 14, weightOpen: 34,
+    variants: 3, weightDense: 14, weightOpen: 30,
     buildingClearance: 26, roadClearance: 30, spacing: 44,
   },
   rock: {
-    variants: 5, weightDense: 10, weightOpen: 34,
-    buildingClearance: 24, roadClearance: 26, spacing: 46,
+    variants: 5, weightDense: 8, weightOpen: 16,
+    buildingClearance: 24, roadClearance: 26, spacing: 64,
   },
   mushroom: {
-    variants: 3, weightDense: 6, weightOpen: 24,
+    variants: 4, weightDense: 6, weightOpen: 20,
     buildingClearance: 20, roadClearance: 22, spacing: 38,
+  },
+  // The cozy-farm layer. Flowers behave like small props; the rest are
+  // deliberately sparse so they read as ambience, not as state: a stump is a
+  // rare accent and animals graze alone in open meadow. (Crops used to
+  // scatter here too, but stray squares of farmland in the wild read as
+  // meaning something — cultivation now lives only inside the Farm.)
+  flower: {
+    variants: 3, weightDense: 4, weightOpen: 26,
+    buildingClearance: 16, roadClearance: 18, spacing: 30,
+  },
+  stump: {
+    variants: 2, weightDense: 6, weightOpen: 4,
+    buildingClearance: 24, roadClearance: 26, spacing: 90,
+  },
+  animal: {
+    variants: 5, weightDense: 1, weightOpen: 8,
+    buildingClearance: 56, roadClearance: 40, spacing: 240,
   },
 };
 
@@ -240,15 +254,12 @@ export function generateScenery(opts: SceneryOptions): SceneryItem[] {
   const exclusions = opts.exclusions ?? [];
 
   const roadIndex = new SegmentIndex(opts.roads, 96);
-  const placed: Record<SceneryKind, PlacedIndex> = {
-    tree: new PlacedIndex(96),
-    bush: new PlacedIndex(96),
-    rock: new PlacedIndex(96),
-    mushroom: new PlacedIndex(96),
-  };
+  const kinds = Object.keys(KIND_SPECS) as SceneryKind[];
+  const placed = Object.fromEntries(
+    kinds.map((k) => [k, new PlacedIndex(96)]),
+  ) as Record<SceneryKind, PlacedIndex>;
   const items: SceneryItem[] = [];
 
-  const kinds = Object.keys(KIND_SPECS) as SceneryKind[];
   const maxBuildingClearance = Math.max(...kinds.map((k) => KIND_SPECS[k].buildingClearance));
 
   for (let gx = opts.bounds.x; gx < opts.bounds.x + opts.bounds.w; gx += cell) {

@@ -38,10 +38,10 @@ function normalisePath(raw: string): string {
 
 function classify(path: string): AssetCategorySummary['id'] {
   const p = path.toLowerCase();
-  if (p.includes('/troops/')) return 'hero';
-  if (p.includes('/buildingscustom/') || p.includes('/buildings/')) return 'building';
+  if (p.includes('/heroes/')) return 'hero';
+  if (p.includes('/buildings/')) return 'building';
   if (p.includes('/terrain/')) return 'terrain';
-  if (p.includes('/deco/') || p.includes('/resources/') || p.includes('/trees/')) return 'decoration';
+  if (p.includes('/scenery/') || p.includes('/vfx/')) return 'decoration';
   if (p.includes('/ui/') || p.endsWith('logo.png')) return 'ui';
   return 'other';
 }

@@ -51,14 +51,14 @@ describe('classifyBashCommand', () => {
     expect(classifyBashCommand('echo hello')).toBe('bash');
   });
 
-  it('routes write-oriented git to the Chapel, read-only git to the Arena', () => {
+  it('routes write-oriented git to the Farm, read-only git to the Arena', () => {
     expect(classifyBashCommand('git commit -m "feat: x"')).toBe('git');
     expect(classifyBashCommand('cd repo && git push')).toBe('git');
     expect(classifyBashCommand('git status')).toBe('bash');
     expect(classifyBashCommand('git log --oneline | head -20')).toBe('bash');
   });
 
-  it('routes publishing gh commands to the Chapel', () => {
+  it('routes publishing gh commands to the Farm', () => {
     expect(classifyBashCommand('gh pr create --base main --title "x"')).toBe('git');
     expect(classifyBashCommand('gh pr merge --squash')).toBe('git');
     expect(classifyBashCommand('gh issue comment 42 --body "done"')).toBe('git');

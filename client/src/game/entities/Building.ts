@@ -10,9 +10,27 @@ export class Building {
   readonly label: Phaser.GameObjects.Text;
   readonly doorX: number;
   readonly doorY: number;
+  private readonly scene: Phaser.Scene;
+  private smoke: Phaser.GameObjects.Sprite | null = null;
+  /** Interior rect in image pixels — set for enclosures heroes walk into. */
+  private readonly interior: readonly [number, number, number, number] | null;
+  private ground: Phaser.GameObjects.Image | null = null;
 
   constructor(scene: Phaser.Scene, def: BuildingDef) {
     this.def = def;
+    this.scene = scene;
+
+    this.interior = getActiveTheme().getBuildingInterior?.(def.id) ?? null;
+
+    // An enclosure's floor (arena earth, farm soil) is a separate layer under
+    // everything y-sorted: baked into the main image it would sit at door
+    // depth and paint over any hero standing inside the fence.
+    if (this.interior !== null && scene.textures.exists(`${def.imageKey}-ground`)) {
+      this.ground = scene.add.image(def.x, def.y, `${def.imageKey}-ground`);
+      this.ground.setOrigin(0.5, 1);
+      this.ground.setScale(getActiveTheme().getBuildingScale(def.id));
+      this.ground.setDepth(3); // above terrain and roads, below all y-sorted sprites
+    }
 
     this.image = scene.add.image(def.x, def.y, def.imageKey);
     this.image.setOrigin(0.5, 1); // bottom-centre — the def's y IS the ground line
@@ -72,6 +90,65 @@ export class Building {
   }
 
   /**
+   * Chimney smoke while someone is working inside — the one piece of building
+   * state readable from right across the map. The anchor comes from the theme
+   * in image pixels; smoke scales with the building so the plume stays
+   * proportionate.
+   */
+  setSmoking(smoking: boolean): void {
+    if (!smoking) {
+      this.smoke?.destroy();
+      this.smoke = null;
+      return;
+    }
+    if (this.smoke !== null) return;
+    const anchor = getActiveTheme().getChimneyAnchor?.(this.def.id);
+    if (anchor == null) return;
+    if (!this.scene.textures.exists('vfx-chimneysmoke') || !this.scene.anims.exists('vfx-chimneysmoke-anim')) return;
+    const scale = this.image.scaleX;
+    const [ax, ay] = anchor;
+    const x = this.def.x - this.image.displayWidth / 2 + ax * scale;
+    const y = this.def.y - this.image.displayHeight + ay * scale;
+    this.smoke = this.scene.add.sprite(x, y, 'vfx-chimneysmoke');
+    this.smoke.setOrigin(0.5, 1);
+    this.smoke.setScale(scale);
+    this.smoke.setAlpha(0.9);
+    this.smoke.setDepth(this.doorY + 0.15);
+    this.smoke.play('vfx-chimneysmoke-anim');
+  }
+
+  /**
+   * Where stationed heroes may stand, in world space — only for enclosures
+   * (arena, farm). Ordinary buildings return null and their heroes gather at
+   * the door.
+   */
+  interiorWorldRect(): { x: number; y: number; w: number; h: number } | null {
+    if (this.interior === null) return null;
+    const scale = this.image.scaleX;
+    const [ix, iy, iw, ih] = this.interior;
+    return {
+      x: this.def.x - this.image.displayWidth / 2 + ix * scale,
+      y: this.def.y - this.image.displayHeight + iy * scale,
+      w: iw * scale,
+      h: ih * scale,
+    };
+  }
+
+  /**
+   * The enclosure's points of interest in world space — the farm's tilled
+   * beds. Same image-pixel → world conversion as interiorWorldRect, so the
+   * beds stay under the crops however the building is scaled or moved.
+   */
+  cropWorldPoints(): Array<{ x: number; y: number }> | null {
+    const crops = getActiveTheme().getBuildingCrops?.(this.def.id);
+    if (crops == null || crops.length === 0) return null;
+    const scale = this.image.scaleX;
+    const left = this.def.x - this.image.displayWidth / 2;
+    const top = this.def.y - this.image.displayHeight;
+    return crops.map(([cx, cy]) => ({ x: left + cx * scale, y: top + cy * scale }));
+  }
+
+  /**
    * Ground plan used for road routing, in world space.
    *
    * NOT the sprite's bounding box: these are tall buildings drawn in
@@ -79,8 +156,17 @@ export class Building {
    * path may happily pass behind. Only the lower band actually stands on the
    * ground, so roads route around that and heroes can still walk behind the
    * upper storeys — which is what makes the depth sorting read correctly.
+   *
+   * Enclosures are the exception: a fence ring is ALL ground — there is no
+   * upper storey to walk behind — so their footprint is the whole image and
+   * roads (and scenery) keep out of the yard entirely.
    */
   get footprint(): { x: number; y: number; w: number; h: number } {
+    if (this.interior !== null) {
+      const w = this.image.displayWidth * 0.96;
+      const h = this.image.displayHeight * 0.94;
+      return { x: this.def.x - w / 2, y: this.def.y - h, w, h };
+    }
     const w = this.image.displayWidth * 0.78;
     const h = Math.max(24, this.image.displayHeight * 0.34);
     return { x: this.def.x - w / 2, y: this.def.y - h, w, h };

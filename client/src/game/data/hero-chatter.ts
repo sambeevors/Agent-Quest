@@ -104,20 +104,20 @@ export const CHATTER_LINES: Record<ChatterMood, readonly string[]> = {
     'The crowd stirs.',
     'Again, from the top.',
   ],
-  // Chapel — the hero has published something.
+  // Farm — the hero has published something: work sown, sent to market.
   git: [
-    'Let it be written.',
-    'Carve it in stone.',
-    'Sending it forth.',
-    'The ink is dry.',
-    'A blessing on this work.',
-    'The scribes are ready.',
-    'Signed, sealed…',
-    'Off it goes.',
-    'One for the chronicles!',
-    'The wax is still warm.',
-    'Ring the bells!',
-    'May the omens be kind.',
+    'The seeds are in the ground.',
+    'Harvest day!',
+    'Off to market with it.',
+    'A fine crop, this one.',
+    'Sown and watered.',
+    'One more furrow.',
+    'Rain would be welcome now.',
+    'That row came up straight.',
+    'The scarecrow approves.',
+    'Best yield all season.',
+    'Let it grow.',
+    'Muddy boots, honest work.',
   ],
   // Alchemist — a bad brew, hunted down.
   debugging: [

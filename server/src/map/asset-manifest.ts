@@ -1,13 +1,13 @@
 import type { AssetManifest } from './types';
-import { buildAssetManifestCc0 } from './asset-manifest-cc0';
+import { buildAssetManifestSunnyside } from './asset-manifest-sunnyside';
 
-export type ThemeId = 'tiny-swords-cc0';
+export type ThemeId = 'sunnyside';
 
 /**
- * Returns the asset manifest the map editor consumes. The project ships
- * with a single bundled theme; unknown `theme` strings fall through to
- * the same manifest.
+ * Returns the asset manifest the client consumes. The project ships with a
+ * single bundled theme; unknown `theme` strings fall through to the same
+ * manifest.
  */
-export function buildAssetManifest(_theme: ThemeId | string = 'tiny-swords-cc0'): AssetManifest {
-  return buildAssetManifestCc0();
+export function buildAssetManifest(_theme: ThemeId | string = 'sunnyside'): AssetManifest {
+  return buildAssetManifestSunnyside();
 }

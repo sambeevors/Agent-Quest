@@ -91,3 +91,20 @@ if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
  * Inter and Fira Code they replaced, hence the ~15% bump at each call site.
  */
 export const LABEL_FONT = '"RuneScape", ui-monospace, monospace';
+
+/**
+ * Depth floor for hero labels, above every y-sorted world sprite.
+ *
+ * Everything on the canvas sorts on its world y — buildings on their door
+ * line, heroes on their feet, scenery on its base — so depths live in the
+ * map's own 0..height range (1800 for `village.json`). A hero's name is the
+ * one annotation the canvas carries, and inside the y-sorted band it loses:
+ * a hero stationed in the arena or the farm stands well above the enclosure's
+ * door line, so the fence outranks it and the fence's top rail cuts the name
+ * in half. The same happens behind a tall tree.
+ *
+ * Names therefore sort in a band of their own, ordered among themselves by
+ * the hero's foot y so the near hero's label still wins. Below the weather
+ * and night overlays (4997+), which are meant to tint the labels too.
+ */
+export const HERO_LABEL_DEPTH = 4000;

@@ -68,7 +68,7 @@ Trees, shrubs, rocks and mushrooms are scattered procedurally against the curren
 
 Both regenerate when the Linear hamlet gains or loses a building, so a new project arrives with lanes already running to it.
 
-The tracks are tiled from the ground tileset itself, not painted over it, so a road meets the grass with the pack's own hand-drawn border. The pack ships grass and beach sand and nothing between, so the theme recolours the sand onto the brown ramp it already uses for the bridge and the tree trunks — see `SAND_TO_EARTH` in `themes/tiny-swords-cc0.ts`.
+The tracks are tiled from the pack's own dirt tiles, not painted over the grass, so a road meets the meadow with the artist's own wavy fringe. The bake pipeline lays those tiles out in the exact 16-tile edge layout the renderer expects — see `scripts/bake-sunnyside/terrain.py`.
 
 ### Construction sites (Linear)
 
@@ -137,7 +137,7 @@ ln -s "$PWD/bin/agentquest" ~/.local/bin/agentquest
 
 After the symlink you can run `agentquest` (alias of `bun start`) and `agentquest update` (alias of `git pull --ff-only && bun install`) from anywhere.
 
-Agent Quest ships with a bundled CC0 pixel-art sprite pack (under `client/public/assets/themes/tiny-swords-cc0/`), so there's nothing else to download.
+Agent Quest ships with its processed art (under `client/public/assets/themes/sunnyside/`), so there's nothing else to download.
 
 ### One-line install (macOS only)
 
@@ -220,7 +220,7 @@ For installed end-user copies that follow `main`, `agentquest update` runs the e
 
 ### Missing assets
 
-If you accidentally delete or move files under `client/public/assets/themes/tiny-swords-cc0/` (hero spritesheets, building PNGs, terrain, decorations), Agent Quest will tell you:
+If you accidentally delete or move files under `client/public/assets/themes/sunnyside/` (hero spritesheets, building PNGs, terrain, decorations), Agent Quest will tell you:
 
 - The **main app** blocks at boot with a screen that lists the missing files grouped by category (hero / building / terrain / decoration) and suggests a restore command.
 - Run `bun run check:assets` any time to verify the whole bundled pack ahead of starting the app. Exits non-zero with a detailed list if anything is missing — good for CI or pre-commit.
@@ -228,7 +228,7 @@ If you accidentally delete or move files under `client/public/assets/themes/tiny
 Restore with:
 
 ```bash
-git checkout -- client/public/assets/themes/tiny-swords-cc0/
+git checkout -- client/public/assets/themes/sunnyside/
 ```
 
 ## LAN access (view from your phone / iPad)
@@ -289,7 +289,7 @@ Issues and pull requests are welcome — bug reports, feature ideas, new buildin
 ## Credits
 
 - Original project: [Agent Quest](https://github.com/FulAppiOS/Agent-Quest) by [Fulvio Scichilone](https://github.com/FulAppiOS). This repository is a fork; the village and the provider architecture are their work.
-- Sprites, tiles, and decorations: [Tiny Swords](https://pixelfrog-assets.itch.io/tiny-swords) by Pixel Frog — licensed [CC0 1.0 Universal](client/public/assets/themes/tiny-swords-cc0/LICENSE.txt) (public domain dedication). Bundled under `client/public/assets/themes/tiny-swords-cc0/`.
+- Sprites, tiles, and decorations: [Sunnyside World](https://danieldiggle.itch.io/sunnyside) by Daniel Diggle — a paid asset pack, used here under its standard licence (use in projects permitted; redistribution of the raw assets is not). The repo bundles only processed, game-ready bakes under `client/public/assets/themes/sunnyside/` (composited spritesheets, assembled buildings, re-laid tilesets — see `scripts/bake-sunnyside/`), not the pack itself. If you fork this repo, please buy the pack before reusing the art.
 
 ## License
 

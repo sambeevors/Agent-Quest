@@ -12,8 +12,8 @@ import { addCrispText, LABEL_FONT } from '../text';
  * literally rises out of its scaffolding, so progress is readable at a glance
  * without reading the label.
  *
- * Both textures already ship with the theme (the decorative-house set the
- * TerrainRenderer scatters around the map), so this adds no new assets.
+ * Both textures ship with the theme's static assets (`site-scaffold` plus a
+ * roof-coloured `house-*` per palette entry), so this adds no new assets.
  */
 
 /** Palette cycled across sites so adjacent projects are distinguishable. */
@@ -24,8 +24,8 @@ const SITE_COLORS = ['blue', 'yellow', 'red', 'purple'] as const;
  * can't be measured — the real dimensions are read off the loaded frame so a
  * theme shipping differently-sized houses still crops correctly.
  */
-const FALLBACK_HOUSE_W = 128;
-const FALLBACK_HOUSE_H = 192;
+const FALLBACK_HOUSE_W = 224;
+const FALLBACK_HOUSE_H = 184;
 
 export class ConstructionSite {
   readonly id: string;
@@ -54,14 +54,15 @@ export class ConstructionSite {
 
     const color = SITE_COLORS[colorIndex % SITE_COLORS.length]!;
 
-    // `house2` is House_Construction.png in the bundled theme — the scaffolding.
-    this.scaffold = scene.add.image(plot.x, plot.y, `house-${color}-house2`);
+    // Crates, beams and a ladder — shared by every site; the colour lives in
+    // the house that rises out of it.
+    this.scaffold = scene.add.image(plot.x, plot.y, 'site-scaffold');
     this.scaffold.setOrigin(0.5, 1);
     this.scaffold.setScale(scale);
     this.scaffold.setDepth(plot.y);
     this.scaffold.setInteractive({ useHandCursor: true });
 
-    this.built = scene.add.image(plot.x, plot.y, `house-${color}-house1`);
+    this.built = scene.add.image(plot.x, plot.y, `house-${color}`);
     this.built.setOrigin(0.5, 1);
     this.built.setScale(scale);
     this.built.setDepth(plot.y + 0.05);

@@ -23,7 +23,7 @@ export type AgentActivity =
   | 'thinking'   // Wizard Tower: long text, thinking blocks
   | 'bash'       // Arena: Bash
   | 'idle'       // Tavern: no activity
-  | 'git'        // Chapel: git commit/push inside Bash
+  | 'git'        // Farm: git commit/push inside Bash
   | 'debugging'  // Alchemist Shop: fix after errors
   | 'reviewing'; // Watchtower: Agent subagent, review
 

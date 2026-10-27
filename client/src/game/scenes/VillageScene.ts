@@ -14,6 +14,9 @@ import { renderPathTiles } from '../terrain/PathTileRenderer';
 import { generateScenery } from '../data/scenery';
 import { renderScenery } from '../terrain/SceneryRenderer';
 import { waterKeepOut } from '../data/water';
+import { Critter } from '../entities/Critter';
+import { ArenaFighters } from '../entities/ArenaFighters';
+import { FarmWork } from '../entities/FarmWork';
 import { ConstructionSite } from '../entities/ConstructionSite';
 import type { AgentState, LinearProject } from '../../types/agent';
 import { heroNameFor } from '../../naming/hero-names';
@@ -82,7 +85,29 @@ export class VillageScene extends Phaser.Scene {
   private roadLayer: Phaser.GameObjects.Container | null = null;
 
   /** Generated scenery sprites, regenerated alongside the roads. */
-  private scenerySprites: Phaser.GameObjects.Image[] = [];
+  private scenerySprites: Phaser.GameObjects.GameObject[] = [];
+
+  /** Wandering ambient animals (meadow critters + lake ducks). */
+  private critters: Critter[] = [];
+
+  /** The arena's resident goblin and skeleton — spar while a hero is inside. */
+  private arenaFighters: ArenaFighters | null = null;
+
+  /** The farm's work roster — stations its heroes on the crops and moves
+   *  them from bed to bed. Owns the farm's positions outright. */
+  private farmWork: FarmWork | null = null;
+
+  /**
+   * Heroes that have finished walking to their station. An assigned hero is
+   * still crossing the village for a second or two, and until it gets there
+   * the building is not occupied — no smoke over a cold forge, no fighters
+   * swinging at nobody. Every occupancy tell keys off arrival, never off the
+   * slot assignment.
+   */
+  private arrived = new Set<string>();
+
+  /** Water keep-out rects — also where the ducks live. */
+  private waterRects: Rect[] = [];
 
   /** Ground the generator must leave alone — water and other placed features. */
   private sceneryExclusions: Rect[] = [];
@@ -91,11 +116,10 @@ export class VillageScene extends Phaser.Scene {
   private contentBounds: Phaser.Geom.Rectangle | null = null;
 
 
-  /** Hero sprite scale — overridden by MapConfig settings if available. */
-  /** Hero sprite scale — defaults to the active theme's baseline (0.5 for
-   * Tiny Swords / CC0 edition). MapConfig-saved overrides are rebased
-   * through `rebaseSavedScale` so they're stored once against the Tiny
-   * Swords baseline and render proportionally under any theme. */
+  /** Hero sprite scale — defaults to the active theme's baseline.
+   * MapConfig-saved overrides are stored against the original Tiny Swords
+   * baseline and rebased through `rebaseSavedScale` so they render
+   * proportionally under the current art. */
   private heroScale = getActiveTheme().heroScale;
 
   /** Spawn point used for new heroes. Overridden by MapConfig.spawn when present. */
@@ -446,6 +470,11 @@ export class VillageScene extends Phaser.Scene {
       for (const site of this.constructionSites.values()) site.destroy();
       this.constructionSites.clear();
       this.sitePlots.clear();
+      this.arenaFighters?.destroy();
+      this.arenaFighters = null;
+      this.farmWork?.destroy();
+      this.farmWork = null;
+      this.arrived.clear();
       this.roadLayer?.destroy();
       this.roadLayer = null;
       for (const sprite of this.scenerySprites) sprite.destroy();
@@ -474,8 +503,8 @@ export class VillageScene extends Phaser.Scene {
       if (mapRes.status === 200) {
         mapConfig = await mapRes.json() as MapConfig;
 
-        // Single-theme project — the server lazy-migrates legacy ids to
-        // 'tiny-swords-cc0' on load, so no runtime switch is possible.
+        // Single-theme project — the server serves one manifest, so no
+        // runtime switch is possible.
         const activeTheme = getActiveTheme().id;
 
         // Fetch the asset manifest for the (now aligned) theme so
@@ -512,7 +541,8 @@ export class VillageScene extends Phaser.Scene {
       // Placed features are keep-out ground for the scenery generator, and so
       // is the painted water: the lake is terrain tiles, not a feature, so
       // nothing in `featureBounds` describes it.
-      this.sceneryExclusions = [...rendered.featureBounds, ...waterKeepOut(mapConfig.terrain)];
+      this.waterRects = waterKeepOut(mapConfig.terrain);
+      this.sceneryExclusions = [...rendered.featureBounds, ...this.waterRects];
       this.spawnBuildings(mapConfig.buildings);
 
       // Apply hero scale from map settings
@@ -530,13 +560,19 @@ export class VillageScene extends Phaser.Scene {
         manifestStatus,
       });
       new TerrainRenderer(this).render();
-      this.sceneryExclusions = PROCEDURAL_WATER_BOUNDS.map((r) => ({ ...r }));
+      this.waterRects = PROCEDURAL_WATER_BOUNDS.map((r) => ({ ...r }));
+      this.sceneryExclusions = this.waterRects.map((r) => ({ ...r }));
       this.spawnBuildings(null);
     }
 
     // The procedural branch has no saved positions to read ahead of time, so
     // the hamlet is derived from the buildings that just spawned.
     this.annexes ??= computeVillageAnnexes(this.buildings.map((b) => ({ x: b.def.x, y: b.def.y })));
+
+    // The arena's cast stands inside the enclosure that just spawned; created
+    // here (after heroScale is settled) so the fighters match hero size.
+    this.setupArenaFighters();
+    this.setupFarmWork();
 
     // Roads are generated, not painted. Any `paths` in a saved MapConfig are
     // ignored — see rebuildRoads().
@@ -554,6 +590,34 @@ export class VillageScene extends Phaser.Scene {
       this.pendingProjects = null;
       this.handleLinearUpdate(pending);
     }
+  }
+
+  /** Place (or re-place) the arena's resident goblin and skeleton. */
+  private setupArenaFighters(): void {
+    this.arenaFighters?.destroy();
+    this.arenaFighters = null;
+    const npcs = getActiveTheme().getArenaNpcs?.();
+    const arena = this.buildings.find((b) => b.def.id === 'arena');
+    const interior = arena?.interiorWorldRect() ?? null;
+    if (npcs === undefined || interior === null) return;
+    this.arenaFighters = new ArenaFighters(this, npcs, interior, this.heroScale);
+  }
+
+  /** Place (or re-place) the farm's work roster over its tilled beds. */
+  private setupFarmWork(): void {
+    this.farmWork?.destroy();
+    this.farmWork = null;
+    const beds = this.buildings.find((b) => b.def.id === 'farm')?.cropWorldPoints() ?? null;
+    if (beds === null) return;
+    this.farmWork = new FarmWork(
+      this,
+      beds,
+      (heroId) => this.heroes.get(heroId),
+      (heroId) => {
+        this.arrived.add(heroId);
+        this.refreshOccupancy('farm');
+      },
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -609,7 +673,7 @@ export class VillageScene extends Phaser.Scene {
     // Scenery is generated against the roads that were just laid, so it can
     // never end up sitting on one.
     for (const sprite of this.scenerySprites) sprite.destroy();
-    this.scenerySprites = renderScenery(this, generateScenery({
+    const items = generateScenery({
       bounds: { x: 0, y: 0, w: WORLD_WIDTH, h: WORLD_HEIGHT },
       buildings: obstacles,
       roads: network.roads.map((r) => r.points),
@@ -619,9 +683,61 @@ export class VillageScene extends Phaser.Scene {
       exclusions: this.annexes === null
         ? this.sceneryExclusions
         : [...this.sceneryExclusions, this.annexes.clearing],
-    }));
+    });
+    // Animals become moving critters rather than static scatter — the
+    // generator still owns WHERE they live (clearances, spacing, seed).
+    this.scenerySprites = renderScenery(this, items.filter((i) => i.kind !== 'animal'));
+    this.spawnCritters(items.filter((i) => i.kind === 'animal'));
 
     this.updateContentBounds(nodes);
+  }
+
+  /**
+   * Wandering ambience: meadow critters at the scenery generator's animal
+   * placements, plus ducks paddling on each big enough body of water. Ducks
+   * are seeded off their rect's geometry so the same lake always keeps the
+   * same flock.
+   */
+  private spawnCritters(animals: ReturnType<typeof generateScenery>): void {
+    for (const c of this.critters) c.destroy();
+    this.critters = [];
+    for (const a of animals) {
+      this.critters.push(new Critter(this, {
+        textureKey: `animal-${a.variant}`,
+        x: a.x,
+        y: a.y,
+        scale: a.scale,
+        roamRadius: 50,
+      }));
+    }
+    // waterKeepOut rects reach ~24px past the shoreline onto land, so the
+    // inset has to clear that margin AND keep a body's width of open water.
+    const SHORE_INSET = 88;
+    for (const r of this.waterRects) {
+      const inner = {
+        x: r.x + SHORE_INSET,
+        y: r.y + SHORE_INSET,
+        w: r.w - SHORE_INSET * 2,
+        h: r.h - SHORE_INSET * 2,
+      };
+      if (inner.w < 64 || inner.h < 64) continue;
+      const count = Math.max(1, Math.min(3, Math.floor((inner.w * inner.h) / 150_000)));
+      let seed = (Math.round(r.x) * 73856093) ^ (Math.round(r.y) * 19349663) ^ Math.round(r.w * 7);
+      const rand = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 0xffffffff;
+      };
+      for (let i = 0; i < count; i++) {
+        this.critters.push(new Critter(this, {
+          textureKey: 'duck',
+          x: inner.x + rand() * inner.w,
+          y: inner.y + rand() * inner.h,
+          scale: 0.45,
+          roamRadius: 120,
+          bounds: inner,
+        }));
+      }
+    }
   }
 
   /**
@@ -808,6 +924,39 @@ export class VillageScene extends Phaser.Scene {
     return positions;
   }
 
+  /**
+   * Grid positions INSIDE an enclosure's interior rect — heroes walk in
+   * through the gate and stand on the floor rather than gathering at the
+   * door. The arena's heroes keep to the west side, because the goblin and
+   * skeleton they spar with hold the east. Positions clamp to the rect so a
+   * crowd compresses against the fence instead of standing in it.
+   *
+   * The farm reaches this only as a fallback, under a theme whose art
+   * declares no crop beds; normally `FarmWork` stations its heroes on the
+   * beds themselves.
+   */
+  private calcInteriorPositions(
+    rect: { x: number; y: number; w: number; h: number },
+    count: number,
+    buildingId: string,
+  ): Array<{ x: number; y: number }> {
+    if (count === 0) return [];
+    const cx = rect.x + rect.w * (buildingId === 'arena' ? 0.32 : 0.5);
+    const cy = rect.y + rect.h * 0.55;
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const positions: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      positions.push({
+        x: Phaser.Math.Clamp(cx + (col - (cols - 1) / 2) * GRID_SPACING_X, rect.x, rect.x + rect.w),
+        y: Phaser.Math.Clamp(cy + (row - (rows - 1) / 2) * GRID_SPACING_Y, rect.y, rect.y + rect.h),
+      });
+    }
+    return positions;
+  }
+
   // ---------------------------------------------------------------------------
   // Slot management
   // ---------------------------------------------------------------------------
@@ -834,12 +983,22 @@ export class VillageScene extends Phaser.Scene {
       }
       this.heroBuildingMap.delete(heroId);
     }
+    this.arrived.delete(heroId);
     return oldBuildingId;
   }
 
   private repositionBuilding(buildingId: string): void {
     const slots = this.buildingSlots.get(buildingId);
     if (slots === undefined || slots.length === 0) return;
+
+    // The farm's heroes don't stand on a grid — they work the beds. Its
+    // roster decides where each one goes and when it moves on. (Departures
+    // reach the roster through the sweep in handleAgentUpdate, which runs
+    // even when the last farmer leaves and there is nothing left to lay out.)
+    if (buildingId === 'farm' && this.farmWork !== null) {
+      this.farmWork.setWorkers(slots);
+      return;
+    }
 
     const buildingDef = BUILDING_DEFS.find((b) => b.id === buildingId);
     if (buildingDef === undefined) return;
@@ -848,17 +1007,61 @@ export class VillageScene extends Phaser.Scene {
     const doorX = building?.doorX ?? buildingDef.x;
     const doorY = building?.doorY ?? buildingDef.y + 60;
 
-    const positions = this.calcGridPositions(doorX, doorY, slots.length);
+    // Enclosures station their heroes inside; the road network ends at the
+    // gate, so the final leg of the walk passes through it naturally.
+    const interior = building?.interiorWorldRect() ?? null;
+    const positions = interior !== null
+      ? this.calcInteriorPositions(interior, slots.length, buildingId)
+      : this.calcGridPositions(doorX, doorY, slots.length);
+
+    const focusX = this.stationFocusX(buildingId, doorX, interior !== null);
 
     for (let i = 0; i < slots.length; i++) {
-      const hero = this.heroes.get(slots[i]!);
+      const heroId = slots[i]!;
+      const hero = this.heroes.get(heroId);
       if (hero === undefined) continue;
       const pos = positions[i]!;
 
       hero.gridBaseX = pos.x;
       hero.gridBaseY = pos.y;
-      hero.moveTo(pos.x, pos.y, hero.currentActivity);
+      // Arrival is cleared by removeFromSlot, which runs when a hero changes
+      // building — the only case where it genuinely isn't there. Heroes
+      // already at this building are just shuffling to make room for a new
+      // arrival and stay counted, or the chimney would puff out every time
+      // the building gained a hero.
+      hero.moveTo(pos.x, pos.y, hero.currentActivity, () => {
+        this.arrived.add(heroId);
+        if (focusX !== null) hero.faceTowards(focusX);
+        this.refreshOccupancy(buildingId);
+      });
     }
+
+    this.refreshOccupancy(buildingId);
+  }
+
+  /**
+   * What a hero stationed here turns to look at, or null to keep the
+   * direction it walked in. A hero freezing mid-stride tends to end up with
+   * its back to the anvil it is supposedly hammering, so the arena's heroes
+   * face the fighters they spar with and everyone else faces the door they
+   * are working at. The farm is the exception: its heroes stand on the beds
+   * they water, so there is nothing to turn towards.
+   */
+  private stationFocusX(buildingId: string, doorX: number, isEnclosure: boolean): number | null {
+    if (buildingId === 'arena') return this.arenaFighters?.focusX() ?? null;
+    return isEnclosure ? null : doorX;
+  }
+
+  /**
+   * Drive a building's ambience from whether a hero is actually standing at
+   * it: smoke from its chimney, and in the arena the goblin and skeleton
+   * squaring up. Both stop the moment the last hero leaves.
+   */
+  private refreshOccupancy(buildingId: string): void {
+    const slots = this.buildingSlots.get(buildingId) ?? [];
+    const occupied = slots.some((id) => this.arrived.has(id));
+    this.buildings.find((b) => b.def.id === buildingId)?.setSmoking(occupied);
+    if (buildingId === 'arena') this.arenaFighters?.setFighting(occupied);
   }
 
   // ---------------------------------------------------------------------------
@@ -965,5 +1168,15 @@ export class VillageScene extends Phaser.Scene {
     for (const buildingId of buildingsToReposition) {
       this.repositionBuilding(buildingId);
     }
+
+    // Ambience marks an occupied building — meaningful state: the chimney
+    // smokes (and the arena's cast spars) while a hero stands there, and
+    // stops the moment the last one leaves. Arrivals raise it via their own
+    // callback; this sweep is what lowers it, since a hero that walked off or
+    // vanished fires no arrival for the building it left.
+    for (const building of this.buildings) {
+      this.refreshOccupancy(building.def.id);
+    }
+    this.farmWork?.setWorkers(this.buildingSlots.get('farm') ?? []);
   }
 }
