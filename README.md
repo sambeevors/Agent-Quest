@@ -134,6 +134,19 @@ agentquest            # same as `agentquest start` — launches and opens the br
 agentquest update     # git pull + bun install (preserves local map edits)
 ```
 
+### Desktop app (macOS)
+
+```bash
+bun run desktop:install   # build "Agent Quest.app", copy it to /Applications, launch it
+bun run desktop           # or: run the Electron shell from source, without installing
+```
+
+The app bundles its own server (a compiled Bun binary), so once installed it needs neither Bun nor this checkout. It turns on **Open at Login** the first time it runs; toggle it from the *Agent Quest* menu or System Settings → General → Login Items. Closing the window keeps the village running in the dock; *Quit* stops the server.
+
+- It uses the same port as `bun start` (4444), so only one of the two can run at a time.
+- Server output goes to `~/Library/Logs/Agent Quest/server.log` (*Agent Quest → Show Server Log*).
+- Re-run `bun run desktop:install` after pulling changes; the installed app doesn't update itself.
+
 ## Troubleshooting
 
 **`bun: command not found`** — install Bun first, then re-run the Quick start:

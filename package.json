@@ -2,7 +2,11 @@
   "name": "agent-quest",
   "version": "0.0.3",
   "private": true,
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "client",
+    "desktop"
+  ],
   "engines": {
     "bun": ">=1.1.0"
   },
@@ -10,9 +14,14 @@
     "dev:server": "cd server && bun run dev",
     "dev:client": "cd client && bun run dev",
     "start": "concurrently -n server,client -c blue,green --kill-others-on-fail \"bun run dev:server\" \"bun run dev:client\"",
-    "check:assets": "bun run scripts/check-assets.ts"
+    "check:assets": "bun run scripts/check-assets.ts",
+    "desktop": "cd desktop && bun run dev",
+    "desktop:install": "cd desktop && bun run install-app"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
-  }
+  },
+  "trustedDependencies": [
+    "electron"
+  ]
 }

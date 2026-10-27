@@ -1,0 +1,25 @@
+appId: com.agentquest.desktop
+productName: Agent Quest
+directories:
+  output: release
+  buildResources: build-resources
+files:
+  - dist/main.js
+  - package.json
+extraResources:
+  - from: build/agent-quest-server
+    to: server/agent-quest-server
+  - from: ../client/dist
+    to: client
+  - from: ../server/data/map/village.json
+    to: map/village.json
+mac:
+  category: public.app-category.developer-tools
+  target: dir
+  # Built and run on this machine only, so no Developer ID: electron-builder
+  # ad-hoc signs ("-"), which is all Apple Silicon needs to launch it.
+  identity: "-"
+  icon: build-resources/icon.png
+  # Hardened runtime only matters for notarization, and would need JIT
+  # entitlements for the compiled Bun server; ad-hoc builds skip it.
+  hardenedRuntime: false

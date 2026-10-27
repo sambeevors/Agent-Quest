@@ -15,6 +15,8 @@ Two-process monorepo:
 - **server/** — Bun + Hono backend. Two providers run in parallel: `ClaudeProvider` auto-discovers every `~/.claude*` directory with a `projects/` subdir (e.g. `~/.claude`, `~/.claude-work`, `~/.claude-personale`); `CodexProvider` watches `~/.codex/sessions/` for Codex rollout files. Both poll their session logs every 2-3s, parse events into `AgentState` objects, push updates over native Bun WebSocket. Each `AgentState` carries its `configDir` and a `source` field (`'claude' | 'codex'`) so the UI can distinguish installations and providers. Optional Hono endpoint receives Claude Code `postToolUse` hooks for lower-latency events — **Claude Code only**; Codex doesn't expose hooks. `SessionRegistry` (pidfile oracle) is also **Claude-only by design**; Codex liveness is inferred purely from rollout-file activity.
 - **client/** — React 19 + Phaser 4 "Caladan" frontend. The world is a single read-only map (`server/data/map/village.json`) served by `GET /api/map`; there is no map editor. Fullscreen Phaser canvas renders the village; React overlay panels (Party Bar, Activity Feed, Detail Panel, Minimap, Top Bar) sit on top via ref-based bridge pattern (useRef + useEffect + EventEmitter).
 
+- **desktop/** — Electron shell (macOS). `src/main.ts` spawns the server as a child process (Bun can't run inside Electron's Node: packaged it is a `bun build --compile` binary, from source it is `bun run`) and points it at the built client via `AGENT_QUEST_CLIENT_DIR`, so the window loads everything from :4444 (`server/src/static/client-routes.ts`). `AGENT_QUEST_MAP_PATH` relocates the map, because a compiled binary's `import.meta.dir` is a virtual path. The server exits when its stdin closes (`AGENT_QUEST_EXIT_WITH_PARENT`), so a crashed shell doesn't strand :4444. Open-at-login is enabled once on first run of the installed app and is the user's after that.
+
 Data flow: `~/.claude*/projects/**/*.jsonl` and `~/.codex/sessions/**/rollout-*.jsonl` → ClaudeProvider / CodexProvider → SessionParser (per-format) → AgentStateManager → WebSocket → Browser (React state + Phaser scene).
 
 ## Fork additions
@@ -102,6 +104,8 @@ bun start              # Start both server and client (concurrently)
 bun run dev:server     # Server only on localhost:4444
 bun run dev:client     # Client only on localhost:4445
 bun run check:assets   # Verify every bundled sprite referenced by the theme exists on disk
+bun run desktop        # Electron shell from source (builds the client first)
+bun run desktop:install # Package Agent Quest.app and install it to /Applications
 ```
 
 ## Ports

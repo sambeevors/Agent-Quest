@@ -1,0 +1,24 @@
+{
+  "name": "agent-quest-desktop",
+  "productName": "Agent Quest",
+  "private": true,
+  "version": "0.0.3",
+  "description": "Agent Quest as a macOS app",
+  "main": "dist/main.js",
+  "scripts": {
+    "build:main": "bun build src/main.ts --outfile dist/main.js --target node --format cjs --external electron",
+    "build:client": "cd ../client && bun run build",
+    "build:server": "bun build ../server/src/index.ts --compile --outfile build/agent-quest-server",
+    "dev": "bun run build:main && bun run build:client && electron .",
+    "package": "bun run build:main && bun run build:client && bun run build:server && electron-builder --mac --dir",
+    "install-app": "bun run package && bun run scripts/install-app.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "@types/node": "^25.6.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "typescript": "~5.7.0"
+  }
+}
