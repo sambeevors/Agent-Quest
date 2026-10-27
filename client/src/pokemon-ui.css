@@ -1,6 +1,8 @@
 /*
- * Pokémon theme reskin — panel CHROME only, like sunnyside-ui.css which it
- * overrides (scoped to html.theme-pokemon, so it wins on specificity).
+ * FireRed reskin — panel CHROME only. Loaded after every component
+ * stylesheet, it overrides just the container treatment (background, border)
+ * of the overlay panels; layout, information design and the RuneScape type
+ * stay exactly as they were.
  *
  * The frame is FireRed's battle text box: a dark slate centre in a rounded
  * white-and-blue frame, so every panel keeps the dark interior its text
@@ -8,32 +10,34 @@
  * Both PNGs are baked by scripts/bake-pokemon/ at native 1x (4px slices).
  */
 
-html.theme-pokemon .partybar,
-html.theme-pokemon .detail-panel,
-html.theme-pokemon .activity-feed,
-html.theme-pokemon .topbar,
-html.theme-pokemon .building-info-panel,
-html.theme-pokemon .notif-menu,
-html.theme-pokemon .settings-modal,
-html.theme-pokemon .tutorial-modal,
-html.theme-pokemon .report,
-html.theme-pokemon .minimap,
-html.theme-pokemon .toast {
+.partybar,
+.detail-panel,
+.activity-feed,
+.topbar,
+.building-info-panel,
+.notif-menu,
+.settings-modal,
+.tutorial-modal,
+.report,
+.toast {
   border: 8px solid transparent;
-  border-image: url('/assets/ui/pokemon/box.png') 4 repeat;
+  border-image: url('/assets/pokemon/ui/box.png') 4 repeat;
+  image-rendering: pixelated;
+  border-radius: 0;
   background: rgba(40, 56, 80, 0.94);
   background-clip: padding-box;
 }
 
-html.theme-pokemon .partybar-header,
-html.theme-pokemon .feed-header-row {
+.partybar-header,
+.feed-header-row {
   border: 8px solid transparent;
-  border-image: url('/assets/ui/pokemon/plate.png') 4 fill stretch;
+  border-image: url('/assets/pokemon/ui/plate.png') 4 fill stretch;
+  image-rendering: pixelated;
   background: none;
 }
 
-html.theme-pokemon .partybar-header .partybar-title,
-html.theme-pokemon .feed-header-row .feed-title {
+.partybar-header .partybar-title,
+.feed-header-row .feed-title {
   /* FireRed's dialogue ink: dark grey with a pale drop shadow. */
   color: #484848;
   text-shadow: 1px 1px 0 #d0d0c8;

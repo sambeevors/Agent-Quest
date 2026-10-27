@@ -1,24 +1,28 @@
 import * as Phaser from 'phaser';
-import { HERO_COLOR_SPRITE_BASE, HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroClass, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
-import { getActiveTheme } from '../themes/registry';
-import { directPath, findRoadPath, type Point } from '../data/road-network';
+import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
+import type { Trainer } from '../../naming/hero-names';
+import { findWalk } from '../town/pathfinding';
+import type { Point } from '../town/town';
 import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
 import { spriteAnchors, type SpriteAnchors } from '../data/sprite-anchors';
 import { leaderSegment, type LabelBox, type LabelOffset } from '../data/label-declutter';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
-import type { Facing, PartnerSpec } from '../themes/types';
+import {
+  BUSY_FRAME_RATE, BUSY_STATES, partnerSpec, SPRITE_SCALE, standFrame, TRAINER_EXTENT, trainerTextureKey, walkFrames,
+  type Facing, type PokemonSpec,
+} from '../pokemon';
 
-const MOVE_SPEED = 150;
-/** Ground distance covered by one full run-cycle. Keeps legs synced to travel. */
-const RUN_PIXELS_PER_CYCLE = 60;
+/** World px per second: four tiles a second, a shade quicker than FireRed's
+ * walk so a cross-town trip doesn't keep the panels waiting. */
+const MOVE_SPEED = 128;
+/** One four-beat walk cycle covers two tiles, as in the game. */
+const WALK_PIXELS_PER_CYCLE = 64;
 
 /**
  * The label stack hangs off the character's HEAD, as measured by the bake
- * (`HeroSpriteConfig.extent`), not off the frame top: a Sunnyside frame is
- * 64 rows with a ~19-row hero in it, so the frame top is ~35 world px above
- * the hair. Bottom to top the stack is name, then the subagent / source
- * badge row, then the thought bubble.
+ * (`TRAINER_EXTENT`). Bottom to top the stack is name, then the subagent /
+ * source badge row, then the thought bubble.
  *
  * Only the name (and those badges) is drawn on the hero — activity, model,
  * file and prompt used to stack below the sprite, four rows deep, and buried
@@ -85,7 +89,7 @@ function ensureHaloTexture(scene: Phaser.Scene): void {
 
 export class HeroSprite {
   readonly id: string;
-  readonly heroClass: HeroClass;
+  readonly trainer: Trainer;
   private scene: Phaser.Scene;
   private sprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
@@ -108,10 +112,8 @@ export class HeroSprite {
   private chatterPending = false;
   private lastChatterLine: string | null = null;
   private lastErrorAt: number | undefined;
-  private idleKey: string;
-  private runKey: string;
-  private facesLeft: boolean;
-  private cfg!: import('../themes/types').HeroSpriteConfig;
+  /** The trainer's walker sheet. */
+  private textureKey: string;
   private moving = false;
   /** Head and feet relative to the sprite centre, at the current scale. */
   private anchors: SpriteAnchors;
@@ -122,10 +124,10 @@ export class HeroSprite {
   private nameBaseColor = '#DDDDDD';
   private selectionTween: Phaser.Tweens.Tween | null = null;
   private selectionHalo: Phaser.GameObjects.Image | null = null;
-  /** Which way a four-way walker is looking (unused by side-view sprites). */
+  /** Which way the trainer is looking — kept while parked. */
   private facing: Facing = 'down';
-  /** The partner Pokémon at the hero's heels, when the theme has one. */
-  private partner: { sprite: Phaser.GameObjects.Sprite; spec: PartnerSpec; footOffset: number } | null = null;
+  /** The partner Pokémon at the trainer's heels. */
+  private partner: { sprite: Phaser.GameObjects.Sprite; spec: PokemonSpec; footOffset: number } | null = null;
   /** Recent foot positions, newest last — the trail the partner follows. */
   private trail: Point[] = [];
 
@@ -133,80 +135,39 @@ export class HeroSprite {
   gridBaseX = 0;
   gridBaseY = 0;
 
+  /** `feetX`/`feetY` is where the trainer stands — see town.ts. */
   constructor(
     scene: Phaser.Scene,
     id: string,
     name: string,
-    heroClass: HeroClass,
+    trainer: Trainer,
     heroColor: HeroColor,
-    x: number,
-    y: number,
+    feetX: number,
+    feetY: number,
     isSubagent = false,
     source: AgentSource = 'claude',
   ) {
     this.scene = scene;
     this.id = id;
-    this.heroClass = heroClass;
+    this.trainer = trainer;
     this.source = source;
     this.isSubagent = isSubagent;
-    this._x = x;
-    this._y = y;
+    this.textureKey = trainerTextureKey(trainer);
+    this.anchors = spriteAnchors(TRAINER_EXTENT, SPRITE_SCALE);
+    this._x = feetX;
+    this._y = feetY - this.anchors.footOffset;
+    const x = this._x;
+    const y = this._y;
 
-    const theme = getActiveTheme();
-    // Map the logical hero color to a sprite base the theme actually ships
-    // with (identity for Sunnyside — every colour has a baked sheet). The
-    // source decides the species: Codex sessions render as goblins.
-    const spriteBase = HERO_COLOR_SPRITE_BASE[heroColor];
-    const cfg = theme.getHeroConfig(spriteBase, heroClass, source);
-    this.cfg = cfg;
-    this.idleKey = cfg.idleKey;
-    this.runKey = cfg.runKey;
-    this.facesLeft = cfg.facesLeft;
-
-    // Create sprite with idle animation
-    this.sprite = scene.add.sprite(x, y, this.idleKey);
-    this.sprite.setScale(theme.heroScale);
-    // Flip sprites that natively face left so they face right by default
-    this.sprite.setFlipX(this.facesLeft);
-    if (cfg.tint !== null) this.sprite.setTint(cfg.tint);
+    this.sprite = scene.add.sprite(x, y, this.textureKey, standFrame(this.facing));
+    this.sprite.setScale(SPRITE_SCALE);
     // Tag at construction time so the scene-level background-click
     // detector (VillageScene) can classify pointerdown hits correctly
     // regardless of which code path later wires up interactivity.
     this.sprite.setData('isHero', true);
 
-    this.anchors = spriteAnchors(cfg.extent, this.sprite.scaleY);
-
-    // Create idle animation if it doesn't exist yet
-    const idleAnimKey = `${this.idleKey}-anim`;
-    if (!scene.anims.exists(idleAnimKey)) {
-      const idleFrameSpec = cfg.idleFrameIndices !== undefined
-        ? { frames: cfg.idleFrameIndices }
-        : { start: 0, end: cfg.idleFrames - 1 };
-      scene.anims.create({
-        key: idleAnimKey,
-        frames: scene.anims.generateFrameNumbers(this.idleKey, idleFrameSpec),
-        frameRate: cfg.idleFrames > 1 ? 8 : 1,
-        repeat: -1,
-      });
-    }
-
-    const runAnimKey = `${this.runKey}-anim`;
-    if (!scene.anims.exists(runAnimKey)) {
-      // Match frame rate to ground speed so legs don't float or drag.
-      const runFrameRate = cfg.runFrames * (MOVE_SPEED / RUN_PIXELS_PER_CYCLE);
-      const runFrameSpec = cfg.runFrameIndices !== undefined
-        ? { frames: cfg.runFrameIndices }
-        : { start: 0, end: cfg.runFrames - 1 };
-      scene.anims.create({
-        key: runAnimKey,
-        frames: scene.anims.generateFrameNumbers(this.runKey, runFrameSpec),
-        frameRate: runFrameRate,
-        repeat: -1,
-      });
-    }
-
     this.playStationary();
-    this.createPartner(theme.getPartner?.(id) ?? null);
+    this.createPartner(partnerSpec(trainer));
 
     const nameColor = HERO_LABEL_COLOR[heroColor] ?? '#DDDDDD';
     this.nameBaseColor = nameColor;
@@ -246,20 +207,6 @@ export class HeroSprite {
 
   get x(): number { return this._x; }
   get y(): number { return this._y; }
-
-  /** Override the default hero scale (e.g. from MapConfig settings). */
-  setHeroScale(scale: number): void {
-    this.sprite.setScale(scale);
-    this.anchors = spriteAnchors(this.cfg.extent, this.sprite.scaleY);
-    if (this.partner !== null) {
-      const partnerScale = scale * (this.partner.spec.scale ?? 1);
-      this.partner.sprite.setScale(partnerScale);
-      this.partner.footOffset = spriteAnchors(this.partner.spec.extent, partnerScale).footOffset;
-      this.placePartner();
-    }
-    this.layoutLabels();
-    this.updateDepth();
-  }
 
   /** Whether the hero is walking — a walking hero's labels stay unlifted. */
   get isMoving(): boolean { return this.moving; }
@@ -355,9 +302,7 @@ export class HeroSprite {
   }
 
   /** Record what the hero is doing — it picks the pool its thoughts come
-   * from and, when the theme maps this state to an animation, what the
-   * stationary sprite plays (hammering at the Forge, foot-tapping while
-   * waiting, …). */
+   * from and whether a parked trainer is busy or resting. */
   setActivity(activity: AgentActivity): void {
     this.currentActivity = activity;
     if (!this.moving) this.playStationary();
@@ -379,39 +324,20 @@ export class HeroSprite {
   }
 
   /**
-   * Play the animation for a parked hero: the theme's entry for the current
-   * state ('waiting' outranks the activity — a blocked hero taps its foot
-   * whatever building it is stationed at), falling back to idle. Animations
-   * are created lazily; every state indexes into the same texture.
+   * What a parked trainer does: marks time on the spot while it works (the
+   * way an NPC busy at a counter does), stands still while resting — and
+   * while waiting, which outranks the activity: a blocked trainer stands and
+   * waits whatever it was doing.
    */
   private playStationary(): void {
     const state = this.isWaiting ? 'waiting' : this.currentActivity;
-    const dir = this.cfg.directional;
-    if (dir !== undefined) {
-      if (dir.busy.states.includes(state)) {
-        this.playDirectional('busy', dir.walk[this.facing], dir.busy.frameRate);
-      } else {
-        this.sprite.stop();
-        this.sprite.setFrame(dir.stand[this.facing]);
-      }
-      this.placePartner();
-      return;
+    if (BUSY_STATES.includes(state)) {
+      this.playDirectional('busy', walkFrames(this.facing), BUSY_FRAME_RATE);
+    } else {
+      this.sprite.stop();
+      this.sprite.setFrame(standFrame(this.facing));
     }
-    const extra = this.cfg.extraAnims?.[state];
-    if (extra !== undefined) {
-      const key = `${this.idleKey}-${state}`;
-      if (!this.scene.anims.exists(key)) {
-        this.scene.anims.create({
-          key,
-          frames: this.scene.anims.generateFrameNumbers(this.idleKey, { frames: extra.frameIndices }),
-          frameRate: extra.frameRate,
-          repeat: -1,
-        });
-      }
-      this.sprite.play(key, true);
-      return;
-    }
-    this.sprite.play(`${this.idleKey}-anim`, true);
+    this.placePartner();
   }
 
   /**
@@ -435,7 +361,7 @@ export class HeroSprite {
   }
 
   private speak(mood: ChatterMood): void {
-    const line = pickChatterLine(mood, this.lastChatterLine, Math.random, getActiveTheme().chatter);
+    const line = pickChatterLine(mood, this.lastChatterLine);
     this.lastChatterLine = line;
     this.bubble.say(line, CHATTER_HOLD_MS);
   }
@@ -615,32 +541,27 @@ export class HeroSprite {
   }
 
   /**
-   * Turn the hero to look at a world x — the direction it holds while parked.
-   * Motion overrides it, so this is only meaningful once the hero has arrived
-   * (the arena stations its heroes facing the fighters they spar with).
+   * Turn a parked trainer to look at a world point — the door it's waiting
+   * at, the way a FireRed character faces a counter, or the Pokémon it's
+   * battling. Motion overrides it, so this only matters once it has arrived.
    */
-  faceTowards(worldX: number, worldY?: number): void {
-    const dx = worldX - this._x;
-    if (this.cfg.directional !== undefined) {
-      // A four-way walker at a door turns its back to the camera and faces
-      // the building, the way a trainer in FireRed talks to a counter.
-      if (worldY !== undefined && worldY < this._y + this.anchors.footOffset - 4) this.facing = 'up';
-      else if (Math.abs(dx) >= 1) this.facing = dx < 0 ? 'left' : 'right';
-      else return;
-      if (!this.moving) this.playStationary();
-      return;
-    }
-    if (Math.abs(dx) < 1) return;
-    this.sprite.setFlipX((dx < 0) !== this.facesLeft);
+  faceTowards(target: Point): void {
+    const dx = target.x - this._x;
+    const dy = target.y - (this._y + this.anchors.footOffset);
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    this.facing = Math.abs(dx) > Math.abs(dy)
+      ? (dx < 0 ? 'left' : 'right')
+      : (dy < 0 ? 'up' : 'down');
+    if (!this.moving) this.playStationary();
   }
 
   /** Play a per-direction clip, creating it on first use. */
   private playDirectional(kind: string, frames: number[], frameRate: number): void {
-    const key = `${this.idleKey}-${kind}-${this.facing}`;
+    const key = `${this.textureKey}-${kind}-${this.facing}`;
     if (!this.scene.anims.exists(key)) {
       this.scene.anims.create({
         key,
-        frames: this.scene.anims.generateFrameNumbers(this.idleKey, { frames }),
+        frames: this.scene.anims.generateFrameNumbers(this.textureKey, { frames }),
         frameRate,
         repeat: -1,
       });
@@ -648,18 +569,18 @@ export class HeroSprite {
     this.sprite.play(key, true);
   }
 
-  private createPartner(spec: PartnerSpec | null): void {
-    if (spec === null || !this.scene.textures.exists(spec.textureKey)) return;
+  private createPartner(spec: PokemonSpec): void {
+    if (!this.scene.textures.exists(spec.textureKey)) return;
     const animKey = `${spec.textureKey}-follow`;
     if (!this.scene.anims.exists(animKey)) {
       this.scene.anims.create({
         key: animKey,
-        frames: this.scene.anims.generateFrameNumbers(spec.textureKey, { frames: spec.frameIndices }),
+        frames: this.scene.anims.generateFrameNumbers(spec.textureKey, { frames: [0, 1] }),
         frameRate: PARTNER_MOVING_FPS,
         repeat: -1,
       });
     }
-    const scale = this.sprite.scaleY * (spec.scale ?? 1);
+    const scale = this.sprite.scaleY * spec.scale;
     const sprite = this.scene.add.sprite(this._x, this._y, spec.textureKey);
     sprite.setScale(scale);
     sprite.play(animKey);
@@ -701,21 +622,16 @@ export class HeroSprite {
   }
 
   /**
-   * Walk to (targetX, targetY) along the road network. `onArrive` fires when
-   * the hero is actually standing there — immediately if it already is, and
-   * never if another moveTo supersedes this one first.
+   * Walk to where the trainer's feet should end up, through the streets of
+   * the town (see town/pathfinding.ts). `onArrive` fires when it is actually
+   * standing there — immediately if it already is, and never if another
+   * moveTo supersedes this one first.
    */
-  moveTo(targetX: number, targetY: number, activity: AgentActivity, onArrive?: () => void): void {
-    this.walk(findRoadPath({ x: this._x, y: this._y }, { x: targetX, y: targetY }), activity, onArrive);
-  }
-
-  /**
-   * Walk in a straight line instead of routing through the road graph. Only
-   * for moves inside an enclosure, where there is nothing to route around and
-   * the graph would send the hero out of the gate and back.
-   */
-  walkDirect(targetX: number, targetY: number, activity: AgentActivity, onArrive?: () => void): void {
-    this.walk(directPath({ x: this._x, y: this._y }, { x: targetX, y: targetY }), activity, onArrive);
+  moveTo(feetX: number, feetY: number, activity: AgentActivity, onArrive?: () => void): void {
+    const feet = { x: this._x, y: this._y + this.anchors.footOffset };
+    const path = findWalk(feet, { x: feetX, y: feetY })
+      .map((p) => ({ x: p.x, y: p.y - this.anchors.footOffset }));
+    this.walk(path, activity, onArrive);
   }
 
   private walk(path: Point[], activity: AgentActivity, onArrive?: () => void): void {
@@ -747,9 +663,9 @@ export class HeroSprite {
     this.moveAlongPath(path);
   }
 
-  /** Distance from the sprite's centre to its feet — where it stands. */
-  get footOffset(): number {
-    return this.anchors.footOffset;
+  /** Where the trainer's feet are. */
+  get feet(): Point {
+    return { x: this._x, y: this._y + this.anchors.footOffset };
   }
 
   private notifyArrival(): void {
@@ -787,20 +703,11 @@ export class HeroSprite {
       return;
     }
 
-    const dir = this.cfg.directional;
-    if (dir !== undefined) {
-      // Four-way walkers take the row for the dominant axis of travel.
-      this.facing = Math.abs(dx) >= Math.abs(dy)
-        ? (dx < 0 ? 'left' : 'right')
-        : (dy < 0 ? 'up' : 'down');
-      this.playDirectional('walk', dir.walk[this.facing], this.cfg.runFrames * (MOVE_SPEED / RUN_PIXELS_PER_CYCLE));
-    } else {
-      // Flip based on horizontal direction (invert for sprites that natively face left)
-      if (Math.abs(dx) > 5) {
-        this.sprite.setFlipX((dx < 0) !== this.facesLeft);
-      }
-      this.sprite.play(`${this.runKey}-anim`, true);
-    }
+    // Four-way walkers take the row for the dominant axis of travel.
+    this.facing = Math.abs(dx) >= Math.abs(dy)
+      ? (dx < 0 ? 'left' : 'right')
+      : (dy < 0 ? 'up' : 'down');
+    this.playDirectional('walk', walkFrames(this.facing), 4 * (MOVE_SPEED / WALK_PIXELS_PER_CYCLE));
 
     const duration = (distance / MOVE_SPEED) * 1000;
 

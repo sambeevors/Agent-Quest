@@ -1,8 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 import { nextTendDelay, pickBed } from './farm-work';
-import { SUNNYSIDE_SHEET } from '../themes/sunnyside-sheet';
+import { TOWN_BUILDINGS } from '../town/town';
 
-const BEDS = SUNNYSIDE_SHEET.buildings.crops.farm.length;
+const BEDS = TOWN_BUILDINGS.farm!.slots.length;
 
 describe('pickBed', () => {
   test('never returns a bed another hero has claimed', () => {
@@ -53,22 +53,8 @@ describe('nextTendDelay', () => {
   });
 });
 
-describe('the farm the beds come from', () => {
-  test('every bed centre lies inside the interior heroes may stand on', () => {
-    const [ix, iy, iw, ih] = SUNNYSIDE_SHEET.buildings.interior.farm;
-    for (const [x, y] of SUNNYSIDE_SHEET.buildings.crops.farm) {
-      expect(x).toBeGreaterThanOrEqual(ix);
-      expect(x).toBeLessThanOrEqual(ix + iw);
-      expect(y).toBeGreaterThanOrEqual(iy);
-      expect(y).toBeLessThanOrEqual(iy + ih);
-    }
-  });
-
-  test('the beds form the three rows of five the recipe paints', () => {
-    const rows = new Set(SUNNYSIDE_SHEET.buildings.crops.farm.map(([, y]) => y));
-    const cols = new Set(SUNNYSIDE_SHEET.buildings.crops.farm.map(([x]) => x));
-    expect(rows.size).toBe(3);
-    expect(cols.size).toBe(5);
-    expect(BEDS).toBe(15);
+describe('the flower bed the beds come from', () => {
+  test('has room for a few trainers at once', () => {
+    expect(BEDS).toBeGreaterThanOrEqual(6);
   });
 });

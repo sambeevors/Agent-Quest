@@ -176,7 +176,7 @@ export function ActivityFeed({ log, agents, selectedAgentId, onSelectAgent, show
                     key={entryKey}
                     entry={entry}
                     agent={agentLookup.get(entry.agentId)}
-                    agentName={heroNameFor(entry.agentId)}
+                    agentName={heroNameFor(entry.agentId, agentLookup.get(entry.agentId)?.source)}
                     highlighted={shouldHighlight(entry)}
                     isSelected={entryKey === selectedEntryKey}
                     showSourceBadge={showSourceBadge}

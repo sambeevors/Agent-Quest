@@ -5,7 +5,6 @@ import { AgentStateManager } from './state/agent-state-manager';
 import { SessionRegistry } from './session-registry';
 import { WebSocketServer } from './ws/websocket-server';
 import type { WsClient } from './ws/websocket-server';
-import { registerMapRoutes } from './map/routes';
 import { registerHookRoutes } from './hooks/routes';
 import { ClaudeProvider } from './providers/claude-provider';
 import { CodexProvider } from './providers/codex-provider';
@@ -76,8 +75,6 @@ app.use('*', cors({
 app.get('/api/health', (c) => c.json({ status: 'ok', agents: stateManager.getAll().length, clients: wsServer.clientCount }));
 
 app.get('/api/agents', (c) => c.json(stateManager.getAll()));
-
-registerMapRoutes(app);
 
 // --- Provider handlers: shared logic that every SessionProvider feeds into ---
 function broadcastAgentEventSideEffects(event: ParsedEvent): void {

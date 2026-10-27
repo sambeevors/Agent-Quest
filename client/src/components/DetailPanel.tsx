@@ -85,7 +85,7 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
         </span>
         <div className="detail-topbar-body">
           <div className="detail-name-row">
-            <span className="detail-name" style={{ color: HERO_LABEL_COLOR[agent.heroColor] }}>{heroNameFor(agent.id)}</span>
+            <span className="detail-name" style={{ color: HERO_LABEL_COLOR[agent.heroColor] }}>{heroNameFor(agent.id, agent.source)}</span>
             {showSourceBadge && (
               <span
                 className="detail-source-badge"
@@ -101,7 +101,7 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
             )}
           </div>
           <div className="detail-class">
-            {agent.heroClass}
+            {agent.source === 'codex' ? 'Team Rocket' : 'Trainer'}
             {/* The session's own identity — slug, project or subagent descriptor —
                 so a hero on screen can still be tied back to a real session. */}
             <span className="detail-slug" title={agent.name}>· {agent.name}</span>
@@ -247,7 +247,7 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
     </div>
     {modalOpen && lastMessage !== undefined && (
       <LastMessageModal
-        agentName={heroNameFor(agent.id)}
+        agentName={heroNameFor(agent.id, agent.source)}
         message={lastMessage}
         onClose={() => setModalOpen(false)}
       />

@@ -18,6 +18,16 @@ PRIMARY_TILES = 640
 PRIMARY_METATILES = 640
 PRIMARY_PALETTES = 7
 
+# metatile_attributes.bin (u32 per metatile) — see sMetatileAttrMasks in fieldmap.c.
+BEHAVIOR_MASK = 0x1FF
+LAYER_TYPE_SHIFT = 29
+LAYER_TYPE_COVERED = 1
+
+# map.bin (u16 per block): metatile id, then collision and elevation.
+METATILE_MASK = 0x3FF
+COLLISION_SHIFT = 10
+ELEVATION_SHIFT = 12
+
 
 def _snake(name: str) -> str:
     """gTileset_PalletTown -> pallet_town"""
@@ -46,6 +56,8 @@ class Tileset:
         raw = (d / 'metatiles.bin').read_bytes()
         self.metatiles = [struct.unpack_from('<8H', raw, i) for i in range(0, len(raw), 16)]
         self.palettes = [_read_pal(d / 'palettes' / f'{i:02}.pal') for i in range(16)]
+        raw = (d / 'metatile_attributes.bin').read_bytes()
+        self.attributes = [v for (v,) in struct.iter_unpack('<I', raw)]
 
     def tile(self, index: int) -> Image.Image:
         cols = self.tiles.width // 8
@@ -59,7 +71,18 @@ class MapRenderer:
         self.secondary = Tileset(root, 'secondary', secondary)
         pals = self.primary.palettes[:PRIMARY_PALETTES] + self.secondary.palettes[PRIMARY_PALETTES:]
         self.palettes = pals
-        self._cache: dict[tuple[int, bool], Image.Image] = {}
+        self._cache: dict[tuple[int, str], Image.Image] = {}
+
+    def _attribute(self, mid: int) -> int:
+        if mid < PRIMARY_METATILES:
+            return self.primary.attributes[mid]
+        return self.secondary.attributes[mid - PRIMARY_METATILES]
+
+    def behavior(self, mid: int) -> int:
+        return self._attribute(mid) & BEHAVIOR_MASK
+
+    def layer_type(self, mid: int) -> int:
+        return (self._attribute(mid) >> LAYER_TYPE_SHIFT) & 0x3
 
     def _tile(self, entry: int) -> Image.Image:
         index = entry & 0x3FF
@@ -88,7 +111,13 @@ class MapRenderer:
         return out
 
     def metatile(self, mid: int, layers: str = 'both') -> Image.Image:
-        """16x16 RGBA metatile. layers: 'bottom' | 'top' | 'both'."""
+        """16x16 RGBA metatile.
+
+        layers: 'bottom' | 'top' | 'both' are the raw tile layers; 'below' and
+        'above' split it the way the GBA's backgrounds do around the sprite
+        layer — a COVERED metatile puts both layers under sprites, NORMAL and
+        SPLIT ones put their top layer over them (roof eaves, tree crowns).
+        """
         key = (mid, layers)
         if key in self._cache:
             return self._cache[key]
@@ -97,7 +126,12 @@ class MapRenderer:
         else:
             entries = self.secondary.metatiles[mid - PRIMARY_METATILES]
         img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
-        spans = {'bottom': (0,), 'top': (1,), 'both': (0, 1)}[layers]
+        covered = self.layer_type(mid) == LAYER_TYPE_COVERED
+        spans = {
+            'bottom': (0,), 'top': (1,), 'both': (0, 1),
+            'below': (0, 1) if covered else (0,),
+            'above': () if covered else (1,),
+        }[layers]
         for layer in spans:
             for k in range(4):
                 t = self._tile(entries[layer * 4 + k])
@@ -113,11 +147,20 @@ class Layout:
         self.width = spec['width']
         self.height = spec['height']
         raw = (root / spec['blockdata_filepath']).read_bytes()
-        self.blocks = [v & 0x3FF for (v,) in struct.iter_unpack('<H', raw)]
+        self.raw = [v for (v,) in struct.iter_unpack('<H', raw)]
+        self.blocks = [v & METATILE_MASK for v in self.raw]
+        border = (root / spec['border_filepath']).read_bytes()
+        self.border = [v & METATILE_MASK for (v,) in struct.iter_unpack('<H', border)]
         self.renderer = MapRenderer(root, spec['primary_tileset'], spec['secondary_tileset'])
 
     def block(self, x: int, y: int) -> int:
         return self.blocks[y * self.width + x]
+
+    def collision(self, x: int, y: int) -> int:
+        return (self.raw[y * self.width + x] >> COLLISION_SHIFT) & 0x3
+
+    def elevation(self, x: int, y: int) -> int:
+        return self.raw[y * self.width + x] >> ELEVATION_SHIFT
 
     def render(self, rect: tuple[int, int, int, int] | None = None, backdrop: tuple[int, int, int, int] | None = None,
                layers: str = 'both') -> Image.Image:

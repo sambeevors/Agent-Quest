@@ -1,17 +1,15 @@
 /**
- * Shared categorisation for asset-load failures. Used by BootScene (fatal
- * error screen) and EditorBootScene (non-blocking banner) so both surfaces
- * show the same labels and counts.
+ * Categorisation for asset-load failures, for BootScene's error screen.
  *
- * Categories are chosen to map to user intent: "did I break heroes, buildings,
- * terrain, or decorations?" — which is far more actionable than a raw list of
- * 40 missing PNG paths.
+ * Categories are chosen to map to user intent: "did I break the trainers,
+ * their Pokémon, or the town?" — which is far more actionable than a raw
+ * list of 40 missing PNG paths.
  */
 
 export interface AssetCategorySummary {
   /** Stable id used by callers that want to style categories differently. */
-  id: 'hero' | 'building' | 'terrain' | 'decoration' | 'ui' | 'other';
-  /** Human-readable label for the boot screen / editor banner. */
+  id: 'trainer' | 'pokemon' | 'town' | 'ui' | 'other';
+  /** Human-readable label for the boot screen. */
   label: string;
   count: number;
 }
@@ -25,7 +23,7 @@ export interface GroupedMissingAssets {
 
 /**
  * Strip the origin and leading slash from a loader URL so samples display
- * as `assets/themes/...` rather than `http://localhost:4445/assets/themes/...`.
+ * as `assets/pokemon/...` rather than `http://localhost:4445/assets/pokemon/...`.
  */
 function normalisePath(raw: string): string {
   try {
@@ -38,28 +36,25 @@ function normalisePath(raw: string): string {
 
 function classify(path: string): AssetCategorySummary['id'] {
   const p = path.toLowerCase();
-  if (p.includes('/heroes/')) return 'hero';
-  if (p.includes('/buildings/')) return 'building';
-  if (p.includes('/terrain/')) return 'terrain';
-  if (p.includes('/scenery/') || p.includes('/vfx/')) return 'decoration';
+  if (p.includes('/trainers/') || p.includes('/portraits/')) return 'trainer';
+  if (p.includes('/pokemon/pokemon/')) return 'pokemon';
+  if (p.includes('/town/')) return 'town';
   if (p.includes('/ui/') || p.endsWith('logo.png')) return 'ui';
   return 'other';
 }
 
 const CATEGORY_ORDER: AssetCategorySummary['id'][] = [
-  'hero',
-  'building',
-  'terrain',
-  'decoration',
+  'trainer',
+  'pokemon',
+  'town',
   'ui',
   'other',
 ];
 
 const CATEGORY_LABEL: Record<AssetCategorySummary['id'], string> = {
-  hero: 'Hero sprites',
-  building: 'Buildings',
-  terrain: 'Terrain tiles',
-  decoration: 'Decorations (trees, rocks, bushes)',
+  trainer: 'Trainer sprites and portraits',
+  pokemon: 'Pokémon icons',
+  town: 'Cerulean City',
   ui: 'UI / logo',
   other: 'Other',
 };

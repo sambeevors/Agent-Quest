@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { AgentState } from '../types/agent';
 import { BUILDING_DEFS } from '../game/data/building-layout';
-import { buildingLabel } from '../game/themes/registry';
+import { heroNameFor } from '../naming/hero-names';
 import './BuildingInfoPanel.css';
 
 interface BuildingInfoPanelProps {
@@ -58,7 +58,7 @@ export function BuildingInfoPanel({ buildingId, anchor, agents, onClose }: Build
       <button className="building-info-close" onClick={onClose}>&#x2715;</button>
 
       <div className="building-info-header">
-        <div className="building-info-name">{buildingLabel(building)}</div>
+        <div className="building-info-name">{building.label}</div>
         <div className="building-info-activity">{building.activity}</div>
       </div>
 
@@ -91,8 +91,8 @@ export function BuildingInfoPanel({ buildingId, anchor, agents, onClose }: Build
               {agentsHere.map((a) => (
                 <div key={a.id} className="building-info-agent">
                   <span className="building-info-agent-dot" />
-                  <span className="building-info-agent-name">{a.name}</span>
-                  <span className="building-info-agent-class">{a.heroClass}</span>
+                  <span className="building-info-agent-name">{heroNameFor(a.id, a.source)}</span>
+                  <span className="building-info-agent-class">{a.name}</span>
                 </div>
               ))}
             </div>

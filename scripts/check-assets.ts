@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 /**
- * Static verification that every asset path referenced by every bundled theme
- * + building layout actually exists under client/public/. Run in CI or
- * pre-commit to catch renames / missing files before a user sees the boot
- * error screen.
+ * Static verification that every asset path the game loads — the town, the
+ * trainers, their portraits and Pokémon, and the panel chrome — actually
+ * exists under client/public/. Run in CI or pre-commit to catch renames /
+ * missing files before a user sees the boot error screen.
  *
  * Usage:
  *   bun run check:assets
@@ -16,10 +16,8 @@ import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { sunnysideTheme } from '../client/src/game/themes/sunnyside';
-import { pokemonTheme } from '../client/src/game/themes/pokemon';
-import type { ThemeManifest } from '../client/src/game/themes/types';
-import { BUILDING_DEFS } from '../client/src/game/data/building-layout';
+import { imagePreload, portraitUrl, spritesheetPreload } from '../client/src/game/pokemon';
+import { ROCKETS, TRAINERS } from '../client/src/naming/trainer-roster';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = resolve(__dirname, '..', 'client', 'public');
@@ -30,31 +28,17 @@ interface Expected {
 }
 
 function collectExpected(): Expected[] {
-  const out: Expected[] = [{ path: 'assets/logo.png', source: 'BootScene logo' }];
-  for (const theme of [sunnysideTheme, pokemonTheme]) out.push(...collectTheme(theme));
+  const out: Expected[] = [
+    { path: 'assets/logo.png', source: 'BootScene logo' },
+    { path: 'assets/pokemon/ui/box.png', source: 'panel chrome' },
+    { path: 'assets/pokemon/ui/plate.png', source: 'panel chrome' },
+  ];
+  for (const e of imagePreload()) out.push({ path: e.path, source: `image:${e.key}` });
+  for (const e of spritesheetPreload()) out.push({ path: e.path, source: `sheet:${e.key}` });
+  for (const t of [...TRAINERS, ...ROCKETS]) {
+    out.push({ path: portraitUrl(t).replace(/^\//, ''), source: `portrait:${t.title} ${t.name}` });
+  }
   return out;
-}
-
-function collectTheme(theme: ThemeManifest): Expected[] {
-  const out: Expected[] = [];
-
-  for (const def of BUILDING_DEFS) {
-    out.push({ path: theme.getBuildingImage(def.id), source: `building:${def.id}` });
-  }
-
-  for (const e of theme.getHeroPreload()) {
-    out.push({ path: e.path, source: `hero:${e.key}` });
-  }
-
-  if (theme.terrain !== undefined) {
-    out.push({ path: theme.terrain.path, source: `terrain:${theme.terrain.tilesetKey}` });
-  }
-
-  for (const e of theme.getStaticAssetPreload()) {
-    out.push({ path: e.path, source: `static:${e.key}` });
-  }
-
-  return out.map((e) => ({ ...e, source: `${theme.id} ${e.source}` }));
 }
 
 function main(): number {
@@ -81,7 +65,7 @@ function main(): number {
   for (const m of missing) {
     console.error(`  [${m.source}] ${m.path}`);
   }
-  console.error('\nRestore with:  git checkout -- client/public/assets/themes/');
+  console.error('\nRestore with:  git checkout -- client/public/assets/pokemon/');
   return 1;
 }
 

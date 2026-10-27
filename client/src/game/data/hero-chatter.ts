@@ -1,181 +1,182 @@
 import type { AgentActivity } from '../../types/agent';
 
 /**
- * Thought-bubble chatter: the short lines that flash above a hero's head.
+ * Thought-bubble chatter: the short lines that flash above a trainer's head.
  *
  * The hero labels used to carry the session's live detail (activity, model,
- * file, prompt) stacked under the sprite, which buried the village under four
+ * file, prompt) stacked under the sprite, which buried the town under four
  * rows of log text per hero. That detail lives in the React panels, so the
- * canvas keeps the name and says what a hero is *thinking* instead — a bubble
- * every few seconds, drawn from the pool for whatever it is currently doing.
+ * canvas keeps the name and says what a trainer is *thinking* instead — a
+ * bubble every few seconds, drawn from the pool for whatever it is doing.
  *
  * Lines are flavour, never information: nothing here is derived from session
  * state, so a bubble can never go stale or leak a path into a screenshot.
  *
- * Two rules keep them in the village. They speak in the register of the
- * BUILDING the activity sends the hero to — the Forge hammers, the Alchemist
- * brews — rather than naming the tool that got them there, so no line
- * mentions a grep or a stack trace. And they stay under ~34 characters: the
- * bubble wraps at 168px and a third line covers the hero underneath it.
+ * Two rules keep them in Cerulean City. They speak in the register of the
+ * PLACE the activity sends the trainer to — the Pokémon Center heals, the
+ * Gym judges, Nugget Bridge battles — rather than naming the tool that got
+ * them there, so no line mentions a grep or a stack trace. And they stay
+ * under ~34 characters: the bubble wraps at 168px and a third line covers
+ * the trainer underneath it. FireRed's own capitals (POKéMON, POTION) are
+ * part of the voice.
  *
  * One thing to watch when adding lines: vary their SHAPE, not just their
- * words. A pool where every entry runs 'Statement. Qualifier.' — 'Victory.
- * Barely.', 'Hmm. Unforeseen.' — reads as one voice with a tic, however
- * different the nouns are. Mix questions, fragments, and a couple of lines
- * long enough to need a comma.
+ * words. A pool where every entry is an exclamation reads as one voice with
+ * a tic, however different the nouns are. Mix questions, fragments, and a
+ * couple of lines long enough to need a comma.
  */
 
 /** What a hero is doing, as far as the bubbles are concerned. */
 export type ChatterMood = AgentActivity | 'waiting' | 'error';
 
 export const CHATTER_LINES: Record<ChatterMood, readonly string[]> = {
-  // Tavern.
+  // Pokémon Center.
   idle: [
-    'Anything else?',
-    'Taking a breather.',
-    'Quiet round here.',
-    'Fine weather for it.',
-    'Sharpening my blade.',
+    'Your POKéMON are fighting fit!',
+    'We hope to see you again!',
+    'Ding-ding-di-ding!',
+    'Is anyone using the PC?',
+    'Just resting my team.',
     'Zzz…',
-    'I could go again.',
-    'No quests today?',
-    'To the tavern, then.',
-    'Idle hands…',
-    'Ready when you are.',
-    'My feet have gone to sleep.',
+    'Nurse Joy is so nice.',
+    'Where to next?',
+    'Ready when you are!',
+    'The couch here is comfy.',
+    'Should I deposit a few?',
+    'Full HP, all six of them.',
   ],
-  // Castle — a council of one.
+  // Badge House — the old man who explains what a BADGE is for.
   thinking: [
-    'Give me a moment…',
-    'There must be a wiser road.',
-    'Two paths. Both cursed.',
-    'What if…',
-    'On second thoughts…',
-    'The plan is nearly whole.',
-    'Nay, not that one.',
-    'Would that serve?',
-    'Let me draw the map.',
-    'A council of one.',
-    'I turn it over and over.',
+    'Hmm… what would OAK do?',
+    'There’s a time and place…',
+    'Let me think this through.',
+    'Which one should I choose?',
     'Hmm.',
+    'A strategy is forming!',
+    'If I lead with a GRASS type…',
+    'No, wait…',
+    'What does this BADGE do?',
+    'Type matchups, type matchups…',
+    'Maybe the long way round.',
+    'I need a plan for MISTY.',
   ],
-  // Library — tomes, scrolls and dust.
+  // Trade House.
   reading: [
-    'Hmm, curious…',
-    'These scrolls run deep.',
-    'There it is, at last.',
-    'Who penned this?',
-    'One more tome…',
-    'Dust and riddles.',
-    'Someone underlined this bit.',
-    'The margins hold secrets.',
-    'A map, of sorts.',
-    'Read it twice, they say.',
-    'Ten thousand pages of this?',
-    'Aha!',
+    'TRAINER TIPS!',
+    'Reading the notebook…',
+    'So that’s how it works!',
+    'Status moves are key.',
+    'Page after page…',
+    'Did you know…?',
+    'I should take notes.',
+    'Where was that chapter?',
+    'Let me check the POKéDEX.',
+    'What’s that one evolve into?',
+    'A trade? Let me read the terms.',
+    'Huh. Fascinating.',
   ],
-  // Forge — hammer, anvil, sparks.
+  // Bike Shop.
   editing: [
-    'Back to the anvil.',
-    'A few strikes more.',
-    'Reforging this.',
-    'The steel folds nicely.',
-    'Melt it down and start over.',
-    'One tap, I promise.',
-    'Sparks everywhere!',
-    'Careful now…',
-    'That has a better edge.',
-    'A little polish.',
-    'The forge wants more coal.',
-    'Right. Where were we?',
+    'Tightening the spokes!',
+    'One more adjustment.',
+    'Good as new!',
+    'A BICYCLE, custom-built.',
+    'Hand me that wrench?',
+    'Almost rideable!',
+    'Measure twice, cut once.',
+    'Oil, then the chain.',
+    'A million POKé DOLLARS?!',
+    'Swap the seat, keep the frame.',
+    'Does this bell work?',
+    'Nearly there…',
   ],
-  // Arena — every command is a bout.
+  // Nugget Bridge — five trainers in a row, and one more waiting.
   bash: [
-    'Into the ring.',
-    'Stand well back.',
-    'Fingers crossed.',
-    'A clean strike!',
-    'Come on, come on…',
-    'That was quick work.',
-    'Still swinging…',
-    'One more bout.',
-    'The dust settles.',
-    'I won, but only just.',
-    'The crowd stirs.',
+    'A wild POKéMON appeared!',
+    'Go! Use TACKLE!',
+    'It’s super effective!',
+    'Come on, one more hit!',
+    'It’s not very effective…',
+    'Who’s next on the bridge?',
+    'Critical hit!',
+    'Five in a row!',
+    'You want a NUGGET?',
+    'I won’t lose this one.',
+    'Return! Go, partner!',
+    'Our eyes met — battle!',
+  ],
+  // The flower bed by the Bike Shop.
+  git: [
+    'Watering the flowers.',
+    'Growing nicely!',
+    'Plant it, then share it.',
+    'A whole bed, in bloom.',
+    'The SQUIRTBOTTLE works!',
+    'Done here — next flower!',
+    'Pretty, aren’t they?',
+    'Bloom where you’re planted.',
+    'These ones are for everyone.',
+    'Careful not to trample them.',
+    'A little more water…',
+    'Look how they’ve come up!',
+  ],
+  // Poké Mart.
+  debugging: [
+    'A POTION should fix it.',
+    'Maybe an ANTIDOTE?',
+    'FULL HEAL, please!',
+    'What went wrong there?',
+    'Let me try a REVIVE.',
+    'Something’s off…',
+    'Restocking the BAG.',
+    'Was it paralysed?',
+    'Is it burned? Asleep?',
+    'Two PARLYZ HEALS, please.',
+    'May I help you?',
+    'Out of ESCAPE ROPES again.',
+  ],
+  // Cerulean Gym.
+  reviewing: [
+    'Show me your best!',
+    'Let’s see your BADGES.',
+    'Not bad… not bad at all.',
+    'Another challenger?',
+    'Send in the next one!',
+    'I’ll judge that battle.',
+    'You call that training?',
+    'The CASCADEBADGE? Earn it.',
+    'Hmm, let me look closer.',
+    'Your form needs work.',
+    'Good. Very good, in fact.',
     'Again, from the top.',
   ],
-  // Farm — the hero has published something: work sown, sent to market.
-  git: [
-    'The seeds are in the ground.',
-    'Harvest day!',
-    'Off to market with it.',
-    'A fine crop, this one.',
-    'Sown and watered.',
-    'One more furrow.',
-    'Rain would be welcome now.',
-    'That row came up straight.',
-    'The scarecrow approves.',
-    'Best yield all season.',
-    'Let it grow.',
-    'Muddy boots, honest work.',
-  ],
-  // Alchemist — a bad brew, hunted down.
-  debugging: [
-    'The recipe lies.',
-    'Curious.',
-    'It brewed fine yesterday.',
-    'Where are you hiding?',
-    'One drop too many, always.',
-    'Another candle, more light…',
-    'Caught it in the flask!',
-    'The vial is empty again.',
-    'Not the beast I expected.',
-    'Right, from the first page.',
-    'Blame the moon.',
-    'Gotcha, little gremlin.',
-  ],
-  // Watchtower — walls, gaps and the horizon.
-  reviewing: [
-    'Nearly, but not quite.',
-    'The walls look sound.',
-    'One small nick, sorry.',
-    'Has this been proven?',
-    'I will check the far side.',
-    'Send it onward.',
-    'A gap in the wall, there.',
-    'Neat handiwork, that.',
-    'Mark this on the map.',
-    'No arrows from me.',
-    'Scanning the horizon…',
-    'And if the gate fails?',
-  ],
   waiting: [
-    'Your word, my liege.',
-    'Awaiting orders.',
-    'Still here…',
-    'A yea or a nay?',
-    'Anyone there?',
-    'The gate stays shut.',
-    'I shall wait.',
-    'Leave to proceed?',
-    'Any moment now…',
-    'Hello?',
-    'My horse is getting cold.',
-    'I have counted the stones.',
+    'Waiting for your call!',
+    '…',
+    'Trainer, what’s next?',
+    'Should I keep going?',
+    'Hello? Professor?',
+    'I’ll wait right here.',
+    'Ahem.',
+    'Any orders?',
+    'Tapping my foot…',
+    'Did you forget about me?',
+    'Whenever you’re ready!',
+    'Just say the word.',
   ],
   error: [
-    'That did not work…',
-    'That went up in flames.',
-    'It bites!',
-    'Not again!',
-    'Ow.',
-    'The potion turned black.',
-    'Down I go.',
-    'I did not foresee that.',
-    'Back to the map table.',
-    'A curse upon it.',
-    'Something broke, loudly.',
-    'Let me try another way.',
+    'It fainted!',
+    'Oh no! It missed!',
+    'It hurt itself in confusion!',
+    'Blacked out…',
+    'That didn’t work!',
+    'Ugh — back to the CENTER.',
+    'It’s stuck! It can’t move!',
+    'The attack went wide!',
+    'What?! It evolved… no?',
+    'That was a mistake.',
+    'Oof.',
+    'Not like this!',
   ],
 };
 
@@ -200,16 +201,13 @@ export function nextChatterDelay(random: () => number = Math.random): number {
 /**
  * A line for the mood, never the one that was just shown — repeating the same
  * thought back-to-back is the one thing that makes the pool feel small.
- * `lines` lets a theme speak in its own voice; moods it leaves out fall back
- * to the defaults above.
  */
 export function pickChatterLine(
   mood: ChatterMood,
   previous: string | null = null,
   random: () => number = Math.random,
-  lines: Partial<Record<string, readonly string[]>> = CHATTER_LINES,
 ): string {
-  const pool = lines[mood] ?? CHATTER_LINES[mood];
+  const pool = CHATTER_LINES[mood];
   const choices = pool.length > 1 ? pool.filter((line) => line !== previous) : pool;
   const index = Math.min(choices.length - 1, Math.floor(random() * choices.length));
   return choices[index]!;

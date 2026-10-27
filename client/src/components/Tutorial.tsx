@@ -1,20 +1,20 @@
 import { useEffect } from 'react';
-import { buildingLabel } from '../game/themes/registry';
+import { BUILDING_DEFS } from '../game/data/building-layout';
 import './Tutorial.css';
 
 interface TutorialProps {
   onClose: () => void;
 }
 
-const ACTIVITY_LEGEND: { activity: string; id: string; building: string; tools: string }[] = [
-  { activity: 'Read / Grep / Glob',     id: 'library', building: 'Library',     tools: 'search & read code' },
-  { activity: 'Edit / Write',           id: 'forge', building: 'Forge',       tools: 'write & edit code' },
-  { activity: 'Bash',                   id: 'arena', building: 'Arena',       tools: 'run commands & tests' },
-  { activity: 'Thinking',               id: 'castle', building: 'Castle',      tools: 'reason & plan' },
-  { activity: 'Reviewing / subagents',  id: 'watchtower', building: 'Watchtower',  tools: 'dispatch review' },
-  { activity: 'Git commit / push',      id: 'farm', building: 'Farm',        tools: 'commit & push' },
-  { activity: 'Debugging',              id: 'alchemist', building: 'Alchemist',   tools: 'fix errors' },
-  { activity: 'Idle / waiting',         id: 'tavern', building: 'Tavern',      tools: 'rest between tasks' },
+const ACTIVITY_LEGEND: { activity: string; id: string; tools: string }[] = [
+  { activity: 'Read / Grep / Glob',     id: 'library', tools: 'search & read code' },
+  { activity: 'Edit / Write',           id: 'forge', tools: 'write & edit code' },
+  { activity: 'Bash',                   id: 'arena', tools: 'run commands & tests' },
+  { activity: 'Thinking',               id: 'castle', tools: 'reason & plan' },
+  { activity: 'Reviewing / subagents',  id: 'watchtower', tools: 'dispatch review' },
+  { activity: 'Git commit / push',      id: 'farm', tools: 'commit & push' },
+  { activity: 'Debugging',              id: 'alchemist', tools: 'fix errors' },
+  { activity: 'Idle / waiting',         id: 'tavern', tools: 'rest between tasks' },
 ];
 
 export function Tutorial({ onClose }: TutorialProps) {
@@ -68,9 +68,9 @@ export function Tutorial({ onClose }: TutorialProps) {
         <table className="tutorial-legend">
           <tbody>
             {ACTIVITY_LEGEND.map((row) => (
-              <tr key={row.building}>
+              <tr key={row.id}>
                 <td className="tutorial-legend-k">{row.activity}</td>
-                <td className="tutorial-legend-v">{buildingLabel({ id: row.id, label: row.building })}</td>
+                <td className="tutorial-legend-v">{BUILDING_DEFS.find((b) => b.id === row.id)?.label}</td>
                 <td className="tutorial-legend-desc">{row.tools}</td>
               </tr>
             ))}

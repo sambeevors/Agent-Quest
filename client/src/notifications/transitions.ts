@@ -67,7 +67,7 @@ export function computeAlerts(
     else if (enteredCompleted) category = 'completed';
 
     if (category !== null) {
-      alerts.push({ agentId: a.id, name: heroNameFor(a.id), category });
+      alerts.push({ agentId: a.id, name: heroNameFor(a.id, a.source), category });
     }
   }
 
