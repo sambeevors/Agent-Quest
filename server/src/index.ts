@@ -12,6 +12,7 @@ import { CodexProvider } from './providers/codex-provider';
 import { LinearProvider } from './linear/linear-provider';
 import { LinearConfigStore } from './linear/linear-config';
 import { registerLinearRoutes } from './linear/routes';
+import { registerClientRoutes } from './static/client-routes';
 import type { ProviderHandlers, SessionStartPayload, SessionEventsPayload } from './providers/types';
 import type { ParsedEvent } from './parsers/session-parser';
 
@@ -47,6 +48,7 @@ const SUBAGENT_IDLE_THRESHOLD_MS = 120_000;                // 2 min silent, post
 const SUBAGENT_COMPLETED_THRESHOLD_MS = 5 * 60_000;        // 5 min idle → completed
 const SUBAGENT_BUSY_COMPLETED_THRESHOLD_MS = 15 * 60_000;  // 15 min busy silent → presumed crashed
 
+const CLIENT_DIR = process.env.AGENT_QUEST_CLIENT_DIR;
 const LINEAR_POLL_MS = Number(process.env.AGENT_QUEST_LINEAR_POLL_MS) || 2 * 60_000;
 
 const app = new Hono();
@@ -173,6 +175,17 @@ registerHookRoutes(app, {
 
 function allConfigDirs(): string[] {
   return [...claudeProvider.getConfigDirs(), ...codexProvider.getConfigDirs()];
+}
+
+// Catch-all, so it must come after every API route.
+if (CLIENT_DIR !== undefined) registerClientRoutes(app, CLIENT_DIR);
+
+// The desktop shell pipes our stdin and never writes to it. If the shell dies
+// without killing us (crash, force-quit), the pipe closes — exit rather than
+// hold :4444 and block the next launch.
+if (process.env.AGENT_QUEST_EXIT_WITH_PARENT === '1') {
+  process.stdin.on('close', () => process.exit(0));
+  process.stdin.resume();
 }
 
 // --- Lifecycle: active → idle (5m) → completed (30m) → removed (2h, keep min 5) ---

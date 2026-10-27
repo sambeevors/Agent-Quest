@@ -57,3 +57,7 @@ server/data/linear.json
 # Python bytecode from the bake pipeline
 __pycache__/
 *.pyc
+
+# Desktop app build output
+desktop/build/
+desktop/release/

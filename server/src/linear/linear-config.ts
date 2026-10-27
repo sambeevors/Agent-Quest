@@ -18,7 +18,9 @@ import { resolve } from 'node:path';
  * the UI reports the key as externally managed.
  */
 
-const DATA_DIR = resolve(import.meta.dir, '../../data');
+// The desktop app runs a compiled server whose `import.meta.dir` is a virtual
+// bundle path, so it points this at a writable per-user directory instead.
+const DATA_DIR = process.env.AGENT_QUEST_DATA_DIR ?? resolve(import.meta.dir, '../../data');
 const CONFIG_PATH = resolve(DATA_DIR, 'linear.json');
 
 /** Where the active key came from. `null` means none is configured. */

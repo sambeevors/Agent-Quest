@@ -10,7 +10,8 @@ import type { MapConfig } from './types';
  * map that still mattered were the ones nobody wanted to change. What remains
  * is a fixed, read-only description of the village, read once and cached.
  */
-const MAP_PATH = resolve(import.meta.dir, '../../data/map/village.json');
+// Overridable for the desktop app, which ships the map beside its compiled server.
+const MAP_PATH = process.env.AGENT_QUEST_MAP_PATH ?? resolve(import.meta.dir, '../../data/map/village.json');
 
 let cached: Promise<MapConfig | null> | null = null;
 
