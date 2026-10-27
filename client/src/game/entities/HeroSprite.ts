@@ -9,7 +9,7 @@ import { spriteAnchors, type SpriteAnchors } from '../data/sprite-anchors';
 import { leaderSegment, type LabelBox, type LabelOffset } from '../data/label-declutter';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
 import {
-  BUSY_FRAME_RATE, BUSY_STATES, partnerSpec, SPRITE_SCALE, standFrame, TRAINER_EXTENT, trainerTextureKey, walkFrames,
+  partnerSpec, SPRITE_SCALE, standFrame, TRAINER_EXTENT, trainerTextureKey, walkFrames,
   type Facing, type PokemonSpec,
 } from '../pokemon';
 
@@ -301,11 +301,9 @@ export class HeroSprite {
     }
   }
 
-  /** Record what the hero is doing — it picks the pool its thoughts come
-   * from and whether a parked trainer is busy or resting. */
+  /** Record what the hero is doing — it picks the pool its thoughts come from. */
   setActivity(activity: AgentActivity): void {
     this.currentActivity = activity;
-    if (!this.moving) this.playStationary();
   }
 
   /** Apply status-driven overlays (e.g. 'waiting' pulses the name). */
@@ -317,26 +315,14 @@ export class HeroSprite {
     } else if (!wantsWaiting && this.isWaiting) {
       this.isWaiting = false;
       this.stopWaitingPulse();
-    } else {
-      return;
     }
-    if (!this.moving) this.playStationary();
   }
 
-  /**
-   * What a parked trainer does: marks time on the spot while it works (the
-   * way an NPC busy at a counter does), stands still while resting — and
-   * while waiting, which outranks the activity: a blocked trainer stands and
-   * waits whatever it was doing.
-   */
+  /** A parked trainer stands still facing its spot, whatever it is doing —
+   * a FireRed character only steps when it moves. */
   private playStationary(): void {
-    const state = this.isWaiting ? 'waiting' : this.currentActivity;
-    if (BUSY_STATES.includes(state)) {
-      this.playDirectional('busy', walkFrames(this.facing), BUSY_FRAME_RATE);
-    } else {
-      this.sprite.stop();
-      this.sprite.setFrame(standFrame(this.facing));
-    }
+    this.sprite.stop();
+    this.sprite.setFrame(standFrame(this.facing));
     this.placePartner();
   }
 
