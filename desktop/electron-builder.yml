@@ -1,5 +1,5 @@
-appId: com.agentquest.desktop
-productName: Agent Quest
+appId: com.pokeagent.desktop
+productName: PokéAgent
 directories:
   output: release
   buildResources: build-resources
@@ -7,8 +7,8 @@ files:
   - dist/main.js
   - package.json
 extraResources:
-  - from: build/agent-quest-server
-    to: server/agent-quest-server
+  - from: build/pokeagent-server
+    to: server/pokeagent-server
   - from: ../client/dist
     to: client
 mac:

@@ -6,7 +6,9 @@ import { join, resolve } from 'node:path';
  * A login item points at the app's path, so it has to live somewhere stable
  * rather than in this repo's `release/` folder, which every package rebuilds.
  */
-const APP = 'Agent Quest.app';
+const APP = 'PokéAgent.app';
+// The app's name before the rebrand: replaced, not left beside the new one.
+const LEGACY_APP = 'Agent Quest.app';
 const release = resolve(import.meta.dir, '..', 'release');
 
 const builds = (await readdir(release)).filter((d) => d.startsWith('mac'));
@@ -15,8 +17,11 @@ if (build === undefined) throw new Error(`No mac build in ${release} — run \`b
 
 const dest = join('/Applications', APP);
 // Quit a running copy first, or it keeps the old binary and holds :4444.
-Bun.spawnSync(['osascript', '-e', 'tell application "Agent Quest" to quit']);
+for (const name of ['PokéAgent', 'Agent Quest']) {
+  Bun.spawnSync(['osascript', '-e', `tell application "${name}" to quit`]);
+}
 await rm(dest, { recursive: true, force: true });
+await rm(join('/Applications', LEGACY_APP), { recursive: true, force: true });
 await cp(join(release, build, APP), dest, { recursive: true, verbatimSymlinks: true });
 console.log(`Installed ${dest}`);
 Bun.spawnSync(['open', dest]);

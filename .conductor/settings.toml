@@ -3,7 +3,7 @@
 [scripts]
 setup = "bun install"
 
-# Agent Quest binds the fixed ports documented in CLAUDE.md (server 4444,
+# PokéAgent binds the fixed ports documented in CLAUDE.md (server 4444,
 # client 4445), and the Vite dev server uses `strictPort`. Two workspaces
 # running at once would collide, so only one may hold the ports at a time.
 run_mode = "nonconcurrent"

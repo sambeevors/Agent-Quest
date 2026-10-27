@@ -1,4 +1,4 @@
-"""Bake Agent Quest's world: Cerulean City, its trainers and their Pokémon.
+"""Bake PokéAgent's world: Cerulean City, its trainers and their Pokémon.
 
 Usage:
   python3 scripts/bake-pokemon/bake.py --firered <pret/pokefirered checkout> --pokeapi <PokeAPI/sprites checkout>

@@ -87,7 +87,7 @@ Il client mostra il banner empty-state solo se `configDirs.length === 0`.
 **Rename interni:**
 - Nome componente esportato: `NoClaudeBanner` → `NoInstallBanner`
 - Classi CSS: `.no-claude-banner`, `.no-claude-icon`, `.no-claude-body`, `.no-claude-title`, `.no-claude-text`, `.no-claude-link`, `.no-claude-dismiss` → `.no-install-banner`, `.no-install-icon`, ecc.
-- Costante localStorage: `agent-quest:no-claude-dismissed` → `agent-quest:no-install-dismissed`
+- Costante localStorage: `pokeagent:no-claude-dismissed` → `pokeagent:no-install-dismissed`
 
 **Migrazione localStorage.** Al mount del componente, se esiste la vecchia chiave e la nuova no, copiala sulla nuova e cancella la vecchia. Una riga, nessuna regressione per chi aveva già chiuso il banner.
 
@@ -108,7 +108,7 @@ Riga 36 (tagline):
 - *"Use the Claude Code CLI or Codex as usual — each session auto-spawns a hero on the dashboard, live."*
 
 Righe 51-55 (intro):
-- *"Agent Quest is a live dashboard that turns your Claude Code and Codex sessions into a 2D fantasy village. Every running agent becomes a hero who walks between buildings based on what it's doing."*
+- *"PokéAgent is a live dashboard that turns your Claude Code and Codex sessions into a 2D fantasy village. Every running agent becomes a hero who walks between buildings based on what it's doing."*
 
 Righe 58-67 (compatibilità) — riscrittura completa in due frasi:
 - *"Works with Claude Code in any form that writes session logs locally — the terminal CLI and the official IDE extensions (VS Code, JetBrains). Also works with Codex CLI (reads rollout logs from `~/.codex/sessions/`). It doesn't work with the Claude desktop app or claude.ai in the browser, since those don't expose local session files."*
@@ -121,7 +121,7 @@ Riga 85 (how to use):
 - *"When both Claude Code and Codex have active agents, each hero shows a small `CLAUDE` or `CODEX` badge so you can tell which CLI it came from."*
 
 Sezione "Privacy" (riga 119-123) — ultima frase:
-- *"Agent Quest only reads the logs Claude Code and Codex already keep on your disk."*
+- *"PokéAgent only reads the logs Claude Code and Codex already keep on your disk."*
 
 Sezione "Platform" (riga 125-129) — riscritta con matrice esplicita:
 - *"Claude Code: tested on macOS and Windows (via WSL2 — see README)."*
@@ -143,12 +143,12 @@ Aggiornamenti mirati alle 8 righe identificate, nell'ordine in cui compaiono:
 |---|---|---|
 | 6 | *"A fantasy village dashboard for monitoring your Claude Code agents."* | *"A fantasy village dashboard for monitoring your Claude Code and Codex agents."* |
 | 20 | *"Use the Claude Code CLI as usual — …"* | *"Use Claude Code or Codex as usual — each agent session auto-spawns a hero on the dashboard, live."* |
-| 22 | *"Agent Quest is a browser-based monitoring dashboard that visualizes active Claude Code agent sessions…"* | *"…that visualizes active Claude Code and Codex agent sessions…"* |
+| 22 | *"PokéAgent is a browser-based monitoring dashboard that visualizes active Claude Code agent sessions…"* | *"…that visualizes active Claude Code and Codex agent sessions…"* |
 | 47 | *"Claude Code sessions happen in a terminal — useful, but not very alive. When you run several agents at once (across projects, across `~/.claude*` installations)…"* | *"Claude Code and Codex sessions happen in a terminal — useful, but not very alive. When you run several agents at once (across projects, across `~/.claude*` installations and `~/.codex`)…"* |
 | 52 | *"Auto-discovery of every `~/.claude*` directory (supports multiple installations like `~/.claude-work`, `~/.claude-personale`)"* | *"Auto-discovery of every `~/.claude*` directory (supports multiple installations like `~/.claude-work`, `~/.claude-personale`) and of `~/.codex` if present"* |
 | 55 | *"…(optional lower-latency path via Claude Code `postToolUse` hooks)"* | *"…(optional lower-latency path via Claude Code `postToolUse` hooks — Claude Code only; Codex doesn't expose hooks)"* |
 | 61-62 | *"An active [Claude Code](…) installation (…)…"* **/** *"macOS or Linux recommended — Windows via WSL2"* | *"An active Claude Code or Codex installation (one or more `~/.claude*` directories and/or `~/.codex`). Without it the dashboard still starts, but the village stays empty and a banner tells you so."* **+** nuova matrice piattaforma (sotto) |
-| 107 | *"### One-line install (macOS only)"* | *"### One-line install (macOS only)"* (invariato) — ma con nota chiarificatrice: *"(The one-line installer script is macOS-only; Agent Quest itself runs on macOS and Linux, and via WSL2 on Windows — see the manual install below.)"* |
+| 107 | *"### One-line install (macOS only)"* | *"### One-line install (macOS only)"* (invariato) — ma con nota chiarificatrice: *"(The one-line installer script is macOS-only; PokéAgent itself runs on macOS and Linux, and via WSL2 on Windows — see the manual install below.)"* |
 | 148 | *"**Empty village with a "No Claude Code installation detected" banner** — … [Install Claude Code]…"* | *"**Empty village with a "No Claude Code or Codex installation detected" banner** — expected when no `~/.claude*` or `~/.codex` directory with session logs exists. Start a Claude Code or Codex session and heroes appear automatically (the banner disappears on its own)."* |
 
 **Nuova mini-sezione Platform matrix** da inserire prima della sezione Windows/WSL2:
@@ -226,7 +226,7 @@ Note:
 
 ### I) Design spec storico
 
-**File:** `docs/specs/2026-04-15-agent-quest-design.md`
+**File:** `docs/specs/2026-04-15-pokeagent-design.md`
 
 Non riscrittura. Appendere in fondo una breve appendice:
 

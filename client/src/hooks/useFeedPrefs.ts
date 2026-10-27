@@ -18,7 +18,7 @@ export const DEFAULT_PREFS: FeedPrefs = {
   agentFilter: null,
 };
 
-const STORAGE_KEY = 'agentquest:activityFeed:prefs';
+const STORAGE_KEY = 'pokeagent:activityFeed:prefs';
 const WRITE_DEBOUNCE_MS = 200;
 
 const FOLD_STATES: FoldState[] = ['full', 'compact', 'closed'];

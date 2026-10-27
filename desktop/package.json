@@ -1,14 +1,14 @@
 {
-  "name": "agent-quest-desktop",
-  "productName": "Agent Quest",
+  "name": "pokeagent-desktop",
+  "productName": "PokéAgent",
   "private": true,
   "version": "0.0.3",
-  "description": "Agent Quest as a macOS app",
+  "description": "PokéAgent as a macOS app",
   "main": "dist/main.js",
   "scripts": {
     "build:main": "bun build src/main.ts --outfile dist/main.js --target node --format cjs --external electron",
     "build:client": "cd ../client && bun run build",
-    "build:server": "bun build ../server/src/index.ts --compile --outfile build/agent-quest-server",
+    "build:server": "bun build ../server/src/index.ts --compile --outfile build/pokeagent-server",
     "dev": "bun run build:main && bun run build:client && electron .",
     "package": "bun run build:main && bun run build:client && bun run build:server && electron-builder --mac --dir",
     "install-app": "bun run package && bun run scripts/install-app.ts",

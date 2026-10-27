@@ -52,7 +52,7 @@ function showDesktopNotification(a: AgentAlert, onActivate: (id: string) => void
   try {
     const n = new Notification(titleFor(a), {
       body: bodyFor(a),
-      tag: `agentquest:${a.agentId}`, // collapse repeats for the same agent
+      tag: `pokeagent:${a.agentId}`, // collapse repeats for the same agent
     });
     n.onclick = () => {
       window.focus();
@@ -94,7 +94,7 @@ export function useAgentNotifications(
 
   // Tab-title unread badge.
   const badgeRef = useRef(0);
-  const baseTitleRef = useRef<string>(typeof document !== 'undefined' ? document.title : 'Agent Quest');
+  const baseTitleRef = useRef<string>(typeof document !== 'undefined' ? document.title : 'PokéAgent');
 
   useEffect(() => {
     if (typeof document === 'undefined') return;

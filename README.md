@@ -1,9 +1,13 @@
 <p align="center">
-  <img src="docs/banner.jpg" alt="Agent Quest" width="800" />
+  <img src="docs/banner.jpg" alt="PokéAgent" width="800" />
 </p>
 
 <p align="center">
-  <strong>A Pokémon FireRed town for monitoring your Claude Code CLI and Codex agents.</strong>
+  <strong>A Pokémon-inspired visualiser for your Claude Code CLI and Codex agents.</strong>
+</p>
+
+<p align="center">
+  <sub>A fan project. Not affiliated with, endorsed or sponsored by Nintendo, Game Freak, Creatures Inc. or The Pokémon Company.</sub>
 </p>
 
 <p align="center">
@@ -15,10 +19,10 @@
 
 > **Use Claude Code CLI or Codex as usual — each agent session auto-spawns a trainer on the dashboard, live.**
 
-Agent Quest is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as trainers walking around Cerulean City, exactly as Pokémon FireRed draws it. Each running agent becomes a real FireRed trainer — Youngster Joey, Lass Janice, now and then Red or Prof. Oak — with the Pokémon they send out last at their heels, walking the town's streets to the place that matches what it's doing: `Read` sends it to the Trade House, `Edit` to the Bike Shop, `Bash` to battle on Nugget Bridge, and so on. Codex sessions are Team Rocket.
+PokéAgent is a browser-based monitoring dashboard that visualizes active Claude Code and Codex agent sessions as trainers walking around Cerulean City, exactly as Pokémon FireRed draws it. Each running agent becomes a real FireRed trainer — Youngster Joey, Lass Janice, now and then Red or Prof. Oak — with the Pokémon they send out last at their heels, walking the town's streets to the place that matches what it's doing: `Read` sends it to the Trade House, `Edit` to the Bike Shop, `Bash` to battle on Nugget Bridge, and so on. Codex sessions are Team Rocket.
 
 <p align="center">
-  <img src="docs/media/day.gif" alt="Agent Quest — main view" width="820" />
+  <img src="docs/media/day.gif" alt="PokéAgent — main view" width="820" />
   <br/>
   <sub><em>Every trainer is an agent — the place it visits tells you what it's doing.</em></sub>
 </p>
@@ -31,7 +35,7 @@ Agent Quest is a browser-based monitoring dashboard that visualizes active Claud
 
 ## Why?
 
-Claude Code and Codex sessions happen in a terminal — useful, but not very *alive*. When you run several agents at once (across projects, across `~/.claude*` installations and `~/.codex`), it's hard to feel what they're actually doing. Agent Quest turns that invisible activity into something you can glance at: a little Kanto town where every trainer is an agent, and where they walk tells you what they're up to.
+Claude Code and Codex sessions happen in a terminal — useful, but not very *alive*. When you run several agents at once (across projects, across `~/.claude*` installations and `~/.codex`), it's hard to feel what they're actually doing. PokéAgent turns that invisible activity into something you can glance at: a little Kanto town where every trainer is an agent, and where they walk tells you what they're up to.
 
 ## Features
 
@@ -74,7 +78,7 @@ The world is FireRed's Cerulean City, not a map drawn for this app. `scripts/bak
 | Debugging | Poké Mart |
 | Idle / waiting | Pokémon Center |
 
-Every hero is a real trainer from the game's own trainer table, named the way the game names them, walking as their class's overworld sprite, shown in the panels with their battle portrait, and followed by the Pokémon they send out last. A door stands open while a trainer is inside.
+Every trainer is a real one from the game's own trainer table, named the way the game names them, walking as their class's overworld sprite, shown in the panels with their battle portrait, and followed by the Pokémon they send out last. A door stands open while a trainer is inside.
 
 **Educational use only.** The art belongs to Nintendo / Game Freak / The Pokémon Company. The repo commits only the baked PNGs the app loads; re-baking needs local checkouts of pret/pokefirered and [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
 
@@ -90,72 +94,72 @@ Every hero is a real trainer from the game's own trainer table, named the way th
 
 ## Quick start
 
-Agent Quest can be set up in **two equivalent ways** — pick the one that matches your platform:
+PokéAgent can be set up in **two equivalent ways** — pick the one that matches your platform:
 
 - **Manual install (classic)** — `git clone` + `bun install` + `bun start`. Three commands, full control, works everywhere (macOS, Linux, Windows via WSL2).
-- **One-line install (macOS only)** — a single `curl | bash` that installs Bun if missing, clones the repo, installs dependencies, creates a global `agentquest` command, and launches the app.
+- **One-line install (macOS only)** — a single `curl | bash` that installs Bun if missing, clones the repo, installs dependencies, creates a global `pokeagent` command, and launches the app.
 
 They do the same work under the hood. Every daily command has an equivalent:
 
 | With the CLI        | Without (classic)                      |
 |---------------------|----------------------------------------|
-| `agentquest`        | `bun start`                            |
-| `agentquest update` | `git pull --ff-only && bun install`    |
+| `pokeagent`        | `bun start`                            |
+| `pokeagent update` | `git pull --ff-only && bun install`    |
 
-`agentquest update` is a convenience command for end users running an installed copy that tracks `origin/main`. It is not the contributor workflow for feature branches.
+`pokeagent update` is a convenience command for end users running an installed copy that tracks `origin/main`. It is not the contributor workflow for feature branches.
 
 ### Manual install
 
 Three commands — works on macOS, Linux, and Windows via WSL2:
 
 ```bash
-git clone https://github.com/sambeevors/Agent-Quest.git
-cd Agent-Quest
+git clone https://github.com/sambeevors/PokeAgent.git
+cd PokeAgent
 bun install
 bun start
 ```
 
 That's it: your browser opens on <http://localhost:4445> and Cerulean City appears.
 
-Optional — create an `agentquest` shortcut so you can launch from any directory:
+Optional — create an `pokeagent` shortcut so you can launch from any directory:
 
 ```bash
 mkdir -p ~/.local/bin
-ln -s "$PWD/bin/agentquest" ~/.local/bin/agentquest
+ln -s "$PWD/bin/pokeagent" ~/.local/bin/pokeagent
 ```
 
-After the symlink you can run `agentquest` (alias of `bun start`) and `agentquest update` (alias of `git pull --ff-only && bun install`) from anywhere.
+After the symlink you can run `pokeagent` (alias of `bun start`) and `pokeagent update` (alias of `git pull --ff-only && bun install`) from anywhere.
 
-Agent Quest ships with its baked art (under `client/public/assets/pokemon/`), so there's nothing else to download.
+PokéAgent ships with its baked art (under `client/public/assets/pokemon/`), so there's nothing else to download.
 
 ### One-line install (macOS only)
 
-*The one-line installer script is macOS-only; Agent Quest itself runs on macOS and Linux, and via WSL2 on Windows — see the manual install above.*
+*The one-line installer script is macOS-only; PokéAgent itself runs on macOS and Linux, and via WSL2 on Windows — see the manual install above.*
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sambeevors/Agent-Quest/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sambeevors/PokeAgent/main/install.sh | bash
 ```
 
-The installer prints exactly what it's going to do and asks before touching anything. It checks/installs Bun, clones into `~/agent-quest` (override with `--dir <path>`), runs `bun install`, creates an `agentquest` shortcut in `~/.local/bin/`, and offers to launch right away. When it finishes, your browser opens on <http://localhost:4445> and Cerulean City appears.
+The installer prints exactly what it's going to do and asks before touching anything. It checks/installs Bun, clones into `~/pokeagent` (override with `--dir <path>`), runs `bun install`, creates an `pokeagent` shortcut in `~/.local/bin/`, and offers to launch right away. When it finishes, your browser opens on <http://localhost:4445> and Cerulean City appears.
 
 From the next session onwards:
 
 ```bash
-agentquest            # same as `agentquest start` — launches and opens the browser
-agentquest update     # git pull + bun install (preserves local map edits)
+pokeagent            # same as `pokeagent start` — launches and opens the browser
+pokeagent update     # git pull + bun install (preserves local map edits)
 ```
 
 ### Desktop app (macOS)
 
 ```bash
-bun run desktop:install   # build "Agent Quest.app", copy it to /Applications, launch it
+bun run desktop:install   # build "PokéAgent.app", copy it to /Applications, launch it
 bun run desktop           # or: run the Electron shell from source, without installing
 ```
 
-The app bundles its own server (a compiled Bun binary), so once installed it needs neither Bun nor this checkout. It turns on **Open at Login** the first time it runs; toggle it from the *Agent Quest* menu or System Settings → General → Login Items. Closing the window keeps the town running in the dock; *Quit* stops the server.
+The app bundles its own server (a compiled Bun binary), so once installed it needs neither Bun nor this checkout. It turns on **Open at Login** the first time it runs; toggle it from the *PokéAgent* menu or System Settings → General → Login Items. Closing the window keeps the town running in the dock; *Quit* stops the server.
 
 - It uses the same port as `bun start` (4444), so only one of the two can run at a time.
-- Server output goes to `~/Library/Logs/Agent Quest/server.log` (*Agent Quest → Show Server Log*).
+- Server output goes to `~/Library/Logs/PokéAgent/server.log` (*PokéAgent → Show Server Log*).
 - Re-run `bun run desktop:install` after pulling changes; the installed app doesn't update itself.
 
 ## Troubleshooting
@@ -178,7 +182,7 @@ bun install
 lsof -ti:4444,4445 | xargs kill -9
 ```
 
-**`agentquest: command not found` after install** — `~/.local/bin` is not in your `$PATH`. Add it:
+**`pokeagent: command not found` after install** — `~/.local/bin` is not in your `$PATH`. Add it:
 
 ```bash
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
@@ -216,11 +220,11 @@ cd server && bun test  # run server tests
 cd client && bun test  # run client tests
 ```
 
-For installed end-user copies that follow `main`, `agentquest update` runs the equivalent of `git pull --ff-only && bun install`. Contributors on feature branches should use normal Git commands instead.
+For installed end-user copies that follow `main`, `pokeagent update` runs the equivalent of `git pull --ff-only && bun install`. Contributors on feature branches should use normal Git commands instead.
 
 ### Missing assets
 
-If you accidentally delete or move files under `client/public/assets/pokemon/` (the town, trainer sprites and portraits, Pokémon icons), Agent Quest will tell you:
+If you accidentally delete or move files under `client/public/assets/pokemon/` (the town, trainer sprites and portraits, Pokémon icons), PokéAgent will tell you:
 
 - The **main app** blocks at boot with a screen that lists the missing files grouped by category (trainers / Pokémon / town) and suggests a restore command.
 - Run `bun run check:assets` any time to verify the whole bundled pack ahead of starting the app. Exits non-zero with a detailed list if anything is missing — good for CI or pre-commit.
@@ -237,15 +241,15 @@ By default the dev servers only listen on `localhost` for security. To share the
 
 ```bash
 # macOS / Linux — one-off, for this run only
-AGENT_QUEST_LAN=1 agentquest          # (or: AGENT_QUEST_LAN=1 bun start)
+POKEAGENT_LAN=1 pokeagent          # (or: POKEAGENT_LAN=1 bun start)
 
-# Permanent — decide once, then just run `agentquest`
-echo "AGENT_QUEST_LAN=1" >> ~/agent-quest/server/.env
-echo "AGENT_QUEST_LAN=1" >> ~/agent-quest/client/.env
-agentquest
+# Permanent — decide once, then just run `pokeagent`
+echo "POKEAGENT_LAN=1" >> ~/pokeagent/server/.env
+echo "POKEAGENT_LAN=1" >> ~/pokeagent/client/.env
+pokeagent
 ```
 
-Any env var documented in this README works identically with `agentquest` — just prefix it on the command line, or add it to the two `.env` files for a persistent choice.
+Any env var documented in this README works identically with `pokeagent` — just prefix it on the command line, or add it to the two `.env` files for a persistent choice.
 
 At startup the server prints reachable LAN URLs, for example:
 
@@ -269,7 +273,7 @@ Claude Code is exercised on macOS and Windows (via WSL2). Codex has been tested 
 
 ## Windows
 
-Bun officially supports Windows (1.1+), but we don't exercise this project on native Windows and a few dev-tool edge cases exist (file watching under certain paths, spawn semantics). For a frictionless experience on Windows, run Agent Quest inside **WSL2**:
+Bun officially supports Windows (1.1+), but we don't exercise this project on native Windows and a few dev-tool edge cases exist (file watching under certain paths, spawn semantics). For a frictionless experience on Windows, run PokéAgent inside **WSL2**:
 
 1. Install WSL2 following [Microsoft's guide](https://learn.microsoft.com/en-us/windows/wsl/install) (one command: `wsl --install` in an admin PowerShell).
 2. Open your WSL2 shell (Ubuntu by default) and install Bun:
@@ -284,12 +288,12 @@ Native Windows (PowerShell / cmd.exe) should also work after this project's cros
 
 ## Contributing
 
-Issues and pull requests are welcome — bug reports, feature ideas, new building sprites, extra hero classes, anything. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the short version.
+Issues and pull requests are welcome — bug reports, feature ideas, new building sprites, extra trainer classes, anything. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the short version.
 
 ## Credits
 
-- Original project: [Agent Quest](https://github.com/FulAppiOS/Agent-Quest) by [Fulvio Scichilone](https://github.com/FulAppiOS). This repository is a fork; the village and the provider architecture are their work.
-- Pokémon art: © Nintendo / Game Freak / The Pokémon Company, used here for educational, non-commercial purposes only. Baked by `scripts/bake-pokemon/` from the [pret/pokefirered](https://github.com/pret/pokefirered) decompilation and [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
+- Original project: [Agent Quest](https://github.com/FulAppiOS/Agent-Quest) by [Fulvio Scichilone](https://github.com/FulAppiOS). PokéAgent began as a fork of it (and was called Agent Quest until the rebrand); the provider architecture and the original village are their work.
+- Pokémon art: © Nintendo / Game Freak / The Pokémon Company, used here for educational, non-commercial purposes only. PokéAgent is an unofficial fan project and is not affiliated with, endorsed or sponsored by Nintendo, Game Freak, Creatures Inc. or The Pokémon Company. Pokémon and Pokémon character names are trademarks of Nintendo. Baked by `scripts/bake-pokemon/` from the [pret/pokefirered](https://github.com/pret/pokefirered) decompilation and [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
 
 ## License
 

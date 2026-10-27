@@ -86,7 +86,7 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
           title="Show tutorial"
           aria-label="Show tutorial"
         >
-          <img src="assets/logo.png" alt="Agent Quest" className="topbar-logo" />
+          <img src="assets/logo.png" alt="PokéAgent" className="topbar-logo" />
         </button>
 
         <span

@@ -4,7 +4,7 @@ import { createWriteStream, existsSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 /**
- * Agent Quest's desktop shell: one window onto the village, plus the server
+ * PokéAgent's desktop shell: one window onto the village, plus the server
  * that feeds it, started and stopped with the app.
  *
  * The server runs as a child process rather than inside Electron because it is
@@ -38,7 +38,7 @@ function serverLaunch(): ServerLaunch {
   if (app.isPackaged) {
     const res = process.resourcesPath;
     return {
-      command: join(res, 'server', 'agent-quest-server'),
+      command: join(res, 'server', 'pokeagent-server'),
       args: [],
       clientDir: join(res, 'client'),
     };
@@ -71,8 +71,8 @@ function startServer(): void {
       ...process.env,
       PORT: String(PORT),
       CLIENT_URL: ORIGIN,
-      AGENT_QUEST_CLIENT_DIR: launch.clientDir,
-      AGENT_QUEST_EXIT_WITH_PARENT: '1',
+      POKEAGENT_CLIENT_DIR: launch.clientDir,
+      POKEAGENT_EXIT_WITH_PARENT: '1',
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -83,7 +83,7 @@ function startServer(): void {
     server = null;
     if (!quitting) {
       dialog.showErrorBox(
-        'Agent Quest server stopped',
+        'PokéAgent server stopped',
         `The village server exited unexpectedly. Details are in:\n${logPath}`,
       );
       app.quit();
@@ -107,7 +107,7 @@ function createWindow(): void {
     height: 900,
     minWidth: 800,
     minHeight: 500,
-    title: 'Agent Quest',
+    title: 'PokéAgent',
     backgroundColor: '#1a1a2e',
     show: false,
     webPreferences: { contextIsolation: true, sandbox: true },
@@ -211,7 +211,7 @@ function buildMenu(): void {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.setName('Agent Quest');
+  app.setName('PokéAgent');
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);
   app.on('before-quit', () => {
@@ -229,7 +229,7 @@ if (!app.requestSingleInstanceLock()) {
     if (await isServerUp()) {
       dialog.showErrorBox(
         'Port 4444 is in use',
-        'Another Agent Quest server is already running (probably `bun start`). Stop it and open Agent Quest again.',
+        'Another PokéAgent server is already running (probably `bun start`). Stop it and open PokéAgent again.',
       );
       app.quit();
       return;
@@ -239,7 +239,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!(await waitForServer())) {
       if (!quitting) {
         dialog.showErrorBox(
-          'Agent Quest server did not start',
+          'PokéAgent server did not start',
           `See ${join(app.getPath('logs'), 'server.log')} for details.`,
         );
         app.quit();

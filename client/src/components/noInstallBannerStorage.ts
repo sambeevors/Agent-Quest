@@ -1,5 +1,5 @@
-export const OLD_DISMISS_KEY = 'agent-quest:no-claude-dismissed';
-export const NEW_DISMISS_KEY = 'agent-quest:no-install-dismissed';
+export const OLD_DISMISS_KEY = 'pokeagent:no-claude-dismissed';
+export const NEW_DISMISS_KEY = 'pokeagent:no-install-dismissed';
 
 /**
  * Has the user dismissed the empty-state banner? Reads the new key and, on

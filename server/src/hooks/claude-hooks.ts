@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
- * Install/uninstall of Agent Quest's `Stop` hook in a Claude Code
+ * Install/uninstall of PokéAgent's `Stop` hook in a Claude Code
  * `settings.json`. The pure merge functions (add/remove/detect) are split from
  * the filesystem IO so they can be unit-tested, and so the merge never clobbers
  * a user's existing hooks: we only ever append/remove our own group, identified

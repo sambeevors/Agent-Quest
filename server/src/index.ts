@@ -30,7 +30,9 @@ function listLanAddresses(): string[] {
 
 const PORT = Number(process.env.PORT) || 4444;
 const CLIENT_URL = process.env.CLIENT_URL ?? 'http://localhost:4445';
-const LAN_ENABLED = /^(1|true|yes|on)$/i.test(process.env.AGENT_QUEST_LAN ?? '');
+// AGENT_QUEST_LAN is the pre-rename name, still honoured so existing .env files keep working.
+const LAN_ENV = process.env.POKEAGENT_LAN ?? process.env.AGENT_QUEST_LAN;
+const LAN_ENABLED = /^(1|true|yes|on)$/i.test(LAN_ENV ?? '');
 const IDLE_THRESHOLD_MS = 5 * 60_000;       // 5 minutes without events → idle
 const COMPLETED_THRESHOLD_MS = 30 * 60_000; // 30 minutes idle → completed
 const STALE_THRESHOLD_MS = 2 * 60 * 60_000; // 2 hours completed → remove (keep min 5)
@@ -44,7 +46,7 @@ const SUBAGENT_IDLE_THRESHOLD_MS = 120_000;                // 2 min silent, post
 const SUBAGENT_COMPLETED_THRESHOLD_MS = 5 * 60_000;        // 5 min idle → completed
 const SUBAGENT_BUSY_COMPLETED_THRESHOLD_MS = 15 * 60_000;  // 15 min busy silent → presumed crashed
 
-const CLIENT_DIR = process.env.AGENT_QUEST_CLIENT_DIR;
+const CLIENT_DIR = process.env.POKEAGENT_CLIENT_DIR;
 
 const app = new Hono();
 const sessionRegistry = new SessionRegistry({ configDirs: [] });
@@ -64,7 +66,7 @@ const wsServer = new WebSocketServer();
 // configured CLIENT_URL for a tight localhost-only default.
 console.log('[Server] CORS config', {
   LAN_ENABLED,
-  AGENT_QUEST_LAN_env: process.env.AGENT_QUEST_LAN ?? '(unset)',
+  POKEAGENT_LAN_env: LAN_ENV ?? '(unset)',
   CLIENT_URL,
 });
 app.use('*', cors({
@@ -169,7 +171,7 @@ if (CLIENT_DIR !== undefined) registerClientRoutes(app, CLIENT_DIR);
 // The desktop shell pipes our stdin and never writes to it. If the shell dies
 // without killing us (crash, force-quit), the pipe closes — exit rather than
 // hold :4444 and block the next launch.
-if (process.env.AGENT_QUEST_EXIT_WITH_PARENT === '1') {
+if (process.env.POKEAGENT_EXIT_WITH_PARENT === '1') {
   process.stdin.on('close', () => process.exit(0));
   process.stdin.resume();
 }
@@ -268,7 +270,7 @@ const server = Bun.serve({
   },
 });
 
-console.log(`[Server] Agent Quest server running on http://localhost:${PORT}`);
+console.log(`[Server] PokéAgent server running on http://localhost:${PORT}`);
 console.log(`[Server] WebSocket endpoint: ws://localhost:${PORT}/ws`);
 console.log(`[Server] Health check: http://localhost:${PORT}/api/health`);
 

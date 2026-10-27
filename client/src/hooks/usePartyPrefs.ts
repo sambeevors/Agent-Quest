@@ -10,7 +10,7 @@ export const DEFAULT_PARTY_PREFS: PartyPrefs = {
   foldState: 'full',
 };
 
-const STORAGE_KEY = 'agentquest:partyBar:prefs';
+const STORAGE_KEY = 'pokeagent:partyBar:prefs';
 const WRITE_DEBOUNCE_MS = 200;
 
 const FOLD_STATES: PartyFoldState[] = ['full', 'icons'];

@@ -101,7 +101,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
   const sendTestNotification = useCallback(() => {
     try {
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('Agent Quest', { body: 'Notifications are working \u{1F514}', tag: 'agentquest:test' });
+        new Notification('PokéAgent', { body: 'Notifications are working \u{1F514}', tag: 'pokeagent:test' });
       }
     } catch { /* ignore */ }
     if (settings.soundEnabled) playChime('waiting', settings.volume);
@@ -199,7 +199,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
         />
 
         <div className="settings-hint-block settings-hook-blurb">
-          <strong>Reliable turn-end</strong> — let Claude tell Agent Quest the instant an
+          <strong>Reliable turn-end</strong> — let Claude tell PokéAgent the instant an
           agent finishes, instead of inferring it from logs (fewer false alarms, no delay).
           Optional, Claude-only. Enabling writes a small <code>Stop</code> hook into your
           Claude <code>settings.json</code>; existing hooks are left untouched.

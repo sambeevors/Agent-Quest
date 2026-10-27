@@ -3,7 +3,7 @@ import { TOWN_BUILDINGS } from './town/town';
 import type { Trainer } from '../naming/hero-names';
 
 /**
- * The art Agent Quest draws with — FireRed trainers, their partner Pokémon,
+ * The art PokéAgent draws with — FireRed trainers, their partner Pokémon,
  * and Cerulean City itself.
  *
  * Educational fork only: the art is Nintendo / Game Freak / The Pokémon

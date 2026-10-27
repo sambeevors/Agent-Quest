@@ -1,5 +1,5 @@
 {
-  "name": "agent-quest",
+  "name": "pokeagent",
   "version": "0.0.3",
   "private": true,
   "workspaces": [
