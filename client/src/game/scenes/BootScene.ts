@@ -57,7 +57,7 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // Ground decorations, scenery, VFX, construction sprites — all delegated
+    // Ground decorations, scenery, VFX — all delegated
     // to the active theme so swapping themes swaps their PNGs end-to-end.
     for (const entry of getActiveTheme().getStaticAssetPreload()) {
       if (entry.frameWidth !== undefined && entry.frameHeight !== undefined) {
