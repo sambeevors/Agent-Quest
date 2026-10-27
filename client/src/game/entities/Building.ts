@@ -1,8 +1,19 @@
 import * as Phaser from 'phaser';
 import type { BuildingDef } from '../data/building-layout';
+import { spriteRect } from '../data/building-plan';
 import { eventBridge } from '../EventBridge';
 import { addCrispText, LABEL_FONT } from '../text';
 import { getActiveTheme } from '../themes/registry';
+
+/** Clear air between the building's top (chimney included) and its subtitle. */
+const BUILDING_LABEL_GAP = 6;
+/** How far the title's bottom tucks into the subtitle's box — the text boxes
+ *  carry padding for stroke and shadow that would otherwise read as a gap. */
+const BUILDING_LABEL_LEADING = 3;
+/** Depth offsets from the door line: the smoke sorts with its building, and
+ *  the labels just above it so the plume passes behind the text. */
+const SMOKE_DEPTH_OFFSET = 0.15;
+const BUILDING_LABEL_DEPTH_OFFSET = 0.2;
 
 export class Building {
   readonly def: BuildingDef;
@@ -65,9 +76,22 @@ export class Building {
     // Y-based depth: use doorY (bottom edge) so heroes sort correctly
     this.image.setDepth(this.doorY);
 
-    // Label above building — image top is at y - displayHeight (since origin is bottom)
-    const labelY = def.y - this.image.displayHeight - 8;
-    this.label = addCrispText(scene, def.x, labelY, def.label, {
+    // Title and subtitle stack ENTIRELY above the image. The image top is the
+    // building's silhouette top — every chimney anchor is at or below it — so
+    // nothing of the roof or chimney sits under the text. The subtitle used to
+    // hang 5px into the image, which on every roofed hall was exactly where
+    // the chimney is drawn.
+    const top = def.y - this.image.displayHeight;
+    const subtitle = addCrispText(scene, def.x, top - BUILDING_LABEL_GAP, def.activity, {
+      fontSize: '13px',
+      color: '#d8d8d8',
+      fontFamily: LABEL_FONT,
+      stroke: '#000000',
+      strokeThickness: 1,
+      shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 2, fill: true },
+    }).setOrigin(0.5, 1);
+
+    this.label = addCrispText(scene, def.x, subtitle.y - subtitle.displayHeight + BUILDING_LABEL_LEADING, def.label, {
       fontSize: '17px',
       fontStyle: '600',
       color: '#F5E6C8',
@@ -75,18 +99,14 @@ export class Building {
       stroke: '#000000',
       strokeThickness: 2,
       shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 3, fill: true },
-    }).setOrigin(0.5, 1).setDepth(this.doorY + 0.1);
+    }).setOrigin(0.5, 1);
 
-    // Subtitle (description) below the label — pushed 5px down to clear the
-    // title's descenders and avoid muddiness in the overlap zone.
-    addCrispText(scene, def.x, labelY + 5, def.activity, {
-      fontSize: '13px',
-      color: '#d8d8d8',
-      fontFamily: LABEL_FONT,
-      stroke: '#000000',
-      strokeThickness: 1,
-      shadow: { offsetX: 0, offsetY: 1, color: '#000', blur: 2, fill: true },
-    }).setOrigin(0.5, 0).setDepth(this.doorY + 0.1);
+    // Every chimney sits on its hall's centre line — right under the text —
+    // so the plume necessarily rises through it. The text is drawn OVER the
+    // smoke (see setSmoking's depth): the black-stroked label stays legible
+    // and the plume reads as rising behind the sign, not as fog on it.
+    subtitle.setDepth(this.doorY + BUILDING_LABEL_DEPTH_OFFSET);
+    this.label.setDepth(this.doorY + BUILDING_LABEL_DEPTH_OFFSET);
   }
 
   /**
@@ -113,7 +133,7 @@ export class Building {
     this.smoke.setOrigin(0.5, 1);
     this.smoke.setScale(scale);
     this.smoke.setAlpha(0.9);
-    this.smoke.setDepth(this.doorY + 0.15);
+    this.smoke.setDepth(this.doorY + SMOKE_DEPTH_OFFSET);
     this.smoke.play('vfx-chimneysmoke-anim');
   }
 
@@ -149,26 +169,12 @@ export class Building {
   }
 
   /**
-   * Ground plan used for road routing, in world space.
-   *
-   * NOT the sprite's bounding box: these are tall buildings drawn in
-   * three-quarter view, so most of the image is roof and upper wall that a
-   * path may happily pass behind. Only the lower band actually stands on the
-   * ground, so roads route around that and heroes can still walk behind the
-   * upper storeys — which is what makes the depth sorting read correctly.
-   *
-   * Enclosures are the exception: a fence ring is ALL ground — there is no
-   * upper storey to walk behind — so their footprint is the whole image and
-   * roads (and scenery) keep out of the yard entirely.
+   * Ground the roads keep off, in world space: the whole drawn sprite. See
+   * `spriteRect` for why it is not a ground band — measured off the baked
+   * art, the walls run the full width down to the ground, and a road let
+   * behind the upper storey pokes out past the eaves.
    */
   get footprint(): { x: number; y: number; w: number; h: number } {
-    if (this.interior !== null) {
-      const w = this.image.displayWidth * 0.96;
-      const h = this.image.displayHeight * 0.94;
-      return { x: this.def.x - w / 2, y: this.def.y - h, w, h };
-    }
-    const w = this.image.displayWidth * 0.78;
-    const h = Math.max(24, this.image.displayHeight * 0.34);
-    return { x: this.def.x - w / 2, y: this.def.y - h, w, h };
+    return spriteRect(this.def.x, this.def.y, this.image.displayWidth, this.image.displayHeight);
   }
 }

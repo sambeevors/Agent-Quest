@@ -54,5 +54,7 @@ emitted by the bake and must never be edited by hand.
    against the original Tiny Swords baseline) renders at the right size.
 3. Provide a server manifest (`server/src/map/asset-manifest-<id>.ts`) whose
    tileset keys match what `server/data/map/village.json` references — or
-   migrate the map (`scripts/migrate-village-map.ts` is the worked example).
+   migrate the map's texture keys/frames with a one-off script (the
+   Sunnyside swap did this, then deleted the script so it could never be
+   re-run over later hand edits).
 4. `bun run check:assets`, `bun test`, and eyeball the running app.

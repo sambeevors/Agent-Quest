@@ -93,3 +93,33 @@ export function waterKeepOut(
     h: (b.bottom - b.top + 1) * tileSize + SHORE_MARGIN * 2,
   }));
 }
+
+function overlaps(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+/**
+ * The largest part of `area` that none of `obstacles` reaches into.
+ *
+ * This is open water for a duck to paddle in. A duck is y-sorted against its
+ * own feet, so if it swims across the jetty — which is drawn as a floor,
+ * beneath everything that sorts — it paints over the planks and appears to
+ * waddle along the deck. Each obstacle splits the area into the strips left,
+ * right, above and below it; the biggest strip clear of every obstacle wins.
+ * Greedy rather than optimal, which is plenty for one or two jetties.
+ */
+export function largestClearRect(area: Rect, obstacles: readonly Rect[]): Rect {
+  let best = area;
+  for (const o of obstacles) {
+    if (!overlaps(best, o)) continue;
+    const strips: Rect[] = [
+      { x: best.x, y: best.y, w: o.x - best.x, h: best.h },
+      { x: o.x + o.w, y: best.y, w: best.x + best.w - (o.x + o.w), h: best.h },
+      { x: best.x, y: best.y, w: best.w, h: o.y - best.y },
+      { x: best.x, y: o.y + o.h, w: best.w, h: best.y + best.h - (o.y + o.h) },
+    ].filter((s) => s.w > 0 && s.h > 0);
+    if (strips.length === 0) return { x: area.x, y: area.y, w: 0, h: 0 };
+    best = strips.reduce((a, b) => (b.w * b.h > a.w * a.h ? b : a));
+  }
+  return best;
+}

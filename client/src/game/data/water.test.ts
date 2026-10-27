@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { waterKeepOut } from './water';
+import { largestClearRect, waterKeepOut } from './water';
 import { generateScenery } from './scenery';
 import type { TerrainCell } from './map-config';
 
@@ -72,10 +72,34 @@ describe('waterKeepOut', () => {
     const wet = (i: { x: number; y: number }) =>
       i.x >= 0 && i.x <= 20 * TILE && i.y >= 12 * TILE && i.y <= 18 * TILE;
 
-    const before = generateScenery({ bounds, buildings: [], roads: [] });
+    const before = generateScenery({ bounds, buildings: [], roads: { cell: 32, tiles: [] } });
     expect(before.filter(wet).length).toBeGreaterThan(0);
 
-    const after = generateScenery({ bounds, buildings: [], roads: [], exclusions: water });
+    const after = generateScenery({ bounds, buildings: [], roads: { cell: 32, tiles: [] }, exclusions: water });
     expect(after.filter(wet)).toHaveLength(0);
+  });
+});
+
+describe('largestClearRect', () => {
+  const lakeArea = { x: 64, y: 1536, w: 2048, h: 256 };
+
+  test('returns the area untouched when nothing reaches into it', () => {
+    expect(largestClearRect(lakeArea, [{ x: 0, y: 0, w: 100, h: 100 }])).toEqual(lakeArea);
+    expect(largestClearRect(lakeArea, [])).toEqual(lakeArea);
+  });
+
+  // The shipped jetty juts down into the lake's open water near its east end.
+  test('keeps the big stretch of water beside a jetty', () => {
+    const jetty = { x: 1888, y: 1424, w: 192, h: 192 };
+    const clear = largestClearRect(lakeArea, [jetty]);
+    expect(clear).toEqual({ x: 64, y: 1536, w: 1888 - 64, h: 256 });
+    // Clear of the jetty, and still inside the area.
+    expect(clear.x + clear.w).toBeLessThanOrEqual(jetty.x);
+    expect(clear.x).toBeGreaterThanOrEqual(lakeArea.x);
+  });
+
+  test('falls back to an empty rect when an obstacle swallows the area', () => {
+    const clear = largestClearRect(lakeArea, [{ x: 0, y: 0, w: 4000, h: 4000 }]);
+    expect(clear.w * clear.h).toBe(0);
   });
 });

@@ -1,4 +1,7 @@
 import { describe, test, expect } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { inflateSync } from 'node:zlib';
 import { sunnysideTheme } from './sunnyside';
 import { SUNNYSIDE_SHEET } from './sunnyside-sheet';
 import { HERO_COLORS, HERO_CLASSES } from '../../types/agent';
@@ -61,13 +64,28 @@ describe('sunnysideTheme buildings', () => {
   });
 
   test('a doorway is proportioned to a hero', () => {
-    // The baked hero is ~15px of drawing; on screen it stands
-    // 15 * heroScale tall. A door should be near hero height — between
-    // 0.9x and 1.6x — or heroes visibly clip or rattle around.
-    const heroHeight = 15 * sunnysideTheme.heroScale;
+    // The baked hero is (footY - headY) px of drawing, as the bake measured
+    // it; on screen it stands that times heroScale. A door should be near
+    // hero height — between 0.9x and 1.6x — or heroes visibly clip or rattle
+    // around.
+    const heroHeight = (SUNNYSIDE_SHEET.heroes.footY - SUNNYSIDE_SHEET.heroes.headY) * sunnysideTheme.heroScale;
     const door = sunnysideTheme.getBuildingScale('forge') * SUNNYSIDE_SHEET.buildings.doorHeight.forge;
     expect(door).toBeGreaterThan(heroHeight * 0.9);
     expect(door).toBeLessThan(heroHeight * 1.6);
+  });
+
+  test('each baked building fills its image, so the image rect is its true extent', () => {
+    // Roads keep off a structure's whole image rect (`spriteRect`). That is
+    // only honest if the art fills it: transparent margins would push every
+    // road needlessly wide of the walls. Measured, the buildings fill 93–100% of
+    // their image each way.
+    const dir = join(import.meta.dir, '../../../public/assets/themes/sunnyside/buildings');
+    const fill = (file: string, min: number): void => {
+      const { width, height, box } = opaqueBox(join(dir, file));
+      expect({ file, w: (box.x1 - box.x0) / width >= min, h: (box.y1 - box.y0) / height >= min })
+        .toEqual({ file, w: true, h: true });
+    };
+    for (const id of BUILDING_IDS) fill(`${id}.png`, 0.93);
   });
 
   test('unknown building ids fall back to the base scale', () => {
@@ -95,6 +113,36 @@ describe('sunnysideTheme heroes', () => {
     for (const idx of cfg.idleFrameIndices ?? []) {
       expect(Math.floor(idx / cols)).toBe(SUNNYSIDE_SHEET.heroes.anims.idle.row);
     }
+  });
+
+  test('every character sheet declares where its figure stands in the frame', () => {
+    // Labels hang off headY and depth sorts on footY, so both must lie inside
+    // the frame — and NOT at its edges: a 96x64 frame holds a ~19px figure,
+    // and the frame edges are the very assumption that floated names ~35px
+    // above heads and sorted heroes in front of trees they stood behind.
+    const sheets = [SUNNYSIDE_SHEET.heroes, SUNNYSIDE_SHEET.goblin, SUNNYSIDE_SHEET.skeleton];
+    const frameH = SUNNYSIDE_SHEET.heroes.frameHeight;
+    for (const { headY, footY } of sheets) {
+      expect(headY).toBeGreaterThan(0);
+      expect(footY).toBeLessThan(frameH);
+      expect(footY - headY).toBeGreaterThan(12);
+      expect(footY - headY).toBeLessThan(frameH / 2);
+    }
+  });
+
+  test('hero and arena configs carry the measured extent of their own sheet', () => {
+    const human = sunnysideTheme.getHeroConfig('blue', 'archer');
+    expect(human.extent).toEqual({
+      frameHeight: SUNNYSIDE_SHEET.heroes.frameHeight,
+      headY: SUNNYSIDE_SHEET.heroes.headY,
+      footY: SUNNYSIDE_SHEET.heroes.footY,
+    });
+    const goblin = sunnysideTheme.getHeroConfig('blue', 'archer', 'codex');
+    expect(goblin.extent.headY).toBe(SUNNYSIDE_SHEET.goblin.headY);
+    expect(goblin.extent.footY).toBe(SUNNYSIDE_SHEET.goblin.footY);
+    const npcs = sunnysideTheme.getArenaNpcs?.() ?? [];
+    const skeleton = npcs.find((n) => n.textureKey === 'npc-skeleton');
+    expect(skeleton?.extent.footY).toBe(SUNNYSIDE_SHEET.skeleton.footY);
   });
 
   test('codex sessions get the goblin sheet', () => {
@@ -133,3 +181,56 @@ describe('sunnysideTheme terrain', () => {
     expect(statics.some((e) => e.key.includes('water'))).toBe(true);
   });
 });
+
+/**
+ * Bounding box of the non-transparent pixels in an 8-bit RGBA PNG — the
+ * only format the bake writes. Minimal decoder: IDAT inflate + unfiltering.
+ */
+function opaqueBox(file: string): { width: number; height: number; box: { x0: number; y0: number; x1: number; y1: number } } {
+  const buf = readFileSync(file);
+  const width = buf.readUInt32BE(16);
+  const height = buf.readUInt32BE(20);
+  expect([buf[24], buf[25], buf[28]]).toEqual([8, 6, 0]); // 8-bit, RGBA, non-interlaced
+  const idat: Buffer[] = [];
+  for (let off = 8; off < buf.length;) {
+    const len = buf.readUInt32BE(off);
+    const type = buf.toString('ascii', off + 4, off + 8);
+    if (type === 'IDAT') idat.push(buf.subarray(off + 8, off + 8 + len));
+    off += 12 + len;
+  }
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * 4;
+  const px = new Uint8Array(stride * height);
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)]!;
+    const src = y * (stride + 1) + 1;
+    for (let i = 0; i < stride; i++) {
+      const a = i >= 4 ? px[y * stride + i - 4]! : 0;
+      const b = y > 0 ? px[(y - 1) * stride + i]! : 0;
+      const c = i >= 4 && y > 0 ? px[(y - 1) * stride + i - 4]! : 0;
+      let pred = 0;
+      if (filter === 1) pred = a;
+      else if (filter === 2) pred = b;
+      else if (filter === 3) pred = (a + b) >> 1;
+      else if (filter === 4) {
+        const p = a + b - c;
+        const pa = Math.abs(p - a);
+        const pb = Math.abs(p - b);
+        const pc = Math.abs(p - c);
+        pred = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      }
+      px[y * stride + i] = (raw[src + i]! + pred) & 0xff;
+    }
+  }
+  const box = { x0: width, y0: height, x1: 0, y1: 0 };
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (px[y * stride + x * 4 + 3]! === 0) continue;
+      box.x0 = Math.min(box.x0, x);
+      box.y0 = Math.min(box.y0, y);
+      box.x1 = Math.max(box.x1, x + 1);
+      box.y1 = Math.max(box.y1, y + 1);
+    }
+  }
+  return { width, height, box };
+}

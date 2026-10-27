@@ -10,12 +10,12 @@ Because they are original work they are safe to commit, unlike the pack itself.
 
 | File | Building | Canvas | Door height | Chimney anchor | Roof |
 |---|---|---|---|---|---|
-| `library.png` | Library | 92×64 | 16 | `(46, 1)` — flue on the nave ridge | blue |
+| `library.png` | Library | 108×74 | 16 | `(54, 0)` — flue on the nave ridge | blue |
 | `castle.png` | Castle | 92×61 | 13 | `(46, 24)` — the middle crenel | blue |
-| `watchtower.png` | Watchtower | 36×96 | 12 | `(18, 2)` — the beacon at the apex | blue |
-| `tavern.png` | Tavern | 72×56 | 13 | `(36, 2)` — the stack mouth | orange |
-| `forge.png` | Forge | 72×54 | 13 | `(36, 1)` — the brick flue mouth | red |
-| `alchemist.png` | Alchemist | 44×68 | 12 | `(22, 1)` — the tapered flue mouth | green |
+| `watchtower.png` | Watchtower | 44×104 | 12 | `(22, 0)` — the beacon at the apex | blue |
+| `tavern.png` | Tavern | 124×48 | 13 | `(62, 0)` — the stack mouth | orange |
+| `forge.png` | Forge | 80×58 | 13 | `(40, 0)` — the brick flue mouth | red |
+| `alchemist.png` | Alchemist | 52×72 | 12 | `(26, 2)` — the tapered flue mouth | green |
 
 Door heights are **duplicated** in `server/src/map/asset-manifest-sunnyside.ts` and nothing tests that
 the two agree — change one and you must change the other, or the client and server will scale the
@@ -35,6 +35,16 @@ anything drawn later should be checked against it. What it settles:
   glazed panel carrying no shingles in the middle span. The horizontal trim under that panel is its
   sill and only makes sense with the panel present.
 - Chimneys are stone.
+- Tile direction follows the roof's shape. A **chevron** (two slopes meeting at a ridge, seen
+  as a gable: library, forge, alchemist) runs its strips outward from the centre on each side. A
+  **triangle or trapezoid** (a hip, pyramid or cone seen front-on: tavern, watchtower, castle
+  spires) hangs its tiles *down*: each tile has a lit crown and a darker lip narrowing to a point,
+  laid in exact half-bond so no column leans either way. The tavern uses 6×4 tiles, the watchtower
+  6×3, and the spires 4×3 with a mid-tone joint so the small cones don't go dark.
+- A roof's glazed panel follows the pack's own tinted glass: frame and glass are the roof
+  highlight mixed toward white (78% and 50%, `GLASS_WHITE_MIX` in `../buildings.py`), with one
+  small centred glint — a short highlight bar over a dark-capped base bar. Long dark rules across
+  roof-tone glass read as a signboard, not a window.
 - Restraint: the approved version has *fewer* elements than the drafts it replaced, and measures
   1.65% full-pixel asymmetry against the pack library's 4.7%.
 

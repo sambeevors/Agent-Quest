@@ -1,9 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 import {
   segmentHitsRect, euclideanMst, gabrielEdges, routeAround, obstacleCorners,
-  organicise, edgeTraffic, buildDesireNetwork,
+  organicise, edgeTraffic, buildDesireNetwork, gateNode, GATE_LEAD_CELLS, LEAD_MIN_TRAFFIC,
   type Rect, type DesireNode, type Point,
 } from './desire-paths';
+import { rasterisePaths } from './path-tiles';
 
 /** A 100×100 building sitting at (200,200)-(300,300). */
 const BOX: Rect = { x: 200, y: 200, w: 100, h: 100 };
@@ -27,6 +28,17 @@ describe('segmentHitsRect', () => {
 
   test('passes a segment clear of the rect', () => {
     expect(segmentHitsRect({ x: 100, y: 100 }, { x: 400, y: 100 }, BOX)).toBe(false);
+  });
+
+  test('detects a diagonal from corner to opposite corner', () => {
+    // It touches the boundary only at two corners and properly crosses no
+    // edge — and it is exactly the leg a router finds between two waypoints
+    // of one clearance ring. It used to pass, and a road ran through the
+    // Alchemist on it.
+    expect(segmentHitsRect({ x: 200, y: 200 }, { x: 300, y: 300 }, BOX)).toBe(true);
+    expect(segmentHitsRect({ x: 300, y: 200 }, { x: 200, y: 300 }, BOX)).toBe(true);
+    // ...and one that enters through a corner from outside.
+    expect(segmentHitsRect({ x: 150, y: 150 }, { x: 300, y: 300 }, BOX)).toBe(true);
   });
 
   test('treats grazing the boundary as clear', () => {
@@ -326,6 +338,56 @@ describe('buildDesireNetwork', () => {
           expect(segmentHitsRect(road.points[i - 1]!, road.points[i]!, box)).toBe(false);
         }
       }
+    }
+  });
+});
+
+describe('gate lead (the jetty)', () => {
+  const CELL = 32;
+  // Spawn at the bank end of the jetty, a little off the cell grid; the
+  // village lies up and to the left, so the nearest link arrives diagonally.
+  const spawn = { x: 1990, y: 1456 };
+  const village: DesireNode[] = [
+    { id: 'b:tavern', x: 1500, y: 1000 },
+    { id: 'b:forge', x: 1700, y: 900 },
+  ];
+
+  test('gateNode snaps the spawn onto a cell boundary and leads due north', () => {
+    const gate = gateNode(spawn, CELL);
+    expect(gate.x % CELL).toBe(0);
+    expect(Math.abs(gate.x - spawn.x)).toBeLessThanOrEqual(CELL / 2);
+    expect(gate.y).toBe(spawn.y);
+    expect(gate.lead).toEqual({ x: gate.x, y: spawn.y - GATE_LEAD_CELLS * CELL });
+  });
+
+  test('the network meets the gate on a straight, unjittered lead', () => {
+    const gate = gateNode(spawn, CELL);
+    const net = buildDesireNetwork([...village, gate], []);
+    const lead = net.roads.find((r) => r.a === 'gate' && r.b === 'gate')!;
+    expect(lead).toBeDefined();
+    expect(lead.points).toEqual([gate.lead!, { x: gate.x, y: gate.y }]);
+    expect(lead.traffic).toBeGreaterThanOrEqual(LEAD_MIN_TRAFFIC);
+    // Every other track routes to the lead's far end, not the spawn itself.
+    for (const r of net.roads) {
+      if (r === lead) continue;
+      for (const p of r.points) expect(p).not.toEqual({ x: gate.x, y: gate.y });
+    }
+    // Heroes walk the lead too: both its ends are in the routing graph.
+    const has = (p: Point) => net.waypoints.some((w) => Math.hypot(w.x - p.x, w.y - p.y) < 1e-6);
+    expect(has(gate.lead!)).toBe(true);
+    expect(has({ x: gate.x, y: gate.y })).toBe(true);
+  });
+
+  test('the road rasterises square and symmetric about the jetty centre', () => {
+    const gate = gateNode(spawn, CELL);
+    const net = buildDesireNetwork([...village, gate], []);
+    const cells = rasterisePaths(net.roads, CELL, 10, 22);
+    // The two rows a road cell above the spawn: exactly the two cells either
+    // side of the gate's x — a 64px track, centred, as wide as the deck.
+    const decode = (k: number) => [Math.floor(k / 16384) - 4096, (k % 16384) - 4096] as const;
+    for (const row of [Math.floor(gate.y / CELL) - 1, Math.floor(gate.y / CELL)]) {
+      const cols = [...cells].map(decode).filter(([, r]) => r === row).map(([c]) => c).sort((a, b) => a - b);
+      expect(cols).toEqual([gate.x / CELL - 1, gate.x / CELL]);
     }
   });
 });

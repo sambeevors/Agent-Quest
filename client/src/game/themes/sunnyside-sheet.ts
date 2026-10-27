@@ -57,7 +57,9 @@ export const SUNNYSIDE_SHEET = {
       "teal",
       "orange",
       "green"
-    ]
+    ],
+    "headY": 20,
+    "footY": 39
   },
   "goblin": {
     "anims": {
@@ -93,11 +95,14 @@ export const SUNNYSIDE_SHEET = {
         "row": 8,
         "frames": 5
       }
-    }
+    },
+    "headY": 23,
+    "footY": 39
   },
   "terrain": {
     "grassFrames": 6,
-    "waterFrames": 5
+    "waterFrames": 5,
+    "shoreFrames": 8
   },
   "buildings": {
     "doorHeight": {
@@ -330,6 +335,8 @@ export const SUNNYSIDE_SHEET = {
         "row": 2,
         "frames": 7
       }
-    }
+    },
+    "headY": 23,
+    "footY": 40
   }
 } as const;

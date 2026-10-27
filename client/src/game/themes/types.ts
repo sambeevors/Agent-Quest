@@ -55,6 +55,23 @@ export interface HeroSpriteConfig {
    * index into the same texture as idleKey.
    */
   extraAnims?: Record<string, { frameIndices: number[]; frameRate: number }>;
+  /** Where the character stands inside its frame — see FrameExtent. */
+  extent: FrameExtent;
+}
+
+/**
+ * The character's vertical extent inside its sprite frame, in native frame
+ * pixels (origin top-left). Frames are usually far taller than the figure
+ * drawn in them (Sunnyside: 96x64 frames, a ~19px character), so anything
+ * hung off the frame edges — the name label, the depth-sort pivot, where a
+ * hero's feet land — is off by tens of pixels. Measured by the bake.
+ */
+export interface FrameExtent {
+  frameHeight: number;
+  /** Topmost opaque row of the head (hair included). */
+  headY: number;
+  /** The ground line: the row just below the lowest opaque pixel of the feet. */
+  footY: number;
 }
 
 /** One arena NPC: which texture it uses and how it idles and fights. Frame
@@ -65,6 +82,8 @@ export interface ArenaNpcSpec {
   facesLeft: boolean;
   idle: { frameIndices: number[]; frameRate: number };
   attack: { frameIndices: number[]; frameRate: number };
+  /** Where the NPC stands inside its frame, for foot-anchored depth sorting. */
+  extent: FrameExtent;
 }
 
 /** Static preview of a hero's idle sheet — used by React UI (PartyBar). */
