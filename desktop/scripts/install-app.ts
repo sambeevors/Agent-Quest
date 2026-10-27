@@ -26,6 +26,11 @@ const dest = join('/Applications', APP);
 for (const id of new Set(['com.pokeagent.desktop', ...LEGACY.map((l) => l.id)])) {
   Bun.spawnSync(['osascript', '-e', `if application id "${id}" is running then tell application id "${id}" to quit`]);
 }
+// Quitting is asynchronous. Wait it out, or the copy opened below hands
+// itself to the dying one through the single-instance lock and exits.
+for (let i = 0; i < 40 && Bun.spawnSync(['pgrep', '-f', '/Applications/.*\\.app/Contents/MacOS/(PokeAgent|PokéAgent|Agent Quest)$']).exitCode === 0; i++) {
+  await Bun.sleep(250);
+}
 await rm(dest, { recursive: true, force: true });
 for (const l of LEGACY) await rm(join('/Applications', l.app), { recursive: true, force: true });
 await cp(join(release, build, APP), dest, { recursive: true, verbatimSymlinks: true });
