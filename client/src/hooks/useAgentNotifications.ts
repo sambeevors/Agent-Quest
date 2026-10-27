@@ -3,8 +3,16 @@ import type { AgentState } from '../types/agent';
 import type { AppSettings } from './useSettings';
 import { playChime, type ChimeKind } from '../notifications/sound';
 import { computeAlerts, type AgentAlert, type AgentSnapshot } from '../notifications/transitions';
+import { iconUrl, type UiIcon } from '../game/pokemon';
 
 /** Payload handed to the in-app toast layer for each raised alert. */
+/** The icon each alert wears in toasts, the notification menu and OS notifications. */
+export const ALERT_ICON: Record<ChimeKind, UiIcon> = {
+  waiting: 'bell',
+  error: 'alert',
+  completed: 'ball',
+};
+
 export interface ToastPayload {
   agentId: string;
   name: string;
@@ -52,6 +60,7 @@ function showDesktopNotification(a: AgentAlert, onActivate: (id: string) => void
   try {
     const n = new Notification(titleFor(a), {
       body: bodyFor(a),
+      icon: iconUrl(ALERT_ICON[a.category]),
       tag: `pokeagent:${a.agentId}`, // collapse repeats for the same agent
     });
     n.onclick = () => {

@@ -3,6 +3,7 @@ import type { AgentState } from '../types/agent';
 import { formatCost, isCostKnown } from '../types/agent';
 import { eventBridge } from '../game/EventBridge';
 import { NotificationMenu, type NotificationEntry } from './NotificationMenu';
+import { PokeIcon } from './PokeIcon';
 import './TopBar.css';
 
 interface TopBarNotifications {
@@ -161,14 +162,14 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
               onClick={toggleNight}
               title={nightOn ? 'Day mode' : 'Night mode'}
             >
-              {nightOn ? '\u{1F319}' : '\u{2600}\u{FE0F}'}
+              <PokeIcon icon={nightOn ? 'moon' : 'sun'} />
             </button>
             <button
               className={`topbar-effect-btn ${rainOn ? 'active' : ''}`}
               onClick={toggleRain}
               title={rainOn ? 'Stop rain' : 'Start rain'}
             >
-              {'\u{1F327}\u{FE0F}'}
+              <PokeIcon icon="rain" />
             </button>
             <button
               className="topbar-effect-btn"
@@ -176,14 +177,15 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
               title="Settings"
               aria-label="Settings"
             >
-              {'\u{2699}\u{FE0F}'}
+              <PokeIcon icon="settings" />
             </button>
             <button
               className="topbar-effect-btn"
               onClick={() => eventBridge.emit('tutorial:open')}
               title="Show tutorial"
+              aria-label="Show tutorial"
             >
-              {'\u{2753}'}
+              <PokeIcon icon="help" />
             </button>
           </div>
         </div>

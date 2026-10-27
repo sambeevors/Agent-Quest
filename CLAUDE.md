@@ -66,6 +66,7 @@ If something about the town looks wrong, fix the bake (`town.py`) and re-run it 
 
 - **Trainers** are 16x32 four-way walkers re-laid as 12 frames (down/up/left/right × stand, step, step; right is left mirrored), rendered at x2. A parked trainer marks time on the spot while working and stands while resting or waiting (`BUSY_STATES` in `game/pokemon.ts`).
 - **Portraits** are the battle front pics, cropped square to the face, for every React avatar.
+- **Icons** in the panels are FireRed's own, never emoji: bag item icons in their palettes (Soothe Bell = waiting, Poké Ball = done, Sun/Moon/Water Stone = day/night/rain, Teachy TV = settings) and the trainer emote bubbles (`!` = error, `?` = help). `ITEM_ICONS`/`EMOTES` in `bake.py` pick them, `UI_ICONS` in `game/pokemon.ts` lists them, `<PokeIcon>` draws one at native size, and `ALERT_ICON` maps alert kinds to them.
 - **Panel chrome** is a FireRed-style 9-slice (`pokemon-ui.css`, `assets/pokemon/ui/`) — chrome only; layout, text palette and RuneScape type unchanged.
 
 ## Typography

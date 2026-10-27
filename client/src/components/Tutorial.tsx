@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BUILDING_DEFS } from '../game/data/building-layout';
+import { PokeIcon } from './PokeIcon';
 import './Tutorial.css';
 
 interface TutorialProps {
@@ -88,7 +89,7 @@ export function Tutorial({ onClose }: TutorialProps) {
           Trainers appear in real time as you spawn new Claude Code or Codex sessions. Click a
           trainer in the <em>Party Bar</em> (bottom) to see what it's doing; click any
           building to see which trainers are there. Reopen this tutorial any time with the{' '}
-          <strong>❓</strong> button, or press <code>Esc</code> to close it.
+          <PokeIcon icon="help" className="tutorial-inline-icon" /> button, or press <code>Esc</code> to close it.
         </p>
 
         <div className="tutorial-section-label">Getting started</div>

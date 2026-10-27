@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { AppSettings } from '../hooks/useSettings';
 import { SERVER_URL } from '../config';
 import { playChime } from '../notifications/sound';
+import { iconUrl } from '../game/pokemon';
 import './SettingsPanel.css';
 
 interface SettingsPanelProps {
@@ -101,7 +102,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
   const sendTestNotification = useCallback(() => {
     try {
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('PokéAgent', { body: 'Notifications are working \u{1F514}', tag: 'pokeagent:test' });
+        new Notification('PokéAgent', { body: 'Notifications are working.', tag: 'pokeagent:test', icon: iconUrl('bell') });
       }
     } catch { /* ignore */ }
     if (settings.soundEnabled) playChime('waiting', settings.volume);

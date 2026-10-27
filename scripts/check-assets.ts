@@ -16,7 +16,7 @@ import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { imagePreload, portraitUrl, spritesheetPreload } from '../client/src/game/pokemon';
+import { iconUrl, imagePreload, portraitUrl, spritesheetPreload, UI_ICONS } from '../client/src/game/pokemon';
 import { ROCKETS, TRAINERS } from '../client/src/naming/trainer-roster';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,6 +35,7 @@ function collectExpected(): Expected[] {
   ];
   for (const e of imagePreload()) out.push({ path: e.path, source: `image:${e.key}` });
   for (const e of spritesheetPreload()) out.push({ path: e.path, source: `sheet:${e.key}` });
+  for (const i of UI_ICONS) out.push({ path: iconUrl(i).replace(/^\//, ''), source: `icon:${i}` });
   for (const t of [...TRAINERS, ...ROCKETS]) {
     out.push({ path: portraitUrl(t).replace(/^\//, ''), source: `portrait:${t.title} ${t.name}` });
   }

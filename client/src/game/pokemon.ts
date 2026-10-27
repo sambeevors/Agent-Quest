@@ -68,6 +68,15 @@ export function portraitUrl(trainer: Trainer): string {
   return `/${ASSET_BASE}/portraits/${trainer.portrait}.png`;
 }
 
+/** The panels' icons, in place of emoji: FireRed bag items and emote bubbles
+ * (`ITEM_ICONS` / `EMOTES` in the bake). */
+export const UI_ICONS = ['bell', 'ball', 'alert', 'help', 'sun', 'moon', 'rain', 'settings'] as const;
+export type UiIcon = (typeof UI_ICONS)[number];
+
+export function iconUrl(icon: UiIcon): string {
+  return `/${ASSET_BASE}/icons/${icon}.png`;
+}
+
 /** A Pokémon drawn from a two-frame party-icon strip. */
 export interface PokemonSpec {
   textureKey: string;

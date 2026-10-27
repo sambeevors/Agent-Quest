@@ -52,7 +52,7 @@
 }
 .toast-body-btn:hover { background: rgba(255, 255, 255, 0.05); }
 
-.toast-icon { font-size: 15px; line-height: 1.2; flex-shrink: 0; }
+.toast-icon { margin-top: -4px; }
 
 .toast-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 

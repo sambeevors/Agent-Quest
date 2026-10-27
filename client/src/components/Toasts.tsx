@@ -1,4 +1,5 @@
-import type { ToastPayload } from '../hooks/useAgentNotifications';
+import { ALERT_ICON, type ToastPayload } from '../hooks/useAgentNotifications';
+import { PokeIcon } from './PokeIcon';
 import './Toasts.css';
 
 export interface ToastItem extends ToastPayload {
@@ -11,12 +12,6 @@ interface ToastsProps {
   onActivate: (id: string) => void;
   onDismiss: (key: string) => void;
 }
-
-const CATEGORY_ICON: Record<ToastPayload['category'], string> = {
-  waiting: '\u{1F514}',   // bell
-  error: '\u{26A0}\u{FE0F}', // warning
-  completed: '\u{2705}',  // check
-};
 
 /**
  * In-app toast stack (top-right). Browser-independent and permission-free, so
@@ -35,7 +30,7 @@ export function Toasts({ items, onActivate, onDismiss }: ToastsProps) {
             onClick={() => { onActivate(t.agentId); onDismiss(t.key); }}
             title="Show this agent"
           >
-            <span className="toast-icon" aria-hidden="true">{CATEGORY_ICON[t.category]}</span>
+            <PokeIcon icon={ALERT_ICON[t.category]} className="toast-icon" />
             <span className="toast-text">
               <span className="toast-title">{t.title}</span>
               <span className="toast-message">{t.body}</span>
