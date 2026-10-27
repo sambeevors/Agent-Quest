@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import type { AgentState } from '../types/agent';
 import { formatCost, isCostKnown } from '../types/agent';
 import { eventBridge } from '../game/EventBridge';
@@ -38,6 +38,18 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
   const [rainOn, setRainOn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+  // One FireRed frame for the whole button row, slid onto whichever button is
+  // hovered or focused, rather than a border on every button.
+  const effectsRef = useRef<HTMLDivElement>(null);
+  const [frame, setFrame] = useState<{ x: number; w: number } | null>(null);
+  const moveFrame = (e: SyntheticEvent) => {
+    const row = effectsRef.current;
+    const btn = (e.target as HTMLElement).closest('.topbar-effect-btn');
+    if (row === null || btn === null || !row.contains(btn)) return;
+    const r = row.getBoundingClientRect();
+    const b = btn.getBoundingClientRect();
+    setFrame({ x: b.left - r.left, w: b.width });
+  };
 
   const toggleNight = () => {
     const next = !nightOn;
@@ -148,7 +160,19 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
             )}
           </div>
 
-          <div className="topbar-effects">
+          <div
+            className="topbar-effects"
+            ref={effectsRef}
+            onPointerOver={moveFrame}
+            onFocus={moveFrame}
+            onPointerLeave={() => setFrame(null)}
+            onBlur={() => setFrame(null)}
+          >
+            <span
+              className={`topbar-hover-frame ${frame === null ? '' : 'shown'}`}
+              style={frame === null ? undefined : { transform: `translateX(${frame.x}px)`, width: frame.w }}
+              aria-hidden="true"
+            />
             <NotificationMenu
               entries={notifications.entries}
               unread={notifications.unread}

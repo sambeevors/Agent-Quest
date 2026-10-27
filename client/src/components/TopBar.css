@@ -81,39 +81,60 @@
 .topbar-stat-value.error { color: #8B2500; }
 
 .topbar-effects {
+  position: relative;
   display: flex;
   gap: 6px;
   margin-left: 12px;
   padding-left: 12px;
-  border-left: 1px solid rgba(196, 163, 90, 0.3);
+  border-left: 1px solid rgba(104, 144, 176, 0.5);
 }
 
 .topbar-effect-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(196, 163, 90, 0.3);
-  border-radius: 4px;
-  padding: 0 4px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0 8px;
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, transform 0.08s ease;
+  transition: transform 0.08s ease;
   line-height: 1;
   pointer-events: auto;
 }
 
-.topbar-effect-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(196, 163, 90, 0.6);
-}
-
 .topbar-effect-btn:active {
-  transform: scale(0.96);
-  background: rgba(196, 163, 90, 0.18);
+  transform: scale(0.94);
 }
 
+.topbar-effect-btn:focus-visible {
+  outline: none;
+}
+
+/* A toggle that's on (night, rain) sits on a faint plate of its own. */
 .topbar-effect-btn.active {
-  background: rgba(196, 163, 90, 0.25);
-  border-color: #C4A35A;
+  background: rgba(248, 248, 248, 0.14);
+}
+
+/* The hover frame: a FireRed text box the full height of the bar, so its
+   edges land on the bar's own frame and it reads as a cell of it. */
+.topbar-hover-frame {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: -8px;
+  border: 8px solid transparent;
+  border-image: url('/assets/pokemon/ui/box.png') 4 fill;
+  image-rendering: pixelated;
+  box-sizing: content-box;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.12s ease, width 0.12s ease, opacity 0.12s ease;
+}
+
+.topbar-hover-frame.shown {
+  opacity: 1;
 }
 
 /* Status dot — hidden on desktop, shown under 900px */
@@ -267,7 +288,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .topbar-tools,
-  .topbar-menu-toggle-bar {
+  .topbar-menu-toggle-bar,
+  .topbar-hover-frame {
     transition: none;
   }
 }
