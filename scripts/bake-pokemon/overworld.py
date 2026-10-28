@@ -47,6 +47,9 @@ class Overworld:
         }
         info = (src / 'object_event_graphics_info.h').read_text()
         self.pic_palette: dict[str, str] = {}
+        # Frame width of each pic: 16 for a walker, 32 for one that rides a
+        # bike (the Biker).
+        self.pic_width: dict[str, int] = {}
         for m in re.finditer(r'gObjectEventGraphicsInfo_\w+ = \{(.*?)\};', info, re.S):
             body = m[1]
             tag = re.search(r'\.paletteTag = (\w+)', body)
@@ -56,6 +59,9 @@ class Overworld:
                 path = self.pic_path.get(pic)
                 if path and tag[1] in PAL_FILES:
                     self.pic_palette.setdefault(path, tag[1])
+                width = re.search(r'\.width = (\d+)', body)
+                if path and width:
+                    self.pic_width.setdefault(path, int(width[1]))
 
     def load(self, rel: str) -> Image.Image:
         """Load graphics/object_events/pics/<rel>.png recoloured, as RGBA."""
@@ -79,6 +85,9 @@ class Overworld:
                 if px[x, y] == 0:
                     out[x, y] = (0, 0, 0, 0)
         return rgba
+
+    def frame_width(self, rel: str) -> int:
+        return self.pic_width[f'graphics/object_events/pics/{rel}.png']
 
 
 def frames(sheet: Image.Image, w: int, h: int) -> list[Image.Image]:
