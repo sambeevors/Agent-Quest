@@ -101,6 +101,39 @@ const POPUP_GAP = 4;
 /** An evolution: the partner flickers white this many times, changing at the midpoint. */
 const EVOLVE_FLICKERS = 10;
 const EVOLVE_FLICKER_MS = 110;
+/** A change of task: the red `!` a FireRed trainer flashes on spotting you,
+ * lifted out of its bubble, pops up over the label stack and holds a beat. */
+const ALERT_TEXTURE_KEY = 'hero-alert';
+/** The emote's own glyph: a 2x5 bar, a row of air, a 2x1 dot, in its red —
+ * cased in a 1px black outline, as the names are stroked. */
+const ALERT_COLOR = 0xc53939;
+const ALERT_OUTLINE = 0x000000;
+const ALERT_HOLD_MS = 1100;
+const ALERT_GAP = 2;
+/** It jumps this far up into place as it appears. */
+const ALERT_HOP_PX = 6;
+const ALERT_HOP_MS = 160;
+
+function ensureAlertTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(ALERT_TEXTURE_KEY)) return;
+  // The glyph sits 1px in from every edge, leaving room for its outline.
+  const glyph = [
+    { x: 1, y: 1, w: 2, h: 5 },
+    { x: 1, y: 7, w: 2, h: 1 },
+  ];
+  const g = scene.make.graphics({}, false);
+  g.fillStyle(ALERT_OUTLINE);
+  // Each part grown 1px straight out (not diagonally), as a pixel font's
+  // stroke is: the corners stay round and the gap above the dot stays notched.
+  for (const r of glyph) {
+    g.fillRect(r.x - 1, r.y, r.w + 2, r.h);
+    g.fillRect(r.x, r.y - 1, r.w, r.h + 2);
+  }
+  g.fillStyle(ALERT_COLOR);
+  for (const r of glyph) g.fillRect(r.x, r.y, r.w, r.h);
+  g.generateTexture(ALERT_TEXTURE_KEY, 4, 9);
+  g.destroy();
+}
 
 /**
  * Lazily build a soft radial-gradient texture we can reuse as the selection
@@ -196,6 +229,14 @@ export class HeroSprite {
   /** Top of the label stack, where popups rise from. */
   private labelTop = 0;
   private labelX = 0;
+  /** The `!` shown on a change of task; created on first use. */
+  private alert: Phaser.GameObjects.Image | null = null;
+  private alertTimer: Phaser.Time.TimerEvent | null = null;
+  private alertTween: Phaser.Tweens.Tween | null = null;
+  /** How far below its resting place the `!` is, mid-hop. */
+  private alertDrop = 0;
+  /** False until the scene first says what the hero is doing — spawning isn't a change. */
+  private activityKnown = false;
 
   /** Grid base position — used for slot repositioning. */
   gridBaseX = 0;
@@ -401,7 +442,43 @@ export class HeroSprite {
 
   /** Record what the hero is doing — it picks the pool its thoughts come from. */
   setActivity(activity: AgentActivity): void {
+    if (this.activityKnown && activity !== this.currentActivity) this.flashAlert();
+    this.activityKnown = true;
     this.currentActivity = activity;
+  }
+
+  /** Pop the `!` over the trainer's head (or its partner's, indoors). */
+  private flashAlert(): void {
+    if (this.alert === null) {
+      ensureAlertTexture(this.scene);
+      this.alert = this.scene.add.image(0, 0, ALERT_TEXTURE_KEY)
+        .setOrigin(0.5, 1)
+        .setScale(SPRITE_SCALE);
+    }
+    // Whatever the trainer was thinking was about the task it just left.
+    this.bubble.hide();
+    this.alertTween?.stop();
+    this.alertTimer?.remove();
+    this.alert.setVisible(true);
+    this.alertDrop = ALERT_HOP_PX;
+    this.alertTween = this.scene.tweens.add({
+      targets: this,
+      alertDrop: 0,
+      duration: ALERT_HOP_MS,
+      ease: 'Back.easeOut',
+      onUpdate: () => this.placeAlert(),
+      onComplete: () => { this.alertTween = null; },
+    });
+    this.alertTimer = this.scene.time.delayedCall(ALERT_HOLD_MS, () => {
+      this.alertTimer = null;
+      this.alert?.setVisible(false);
+    });
+    this.placeAlert();
+    this.updateDepth();
+  }
+
+  private placeAlert(): void {
+    this.alert?.setPosition(this.labelX, this.labelTop - ALERT_GAP + this.alertDrop);
   }
 
   /** Apply status-driven overlays (e.g. 'waiting' pulses the name). */
@@ -507,6 +584,7 @@ export class HeroSprite {
     if (this.subagentText !== null) this.subagentText.setDepth(labelDepth);
     if (this.sourceText !== null) this.sourceText.setDepth(labelDepth);
     this.bubble.setDepth(labelDepth + 0.00005);
+    this.alert?.setDepth(labelDepth + 0.00006);
   }
 
   /**
@@ -585,6 +663,7 @@ export class HeroSprite {
     this.bubble.setPosition(labelX, top - BUBBLE_GAP);
     this.labelX = labelX;
     this.labelTop = top;
+    this.placeAlert();
   }
 
   /**
@@ -1183,6 +1262,11 @@ export class HeroSprite {
     this.popupTimer?.remove();
     this.popupTimer = null;
     this.popupQueue = [];
+    this.alertTimer?.remove();
+    this.alertTimer = null;
+    this.alertTween?.stop();
+    this.alertTween = null;
+    this.alert?.destroy();
     this.partnerTween?.stop();
     this.partnerTween = null;
     this.sprite.destroy();
