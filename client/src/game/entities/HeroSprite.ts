@@ -12,7 +12,7 @@ import { leaderSegment, type LabelBox, type LabelOffset } from '../data/label-de
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
 import {
   BATTLE_FRAME_RATE, BATTLE_FRAMES, BATTLE_LUNGE_PX, battleBeat,
-  iconTextureKey, partnerSpec, SPRITE_SCALE, standFrame, TRAINER_EXTENT, trainerTextureKey, walkFrames,
+  partnerSpec, SPRITE_SCALE, standFrame, TRAINER_EXTENT, trainerTextureKey, walkFrames,
   type Facing, type PokemonSpec,
 } from '../pokemon';
 
@@ -101,13 +101,26 @@ const POPUP_GAP = 4;
 /** An evolution: the partner flickers white this many times, changing at the midpoint. */
 const EVOLVE_FLICKERS = 10;
 const EVOLVE_FLICKER_MS = 110;
-/** A change of task: FireRed's red `!`, the one a trainer flashes on
- * spotting you, pops up over the label stack and holds a beat. */
+/** A change of task: the red `!` a FireRed trainer flashes on spotting you,
+ * lifted out of its bubble, pops up over the label stack and holds a beat. */
+const ALERT_TEXTURE_KEY = 'hero-alert';
+/** The emote's own glyph: a 2x5 bar, a row of air, a 2x1 dot, in its red. */
+const ALERT_COLOR = 0xc53939;
 const ALERT_HOLD_MS = 1100;
 const ALERT_GAP = 2;
 /** It jumps this far up into place as it appears. */
 const ALERT_HOP_PX = 6;
 const ALERT_HOP_MS = 160;
+
+function ensureAlertTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(ALERT_TEXTURE_KEY)) return;
+  const g = scene.make.graphics({}, false);
+  g.fillStyle(ALERT_COLOR);
+  g.fillRect(0, 0, 2, 5);
+  g.fillRect(0, 6, 2, 1);
+  g.generateTexture(ALERT_TEXTURE_KEY, 2, 7);
+  g.destroy();
+}
 
 /**
  * Lazily build a soft radial-gradient texture we can reuse as the selection
@@ -423,9 +436,9 @@ export class HeroSprite {
 
   /** Pop the `!` over the trainer's head (or its partner's, indoors). */
   private flashAlert(): void {
-    if (!this.scene.textures.exists(iconTextureKey('alert'))) return;
     if (this.alert === null) {
-      this.alert = this.scene.add.image(0, 0, iconTextureKey('alert'))
+      ensureAlertTexture(this.scene);
+      this.alert = this.scene.add.image(0, 0, ALERT_TEXTURE_KEY)
         .setOrigin(0.5, 1)
         .setScale(SPRITE_SCALE);
     }
