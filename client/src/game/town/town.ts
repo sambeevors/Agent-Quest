@@ -58,7 +58,26 @@ export const VIEW_RECT = TOWN_DATA.view;
 const WALK: readonly string[] = TOWN_DATA.walk;
 
 export function isWalkable(tx: number, ty: number): boolean {
-  return WALK[ty]?.[tx] === '.';
+  const c = WALK[ty]?.[tx];
+  return c === '.' || c === '=';
+}
+
+/** The town's sandy paths (and Nugget Bridge's planks): where heroes walk. */
+export function isRoad(tx: number, ty: number): boolean {
+  return WALK[ty]?.[tx] === '=';
+}
+
+/**
+ * What a step onto a tile costs a hero picking a route: a road tile 1, grass
+ * enough more that a hero keeps to the streets wherever they go its way and
+ * only cuts across a lawn for the last few steps to a door. The weight is not
+ * absolute — a road that runs the long way round a block still loses to the
+ * grass when the detour is over four times the shortcut.
+ */
+export const OFF_ROAD_COST = 4;
+
+export function stepCost(tx: number, ty: number): number {
+  return isRoad(tx, ty) ? 1 : OFF_ROAD_COST;
 }
 
 /** World position of a hero's feet standing on a tile. */
