@@ -11,14 +11,18 @@ import { BuildingInfoPanel } from './components/BuildingInfoPanel';
 import { Tutorial } from './components/Tutorial';
 import { NoInstallBanner } from './components/NoInstallBanner';
 import { SettingsPanel } from './components/SettingsPanel';
+import { BagPanel } from './components/BagPanel';
 import { Toasts, type ToastItem } from './components/Toasts';
 import type { NotificationEntry } from './components/NotificationMenu';
 import { useSettings } from './hooks/useSettings';
 import { useAgentNotifications, type ToastPayload } from './hooks/useAgentNotifications';
+import { useProgress } from './hooks/useProgress';
+import { trainerKey } from './progress/tally';
 import './App.css';
 
 export default function App() {
-  const { agents, activityLog, connected, configDirs } = useAgentState();
+  const { agents, activityLog, connected, configDirs, ledger } = useAgentState();
+  const tally = useProgress(agents, ledger);
   const { selectedAgentId, selectAgent } = useSelectedAgent();
   const [selectedBuilding, setSelectedBuilding] = useState<{
     id: string;
@@ -27,6 +31,7 @@ export default function App() {
   const [villageReady, setVillageReady] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bagOpen, setBagOpen] = useState(false);
   const [settings, updateSettings] = useSettings();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationEntry[]>([]);
@@ -166,6 +171,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const onOpen = () => setBagOpen(true);
+    eventBridge.on('bag:open', onOpen);
+    return () => eventBridge.off('bag:open', onOpen);
+  }, []);
+
+  useEffect(() => {
     eventBridge.emit('agents:updated', agents);
   }, [agents]);
 
@@ -204,9 +215,16 @@ export default function App() {
             selectedAgentId={selectedAgentId}
             onSelectAgent={handlePartySelect}
             showSourceBadge={showSourceBadge}
+            tally={tally}
           />
           {selectedAgent !== null && (
-            <DetailPanel agent={selectedAgent} onClose={() => handleSelectAgent(null)} showSourceBadge={showSourceBadge} />
+            <DetailPanel
+              agent={selectedAgent}
+              onClose={() => handleSelectAgent(null)}
+              showSourceBadge={showSourceBadge}
+              progress={tally?.byTrainer.get(trainerKey(selectedAgent.id, selectedAgent.source))}
+              sessionItems={tally?.bySession.get(selectedAgent.id)}
+            />
           )}
           {selectedBuilding !== null && (
             <BuildingInfoPanel
@@ -227,6 +245,7 @@ export default function App() {
         </div>
       )}
       {tutorialOpen && <Tutorial onClose={closeTutorial} />}
+      {bagOpen && <BagPanel tally={tally} onClose={() => setBagOpen(false)} />}
       {settingsOpen && (
         <SettingsPanel
           settings={settings}

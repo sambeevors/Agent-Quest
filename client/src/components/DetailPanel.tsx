@@ -6,12 +6,22 @@ import { SessionReport } from './SessionReport';
 import { configDirLabel } from './configDirLabel';
 import { isPath, resolvePath } from './activityFeedUtils';
 import { heroNameFor } from '../naming/hero-names';
+import { PartnerIcon } from './PartnerIcon';
+import { PokeIcon } from './PokeIcon';
+import { levelProgress } from '../progress/accrual';
+import { speciesName } from '../progress/evolution';
+import { STATION_ITEMS, STATION_ORDER } from '../progress/stations';
+import type { ItemCounts, TrainerTally } from '../progress/tally';
 import './DetailPanel.css';
 
 interface DetailPanelProps {
   agent: AgentState;
   onClose: () => void;
   showSourceBadge: boolean;
+  /** The trainer's all-time tally — every session that has been this trainer. */
+  progress: TrainerTally | undefined;
+  /** What this session alone has earned. */
+  sessionItems: ItemCounts | undefined;
 }
 
 function formatDuration(startMs: number): string {
@@ -38,7 +48,55 @@ function PathValue({ path, cwd, className }: { path: string; cwd: string; classN
   );
 }
 
-export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProps) {
+/**
+ * The trainer's partner and its haul: species, level and the XP bar to the
+ * next one, then the items every session as this trainer has earned (this
+ * session's share in each tooltip).
+ */
+function PartnerSection({ progress, sessionItems }: { progress: TrainerTally; sessionItems: ItemCounts | undefined }) {
+  const { level, into, needed } = levelProgress(progress.trainer.partnerLevel, progress.xp);
+  const earned = STATION_ORDER.filter((a) => progress.items[a] > 0);
+  return (
+    <div className="detail-section">
+      <div className="detail-section-title">Partner</div>
+      <div className="detail-partner">
+        <PartnerIcon species={progress.species} />
+        <div className="detail-partner-body">
+          <div className="detail-partner-name">
+            {speciesName(progress.species)} <span className="detail-partner-level">Lv{level}</span>
+          </div>
+          <div
+            className="detail-xp-bar"
+            role="progressbar"
+            aria-label="Experience to next level"
+            aria-valuemin={0}
+            aria-valuemax={needed}
+            aria-valuenow={into}
+            title={needed > 0 ? `${into.toLocaleString()} / ${needed.toLocaleString()} XP to Lv${level + 1}` : 'Max level'}
+          >
+            <span style={{ width: needed > 0 ? `${(into / needed) * 100}%` : '100%' }} />
+          </div>
+        </div>
+      </div>
+      {earned.length > 0 && (
+        <ul className="detail-items">
+          {earned.map((a) => (
+            <li
+              key={a}
+              className="detail-item"
+              title={`${STATION_ITEMS[a].plural} from the ${STATION_ITEMS[a].place} — ${sessionItems?.[a] ?? 0} this session`}
+            >
+              <PokeIcon icon={STATION_ITEMS[a].icon} />
+              <span>×{progress.items[a].toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export function DetailPanel({ agent, onClose, showSourceBadge, progress, sessionItems }: DetailPanelProps) {
   // Tick every second so duration-derived values refresh between server pushes.
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -183,6 +241,8 @@ export function DetailPanel({ agent, onClose, showSourceBadge }: DetailPanelProp
             );
           })()}
         </div>
+
+        {progress !== undefined && <PartnerSection progress={progress} sessionItems={sessionItems} />}
 
         {currentFile !== undefined && (
           <div className="detail-section">

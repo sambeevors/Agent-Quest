@@ -1,7 +1,8 @@
-import type { AgentSource, AgentState, HeroClass, HeroColor } from '../types';
+import type { AgentActivity, AgentSource, AgentState, HeroClass, HeroColor } from '../types';
 import { HERO_CLASSES, HERO_COLORS } from '../types';
 import type { ParsedEvent } from '../parsers/session-parser';
 import { costFor } from '../pricing/model-pricing';
+import { accrue } from '../progress/station-time';
 
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit']);
 
@@ -79,6 +80,17 @@ function isSubagentSessionId(sessionId: string): boolean {
   return sessionId.startsWith('agent-');
 }
 
+/**
+ * The station an event puts the agent at, for time accounting. Mirrors what
+ * the event does to `currentActivity` — a turn end sends it to the Pokémon
+ * Center, a prompt pulls an idle agent into thinking — but reads only the
+ * event, never the clock-driven status, so a replay lands on the same answer.
+ */
+function stationAfter(prev: AgentActivity, event: ParsedEvent): AgentActivity {
+  if (event.kind === 'task') return prev === 'idle' && event.activity === 'thinking' ? 'thinking' : prev;
+  return event.isTurnEnd === true ? 'idle' : event.activity;
+}
+
 export class AgentStateManager {
   private agents = new Map<string, AgentState>();
   /** Per-agent set of assistant message ids whose usage has already been counted. */
@@ -135,6 +147,8 @@ export class AgentStateManager {
       this.applyLivenessOverride(agent);
       return { agent, isNew: true };
     }
+
+    existing.segment = accrue(existing.activityMs, existing.segment, event.timestamp, stationAfter(existing.segment.activity, event));
 
     if (event.kind === 'task') {
       this.applyTaskUpdate(existing, event);
@@ -482,6 +496,8 @@ export class AgentStateManager {
       source,
       model: event.model,
       isSubagent: isSubagentSessionId(event.sessionId),
+      activityMs: {},
+      segment: { activity: stationAfter('idle', event), since: event.timestamp },
     };
     return agent;
   }

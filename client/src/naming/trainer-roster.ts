@@ -5,1988 +5,2272 @@ export const TRAINERS = [
     "name": "Ben",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 23
+    "partner": 23,
+    "partnerLevel": 11
   },
   {
     "title": "Youngster",
     "name": "Calvin",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 21
+    "partner": 21,
+    "partnerLevel": 14
   },
   {
     "title": "Youngster",
     "name": "Josh",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 41
+    "partner": 41,
+    "partnerLevel": 10
   },
   {
     "title": "Youngster",
     "name": "Timmy",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 23
+    "partner": 23,
+    "partnerLevel": 14
   },
   {
     "title": "Youngster",
     "name": "Joey",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 21
+    "partner": 21,
+    "partnerLevel": 15
   },
   {
     "title": "Youngster",
     "name": "Dan",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 79
+    "partner": 79,
+    "partnerLevel": 17
   },
   {
     "title": "Youngster",
     "name": "Chad",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 27
+    "partner": 27,
+    "partnerLevel": 14
   },
   {
     "title": "Youngster",
     "name": "Tyler",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 32
+    "partner": 32,
+    "partnerLevel": 21
   },
   {
     "title": "Youngster",
     "name": "Eddie",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 23
+    "partner": 23,
+    "partnerLevel": 21
   },
   {
     "title": "Youngster",
     "name": "Dillon",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 41
+    "partner": 41,
+    "partnerLevel": 19
   },
   {
     "title": "Youngster",
     "name": "Yasu",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 20
+    "partner": 20,
+    "partnerLevel": 17
   },
   {
     "title": "Youngster",
     "name": "Dave",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 33
+    "partner": 33,
+    "partnerLevel": 18
   },
   {
     "title": "Bug Catcher",
     "name": "Rick",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 10
+    "partner": 10,
+    "partnerLevel": 6
   },
   {
     "title": "Bug Catcher",
     "name": "Doug",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 13
+    "partner": 13,
+    "partnerLevel": 7
   },
   {
     "title": "Bug Catcher",
     "name": "Sammy",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 13
+    "partner": 13,
+    "partnerLevel": 9
   },
   {
     "title": "Bug Catcher",
     "name": "Colton",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 10
+    "partner": 10,
+    "partnerLevel": 10
   },
   {
     "title": "Bug Catcher",
     "name": "Greg",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 11
+    "partner": 11,
+    "partnerLevel": 9
   },
   {
     "title": "Bug Catcher",
     "name": "James",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 11
+    "partner": 11,
+    "partnerLevel": 11
   },
   {
     "title": "Bug Catcher",
     "name": "Kent",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 14
+    "partner": 14,
+    "partnerLevel": 11
   },
   {
     "title": "Bug Catcher",
     "name": "Robby",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 10
+    "partner": 10,
+    "partnerLevel": 10
   },
   {
     "title": "Bug Catcher",
     "name": "Cale",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 14
+    "partner": 14,
+    "partnerLevel": 10
   },
   {
     "title": "Bug Catcher",
     "name": "Keigo",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 13
+    "partner": 13,
+    "partnerLevel": 16
   },
   {
     "title": "Bug Catcher",
     "name": "Elijah",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 12
+    "partner": 12,
+    "partnerLevel": 20
   },
   {
     "title": "Bug Catcher",
     "name": "Brent",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 15
+    "partner": 15,
+    "partnerLevel": 19
   },
   {
     "title": "Bug Catcher",
     "name": "Conner",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 48
+    "partner": 48,
+    "partnerLevel": 20
   },
   {
     "title": "Lass",
     "name": "Janice",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 16
+    "partner": 16,
+    "partnerLevel": 9
   },
   {
     "title": "Lass",
     "name": "Sally",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 29
+    "partner": 29,
+    "partnerLevel": 10
   },
   {
     "title": "Lass",
     "name": "Robin",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 39
+    "partner": 39,
+    "partnerLevel": 14
   },
   {
     "title": "Lass",
     "name": "Crissy",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 47
+    "partner": 47,
+    "partnerLevel": 31
   },
   {
     "title": "Lass",
     "name": "Miriam",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 69
+    "partner": 69,
+    "partnerLevel": 11
   },
   {
     "title": "Lass",
     "name": "Iris",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 35
+    "partner": 35,
+    "partnerLevel": 14
   },
   {
     "title": "Lass",
     "name": "Reli",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 29
+    "partner": 29,
+    "partnerLevel": 16
   },
   {
     "title": "Lass",
     "name": "Ali",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 69
+    "partner": 69,
+    "partnerLevel": 12
   },
   {
     "title": "Lass",
     "name": "Haley",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 43
+    "partner": 43,
+    "partnerLevel": 13
   },
   {
     "title": "Lass",
     "name": "Ann",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 29
+    "partner": 29,
+    "partnerLevel": 18
   },
   {
     "title": "Lass",
     "name": "Dawn",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 25
+    "partner": 25,
+    "partnerLevel": 18
   },
   {
     "title": "Lass",
     "name": "Paige",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 30
+    "partner": 30,
+    "partnerLevel": 23
   },
   {
     "title": "Lass",
     "name": "Andrea",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 52
+    "partner": 52,
+    "partnerLevel": 24
   },
   {
     "title": "Lass",
     "name": "Megan",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 25
+    "partner": 25,
+    "partnerLevel": 19
   },
   {
     "title": "Lass",
     "name": "Julia",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 35
+    "partner": 35,
+    "partnerLevel": 22
   },
   {
     "title": "Lass",
     "name": "Kay",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 70
+    "partner": 70,
+    "partnerLevel": 23
   },
   {
     "title": "Lass",
     "name": "Lisa",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 44
+    "partner": 44,
+    "partnerLevel": 23
   },
   {
     "title": "Sailor",
     "name": "Edmond",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 90
+    "partner": 90,
+    "partnerLevel": 18
   },
   {
     "title": "Sailor",
     "name": "Trevor",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 72
+    "partner": 72,
+    "partnerLevel": 17
   },
   {
     "title": "Sailor",
     "name": "Leonard",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 90
+    "partner": 90,
+    "partnerLevel": 21
   },
   {
     "title": "Sailor",
     "name": "Duncan",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 72
+    "partner": 72,
+    "partnerLevel": 17
   },
   {
     "title": "Sailor",
     "name": "Huey",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 120
+    "partner": 120,
+    "partnerLevel": 18
   },
   {
     "title": "Sailor",
     "name": "Dylan",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 116
+    "partner": 116,
+    "partnerLevel": 17
   },
   {
     "title": "Sailor",
     "name": "Phillip",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 66
+    "partner": 66,
+    "partnerLevel": 20
   },
   {
     "title": "Sailor",
     "name": "Dwayne",
     "sprite": "sailor",
     "portrait": "sailor",
-    "partner": 25
+    "partner": 25,
+    "partnerLevel": 21
   },
   {
     "title": "Camper",
     "name": "Liam",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 27
+    "partner": 27,
+    "partnerLevel": 11
   },
   {
     "title": "Camper",
     "name": "Shane",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 23
+    "partner": 23,
+    "partnerLevel": 14
   },
   {
     "title": "Camper",
     "name": "Ethan",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 56
+    "partner": 56,
+    "partnerLevel": 18
   },
   {
     "title": "Camper",
     "name": "Ricky",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 7
+    "partner": 7,
+    "partnerLevel": 20
   },
   {
     "title": "Camper",
     "name": "Jeff",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 20
+    "partner": 20,
+    "partnerLevel": 16
   },
   {
     "title": "Camper",
     "name": "Chris",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 4
+    "partner": 4,
+    "partnerLevel": 21
   },
   {
     "title": "Camper",
     "name": "Drew",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 27
+    "partner": 27,
+    "partnerLevel": 19
   },
   {
     "title": "Picnicker",
     "name": "Diana",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 118
+    "partner": 118,
+    "partnerLevel": 19
   },
   {
     "title": "Picnicker",
     "name": "Nancy",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 25
+    "partner": 25,
+    "partnerLevel": 16
   },
   {
     "title": "Picnicker",
     "name": "Isabelle",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 16
+    "partner": 16,
+    "partnerLevel": 16
   },
   {
     "title": "Picnicker",
     "name": "Kelsey",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 29
+    "partner": 29,
+    "partnerLevel": 15
   },
   {
     "title": "Picnicker",
     "name": "Alicia",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 69
+    "partner": 69,
+    "partnerLevel": 18
   },
   {
     "title": "Picnicker",
     "name": "Caitlin",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 52
+    "partner": 52,
+    "partnerLevel": 23
   },
   {
     "title": "Picnicker",
     "name": "Heidi",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 35
+    "partner": 35,
+    "partnerLevel": 20
   },
   {
     "title": "Picnicker",
     "name": "Carol",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 17
+    "partner": 17,
+    "partnerLevel": 21
   },
   {
     "title": "Picnicker",
     "name": "Sofia",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 52
+    "partner": 52,
+    "partnerLevel": 21
   },
   {
     "title": "Picnicker",
     "name": "Martha",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 1
+    "partner": 1,
+    "partnerLevel": 22
   },
   {
     "title": "Picnicker",
     "name": "Tina",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 2
+    "partner": 2,
+    "partnerLevel": 24
   },
   {
     "title": "Picnicker",
     "name": "Hannah",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 52
+    "partner": 52,
+    "partnerLevel": 24
   },
   {
     "title": "PokéManiac",
     "name": "Mark",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 108
+    "partner": 108,
+    "partnerLevel": 29
   },
   {
     "title": "PokéManiac",
     "name": "Herman",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 79
+    "partner": 79,
+    "partnerLevel": 20
   },
   {
     "title": "PokéManiac",
     "name": "Cooper",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 79
+    "partner": 79,
+    "partnerLevel": 20
   },
   {
     "title": "PokéManiac",
     "name": "Steve",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 104
+    "partner": 104,
+    "partnerLevel": 22
   },
   {
     "title": "PokéManiac",
     "name": "Winston",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 79
+    "partner": 79,
+    "partnerLevel": 25
   },
   {
     "title": "PokéManiac",
     "name": "Dawson",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 108
+    "partner": 108,
+    "partnerLevel": 40
   },
   {
     "title": "PokéManiac",
     "name": "Ashton",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 79
+    "partner": 79,
+    "partnerLevel": 23
   },
   {
     "title": "Hiker",
     "name": "Marcos",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 95
+    "partner": 95,
+    "partnerLevel": 10
   },
   {
     "title": "Hiker",
     "name": "Franklin",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 74
+    "partner": 74,
+    "partnerLevel": 15
   },
   {
     "title": "Hiker",
     "name": "Nob",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 74
+    "partner": 74,
+    "partnerLevel": 13
   },
   {
     "title": "Hiker",
     "name": "Wayne",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 95
+    "partner": 95,
+    "partnerLevel": 17
   },
   {
     "title": "Hiker",
     "name": "Alan",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 95
+    "partner": 95,
+    "partnerLevel": 21
   },
   {
     "title": "Hiker",
     "name": "Brice",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 74
+    "partner": 74,
+    "partnerLevel": 20
   },
   {
     "title": "Hiker",
     "name": "Clark",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 95
+    "partner": 95,
+    "partnerLevel": 21
   },
   {
     "title": "Hiker",
     "name": "Trent",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 75
+    "partner": 75,
+    "partnerLevel": 19
   },
   {
     "title": "Hiker",
     "name": "Dudley",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 75
+    "partner": 75,
+    "partnerLevel": 21
   },
   {
     "title": "Hiker",
     "name": "Allen",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 74
+    "partner": 74,
+    "partnerLevel": 25
   },
   {
     "title": "Hiker",
     "name": "Eric",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 95
+    "partner": 95,
+    "partnerLevel": 20
   },
   {
     "title": "Hiker",
     "name": "Lenny",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 74
+    "partner": 74,
+    "partnerLevel": 19
   },
   {
     "title": "Hiker",
     "name": "Oliver",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 74
+    "partner": 74,
+    "partnerLevel": 20
   },
   {
     "title": "Hiker",
     "name": "Lucas",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 75
+    "partner": 75,
+    "partnerLevel": 21
   },
   {
     "title": "Biker",
     "name": "Jared",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 109
+    "partner": 109,
+    "partnerLevel": 28
   },
   {
     "title": "Biker",
     "name": "Malik",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 88
+    "partner": 88,
+    "partnerLevel": 29
   },
   {
     "title": "Biker",
     "name": "Ernest",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 88
+    "partner": 88,
+    "partnerLevel": 25
   },
   {
     "title": "Biker",
     "name": "Alex",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 28
   },
   {
     "title": "Biker",
     "name": "Lao",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 109
+    "partner": 109,
+    "partnerLevel": 29
   },
   {
     "title": "Biker",
     "name": "Hideo",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 33
   },
   {
     "title": "Biker",
     "name": "Ruben",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 28
   },
   {
     "title": "Biker",
     "name": "Billy",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 89
+    "partner": 89,
+    "partnerLevel": 33
   },
   {
     "title": "Biker",
     "name": "Nikolas",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 100
+    "partner": 100,
+    "partnerLevel": 29
   },
   {
     "title": "Biker",
     "name": "Jaxon",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 89
+    "partner": 89,
+    "partnerLevel": 29
   },
   {
     "title": "Biker",
     "name": "William",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 25
   },
   {
     "title": "Biker",
     "name": "Lukas",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 109
+    "partner": 109,
+    "partnerLevel": 26
   },
   {
     "title": "Biker",
     "name": "Isaac",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 109
+    "partner": 109,
+    "partnerLevel": 28
   },
   {
     "title": "Biker",
     "name": "Gerald",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 89
+    "partner": 89,
+    "partnerLevel": 29
   },
   {
     "title": "Engineer",
     "name": "Baily",
     "sprite": "worker_m",
     "portrait": "engineer",
-    "partner": 81
+    "partner": 81,
+    "partnerLevel": 21
   },
   {
     "title": "Engineer",
     "name": "Braxton",
     "sprite": "worker_m",
     "portrait": "engineer",
-    "partner": 81
+    "partner": 81,
+    "partnerLevel": 21
   },
   {
     "title": "Engineer",
     "name": "Bernie",
     "sprite": "worker_m",
     "portrait": "engineer",
-    "partner": 82
+    "partner": 82,
+    "partnerLevel": 18
   },
   {
     "title": "Fisherman",
     "name": "Dale",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 118
+    "partner": 118,
+    "partnerLevel": 17
   },
   {
     "title": "Fisherman",
     "name": "Barny",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 90
+    "partner": 90,
+    "partnerLevel": 17
   },
   {
     "title": "Fisherman",
     "name": "Ned",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 118
+    "partner": 118,
+    "partnerLevel": 22
   },
   {
     "title": "Fisherman",
     "name": "Chip",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 118
+    "partner": 118,
+    "partnerLevel": 24
   },
   {
     "title": "Fisherman",
     "name": "Hank",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 118
+    "partner": 118,
+    "partnerLevel": 27
   },
   {
     "title": "Fisherman",
     "name": "Elliot",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 116
+    "partner": 116,
+    "partnerLevel": 21
   },
   {
     "title": "Fisherman",
     "name": "Ronald",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 119
+    "partner": 119,
+    "partnerLevel": 28
   },
   {
     "title": "Fisherman",
     "name": "Claude",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 91
+    "partner": 91,
+    "partnerLevel": 31
   },
   {
     "title": "Fisherman",
     "name": "Wade",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 129
+    "partner": 129,
+    "partnerLevel": 27
   },
   {
     "title": "Fisherman",
     "name": "Nolan",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 118
+    "partner": 118,
+    "partnerLevel": 33
   },
   {
     "title": "Fisherman",
     "name": "Andrew",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 129
+    "partner": 129,
+    "partnerLevel": 24
   },
   {
     "title": "Swimmer",
     "name": "Luis",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 90
+    "partner": 90,
+    "partnerLevel": 16
   },
   {
     "title": "Swimmer",
     "name": "Richard",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 90
+    "partner": 90,
+    "partnerLevel": 30
   },
   {
     "title": "Swimmer",
     "name": "Reece",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 120
+    "partner": 120,
+    "partnerLevel": 29
   },
   {
     "title": "Swimmer",
     "name": "Matthew",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 61
+    "partner": 61,
+    "partnerLevel": 30
   },
   {
     "title": "Swimmer",
     "name": "Douglas",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 118
+    "partner": 118,
+    "partnerLevel": 27
   },
   {
     "title": "Swimmer",
     "name": "David",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 119
+    "partner": 119,
+    "partnerLevel": 29
   },
   {
     "title": "Swimmer",
     "name": "Tony",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 116
+    "partner": 116,
+    "partnerLevel": 30
   },
   {
     "title": "Swimmer",
     "name": "Axle",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 73
+    "partner": 73,
+    "partnerLevel": 27
   },
   {
     "title": "Swimmer",
     "name": "Barry",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 91
+    "partner": 91,
+    "partnerLevel": 31
   },
   {
     "title": "Swimmer",
     "name": "Dean",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 120
+    "partner": 120,
+    "partnerLevel": 35
   },
   {
     "title": "Swimmer",
     "name": "Darrin",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 116
+    "partner": 116,
+    "partnerLevel": 28
   },
   {
     "title": "Swimmer",
     "name": "Spencer",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 73
+    "partner": 73,
+    "partnerLevel": 33
   },
   {
     "title": "Swimmer",
     "name": "Jack",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 121
+    "partner": 121,
+    "partnerLevel": 37
   },
   {
     "title": "Swimmer",
     "name": "Jerome",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 8
+    "partner": 8,
+    "partnerLevel": 33
   },
   {
     "title": "Swimmer",
     "name": "Roland",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 117
+    "partner": 117,
+    "partnerLevel": 32
   },
   {
     "title": "Beauty",
     "name": "Bridget",
     "sprite": "beauty",
     "portrait": "beauty",
-    "partner": 69
+    "partner": 69,
+    "partnerLevel": 21
   },
   {
     "title": "Beauty",
     "name": "Tamia",
     "sprite": "beauty",
     "portrait": "beauty",
-    "partner": 69
+    "partner": 69,
+    "partnerLevel": 24
   },
   {
     "title": "Beauty",
     "name": "Lori",
     "sprite": "beauty",
     "portrait": "beauty",
-    "partner": 102
+    "partner": 102,
+    "partnerLevel": 24
   },
   {
     "title": "Beauty",
     "name": "Lola",
     "sprite": "beauty",
     "portrait": "beauty",
-    "partner": 19
+    "partner": 19,
+    "partnerLevel": 27
   },
   {
     "title": "Beauty",
     "name": "Sheila",
     "sprite": "beauty",
     "portrait": "beauty",
-    "partner": 52
+    "partner": 52,
+    "partnerLevel": 29
   },
   {
     "title": "Swimmer",
     "name": "Tiffany",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 119
+    "partner": 119,
+    "partnerLevel": 35
   },
   {
     "title": "Swimmer",
     "name": "Nora",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 91
+    "partner": 91,
+    "partnerLevel": 30
   },
   {
     "title": "Swimmer",
     "name": "Melissa",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 119
+    "partner": 119,
+    "partnerLevel": 31
   },
   {
     "title": "Beauty",
     "name": "Grace",
     "sprite": "beauty",
     "portrait": "beauty",
-    "partner": 40
+    "partner": 40,
+    "partnerLevel": 29
   },
   {
     "title": "Beauty",
     "name": "Olivia",
     "sprite": "beauty",
     "portrait": "beauty",
-    "partner": 2
+    "partner": 2,
+    "partnerLevel": 29
   },
   {
     "title": "Beauty",
     "name": "Lauren",
     "sprite": "beauty",
     "portrait": "swimmer_f",
-    "partner": 70
+    "partner": 70,
+    "partnerLevel": 33
   },
   {
     "title": "Swimmer",
     "name": "Anya",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 60
+    "partner": 60,
+    "partnerLevel": 27
   },
   {
     "title": "Swimmer",
     "name": "Alice",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 119
+    "partner": 119,
+    "partnerLevel": 30
   },
   {
     "title": "Swimmer",
     "name": "Connie",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 120
+    "partner": 120,
+    "partnerLevel": 29
   },
   {
     "title": "Swimmer",
     "name": "Shirley",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 117
+    "partner": 117,
+    "partnerLevel": 30
   },
   {
     "title": "Rocker",
     "name": "Randall",
     "sprite": "rocker",
     "portrait": "rocker",
-    "partner": 100
+    "partner": 100,
+    "partnerLevel": 20
   },
   {
     "title": "Rocker",
     "name": "Luca",
     "sprite": "rocker",
     "portrait": "rocker",
-    "partner": 101
+    "partner": 101,
+    "partnerLevel": 29
   },
   {
     "title": "Black Belt",
     "name": "Koichi",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 107
+    "partner": 107,
+    "partnerLevel": 37
   },
   {
     "title": "Black Belt",
     "name": "Mike",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 57
+    "partner": 57,
+    "partnerLevel": 31
   },
   {
     "title": "Black Belt",
     "name": "Hideki",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 32
   },
   {
     "title": "Black Belt",
     "name": "Aaron",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 57
+    "partner": 57,
+    "partnerLevel": 36
   },
   {
     "title": "Black Belt",
     "name": "Hitoshi",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 57
+    "partner": 57,
+    "partnerLevel": 31
   },
   {
     "title": "Black Belt",
     "name": "Atsushi",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 40
   },
   {
     "title": "Black Belt",
     "name": "Kiyo",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 43
   },
   {
     "title": "Black Belt",
     "name": "Takashi",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 38
   },
   {
     "title": "Black Belt",
     "name": "Daisuke",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 43
   },
   {
     "title": "",
     "name": "Blue",
     "sprite": "blue",
     "portrait": "rival_early",
-    "partner": 7
+    "partner": 7,
+    "partnerLevel": 5
   },
   {
     "title": "Scientist",
     "name": "Ted",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 29
   },
   {
     "title": "Scientist",
     "name": "Connor",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 26
   },
   {
     "title": "Scientist",
     "name": "Jerry",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 82
+    "partner": 82,
+    "partnerLevel": 28
   },
   {
     "title": "Scientist",
     "name": "Jose",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 29
   },
   {
     "title": "Scientist",
     "name": "Rodney",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 101
+    "partner": 101,
+    "partnerLevel": 33
   },
   {
     "title": "Scientist",
     "name": "Beau",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 81
+    "partner": 81,
+    "partnerLevel": 26
   },
   {
     "title": "Scientist",
     "name": "Taylor",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 109
+    "partner": 109,
+    "partnerLevel": 25
   },
   {
     "title": "Scientist",
     "name": "Joshua",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 89
+    "partner": 89,
+    "partnerLevel": 29
   },
   {
     "title": "Scientist",
     "name": "Parker",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 101
+    "partner": 101,
+    "partnerLevel": 29
   },
   {
     "title": "Scientist",
     "name": "Ed",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 82
+    "partner": 82,
+    "partnerLevel": 28
   },
   {
     "title": "Scientist",
     "name": "Travis",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 109
+    "partner": 109,
+    "partnerLevel": 29
   },
   {
     "title": "Scientist",
     "name": "Braydon",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 100
+    "partner": 100,
+    "partnerLevel": 33
   },
   {
     "title": "Scientist",
     "name": "Ivan",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 101
+    "partner": 101,
+    "partnerLevel": 34
   },
   {
     "title": "",
     "name": "Giovanni",
     "sprite": "giovanni",
     "portrait": "leader_giovanni",
-    "partner": 115
+    "partner": 115,
+    "partnerLevel": 29
   },
   {
     "title": "Cooltrainer",
     "name": "Samuel",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 34
+    "partner": 34,
+    "partnerLevel": 39
   },
   {
     "title": "Cooltrainer",
     "name": "George",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 59
+    "partner": 59,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Colby",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 9
+    "partner": 9,
+    "partnerLevel": 43
   },
   {
     "title": "Cooltrainer",
     "name": "Paul",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 55
+    "partner": 55,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Rolando",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 6
+    "partner": 6,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Gilbert",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 128
+    "partner": 128,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Owen",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 111
+    "partner": 111,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Berke",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 91
+    "partner": 91,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Yuji",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 105
+    "partner": 105,
+    "partnerLevel": 38
   },
   {
     "title": "Cooltrainer",
     "name": "Warren",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 31
+    "partner": 31,
+    "partnerLevel": 39
   },
   {
     "title": "Cooltrainer",
     "name": "Mary",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 2
+    "partner": 2,
+    "partnerLevel": 22
   },
   {
     "title": "Cooltrainer",
     "name": "Caroline",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 47
+    "partner": 47,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Alexa",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 113
+    "partner": 113,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Shannon",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 49
+    "partner": 49,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Naomi",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 38
+    "partner": 38,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Brooke",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 3
+    "partner": 3,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Austina",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 34
+    "partner": 34,
+    "partnerLevel": 42
   },
   {
     "title": "Cooltrainer",
     "name": "Julie",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 26
+    "partner": 26,
+    "partnerLevel": 42
   },
   {
     "title": "",
     "name": "Lorelei",
     "sprite": "lorelei",
     "portrait": "elite_four_lorelei",
-    "partner": 131
+    "partner": 131,
+    "partnerLevel": 54
   },
   {
     "title": "Gentleman",
     "name": "Thomas",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 58
+    "partner": 58,
+    "partnerLevel": 18
   },
   {
     "title": "Gentleman",
     "name": "Arthur",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 29
+    "partner": 29,
+    "partnerLevel": 19
   },
   {
     "title": "Gentleman",
     "name": "Tucker",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 25
+    "partner": 25,
+    "partnerLevel": 23
   },
   {
     "title": "Gentleman",
     "name": "Norton",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 53
+    "partner": 53,
+    "partnerLevel": 48
   },
   {
     "title": "Gentleman",
     "name": "Walter",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 77
+    "partner": 77,
+    "partnerLevel": 17
   },
   {
     "title": "Channeler",
     "name": "Patricia",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 22
   },
   {
     "title": "Channeler",
     "name": "Carly",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 24
   },
   {
     "title": "Channeler",
     "name": "Hope",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 23
   },
   {
     "title": "Channeler",
     "name": "Paula",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 24
   },
   {
     "title": "Channeler",
     "name": "Laurel",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 23
   },
   {
     "title": "Channeler",
     "name": "Jody",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 22
   },
   {
     "title": "Channeler",
     "name": "Tammy",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 93
+    "partner": 93,
+    "partnerLevel": 23
   },
   {
     "title": "Channeler",
     "name": "Ruth",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 22
   },
   {
     "title": "Channeler",
     "name": "Karina",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 24
   },
   {
     "title": "Channeler",
     "name": "Janae",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 22
   },
   {
     "title": "Channeler",
     "name": "Angelica",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 22
   },
   {
     "title": "Channeler",
     "name": "Emilia",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 24
   },
   {
     "title": "Channeler",
     "name": "Jennifer",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 92
+    "partner": 92,
+    "partnerLevel": 24
   },
   {
     "title": "Channeler",
     "name": "Amanda",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 93
+    "partner": 93,
+    "partnerLevel": 34
   },
   {
     "title": "Channeler",
     "name": "Stacy",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 93
+    "partner": 93,
+    "partnerLevel": 38
   },
   {
     "title": "Channeler",
     "name": "Tasha",
     "sprite": "channeler",
     "portrait": "channeler",
-    "partner": 93
+    "partner": 93,
+    "partnerLevel": 33
   },
   {
     "title": "Hiker",
     "name": "Jeremy",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 95
+    "partner": 95,
+    "partnerLevel": 20
   },
   {
     "title": "Picnicker",
     "name": "Alma",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 116
+    "partner": 116,
+    "partnerLevel": 28
   },
   {
     "title": "Picnicker",
     "name": "Susie",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 52
+    "partner": 52,
+    "partnerLevel": 24
   },
   {
     "title": "Picnicker",
     "name": "Valerie",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 60
+    "partner": 60,
+    "partnerLevel": 30
   },
   {
     "title": "Picnicker",
     "name": "Gwen",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 17
+    "partner": 17,
+    "partnerLevel": 27
   },
   {
     "title": "Biker",
     "name": "Virgil",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 28
   },
   {
     "title": "Camper",
     "name": "Flint",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 23
+    "partner": 23,
+    "partnerLevel": 14
   },
   {
     "title": "Picnicker",
     "name": "Missy",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 119
+    "partner": 119,
+    "partnerLevel": 31
   },
   {
     "title": "Picnicker",
     "name": "Irene",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 86
+    "partner": 86,
+    "partnerLevel": 30
   },
   {
     "title": "Picnicker",
     "name": "Dana",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 16
+    "partner": 16,
+    "partnerLevel": 20
   },
   {
     "title": "Picnicker",
     "name": "Ariana",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 69
+    "partner": 69,
+    "partnerLevel": 19
   },
   {
     "title": "Picnicker",
     "name": "Leah",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 35
+    "partner": 35,
+    "partnerLevel": 22
   },
   {
     "title": "Camper",
     "name": "Justin",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 33
+    "partner": 33,
+    "partnerLevel": 29
   },
   {
     "title": "Picnicker",
     "name": "Yazmin",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 114
+    "partner": 114,
+    "partnerLevel": 29
   },
   {
     "title": "Picnicker",
     "name": "Kindra",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 43
+    "partner": 43,
+    "partnerLevel": 28
   },
   {
     "title": "Picnicker",
     "name": "Becky",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 26
+    "partner": 26,
+    "partnerLevel": 29
   },
   {
     "title": "Picnicker",
     "name": "Celia",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 35
+    "partner": 35,
+    "partnerLevel": 33
   },
   {
     "title": "Gentleman",
     "name": "Brooks",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 25
+    "partner": 25,
+    "partnerLevel": 23
   },
   {
     "title": "Gentleman",
     "name": "Lamar",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 77
+    "partner": 77,
+    "partnerLevel": 17
   },
   {
     "title": "",
     "name": "Prof. Oak",
     "sprite": "prof_oak",
     "portrait": "professor_oak",
-    "partner": 32
+    "partner": 32,
+    "partnerLevel": 5
   },
   {
     "title": "",
     "name": "Brendan",
     "sprite": "rs_brendan",
     "portrait": "ruby_sapphire_brendan",
-    "partner": 252
+    "partner": 252,
+    "partnerLevel": 5
   },
   {
     "title": "",
     "name": "May",
     "sprite": "rs_may",
     "portrait": "ruby_sapphire_may",
-    "partner": 255
+    "partner": 255,
+    "partnerLevel": 5
   },
   {
     "title": "",
     "name": "Red",
     "sprite": "red_normal",
     "portrait": "red",
-    "partner": 25
+    "partner": 25,
+    "partnerLevel": 5
   },
   {
     "title": "",
     "name": "Leaf",
     "sprite": "green_normal",
     "portrait": "leaf",
-    "partner": 1
+    "partner": 1,
+    "partnerLevel": 5
   },
   {
     "title": "Crush Girl",
     "name": "Sharon",
     "sprite": "crush_girl",
     "portrait": "crush_girl",
-    "partner": 57
+    "partner": 57,
+    "partnerLevel": 37
   },
   {
     "title": "Tuber",
     "name": "Amira",
     "sprite": "tuber_f",
     "portrait": "tuber_f",
-    "partner": 60
+    "partner": 60,
+    "partnerLevel": 34
   },
   {
     "title": "Biker",
     "name": "Goon",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 88
+    "partner": 88,
+    "partnerLevel": 37
   },
   {
     "title": "Bug Catcher",
     "name": "Anthony",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 10
+    "partner": 10,
+    "partnerLevel": 8
   },
   {
     "title": "Bug Catcher",
     "name": "Charlie",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 11
+    "partner": 11,
+    "partnerLevel": 7
   },
   {
     "title": "Youngster",
     "name": "Johnson",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 20
+    "partner": 20,
+    "partnerLevel": 34
   },
   {
     "title": "Biker",
     "name": "Ricardo",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 88
+    "partner": 88,
+    "partnerLevel": 23
   },
   {
     "title": "Biker",
     "name": "Jaren",
     "sprite": "biker",
     "portrait": "biker",
-    "partner": 88
+    "partner": 88,
+    "partnerLevel": 24
   },
   {
     "title": "Scientist",
     "name": "Gideon",
     "sprite": "scientist",
     "portrait": "scientist",
-    "partner": 137
+    "partner": 137,
+    "partnerLevel": 46
   },
   {
     "title": "Swimmer",
     "name": "Amara",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 87
+    "partner": 87,
+    "partnerLevel": 36
   },
   {
     "title": "Swimmer",
     "name": "Maria",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 117
+    "partner": 117,
+    "partnerLevel": 37
   },
   {
     "title": "Swimmer",
     "name": "Abigail",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 55
+    "partner": 55,
+    "partnerLevel": 37
   },
   {
     "title": "Swimmer",
     "name": "Finn",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 121
+    "partner": 121,
+    "partnerLevel": 38
   },
   {
     "title": "Swimmer",
     "name": "Garrett",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 8
+    "partner": 8,
+    "partnerLevel": 38
   },
   {
     "title": "Fisherman",
     "name": "Tommy",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 119
+    "partner": 119,
+    "partnerLevel": 35
   },
   {
     "title": "Crush Girl",
     "name": "Tanya",
     "sprite": "crush_girl",
     "portrait": "crush_girl",
-    "partner": 107
+    "partner": 107,
+    "partnerLevel": 38
   },
   {
     "title": "Black Belt",
     "name": "Shea",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 38
   },
   {
     "title": "Black Belt",
     "name": "Hugh",
     "sprite": "black_belt",
     "portrait": "black_belt",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 37
   },
   {
     "title": "Camper",
     "name": "Bryce",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 28
+    "partner": 28,
+    "partnerLevel": 36
   },
   {
     "title": "Picnicker",
     "name": "Claire",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 35
+    "partner": 35,
+    "partnerLevel": 35
   },
   {
     "title": "Tuber",
     "name": "Alexis",
     "sprite": "tuber_f",
     "portrait": "tuber_f",
-    "partner": 98
+    "partner": 98,
+    "partnerLevel": 34
   },
   {
     "title": "Swimmer",
     "name": "Tisha",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 99
+    "partner": 99,
+    "partnerLevel": 38
   },
   {
     "title": "Youngster",
     "name": "Destin",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 17
+    "partner": 17,
+    "partnerLevel": 48
   },
   {
     "title": "Swimmer",
     "name": "Toby",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 73
+    "partner": 73,
+    "partnerLevel": 48
   },
   {
     "title": "Fisherman",
     "name": "Tylor",
     "sprite": "fisher",
     "portrait": "fisherman",
-    "partner": 211
+    "partner": 211,
+    "partnerLevel": 49
   },
   {
     "title": "Swimmer",
     "name": "Mymo",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 8
+    "partner": 8,
+    "partnerLevel": 49
   },
   {
     "title": "Swimmer",
     "name": "Nicole",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 183
+    "partner": 183,
+    "partnerLevel": 50
   },
   {
     "title": "Swimmer",
     "name": "Samir",
     "sprite": "swimmer_m_land",
     "portrait": "swimmer_m",
-    "partner": 130
+    "partner": 130,
+    "partnerLevel": 50
   },
   {
     "title": "Swimmer",
     "name": "Denise",
     "sprite": "swimmer_f_land",
     "portrait": "swimmer_f",
-    "partner": 171
+    "partner": 171,
+    "partnerLevel": 49
   },
   {
     "title": "Hiker",
     "name": "Earl",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 49
   },
   {
     "title": "Hiker",
     "name": "Daryl",
     "sprite": "hiker",
     "portrait": "hiker",
-    "partner": 185
+    "partner": 185,
+    "partnerLevel": 50
   },
   {
     "title": "PokéManiac",
     "name": "Hector",
     "sprite": "poke_maniac",
     "portrait": "pokemaniac",
-    "partner": 115
+    "partner": 115,
+    "partnerLevel": 49
   },
   {
     "title": "Crush Girl",
     "name": "Cyndy",
     "sprite": "crush_girl",
     "portrait": "crush_girl",
-    "partner": 67
+    "partner": 67,
+    "partnerLevel": 48
   },
   {
     "title": "Crush Girl",
     "name": "Jocelyn",
     "sprite": "crush_girl",
     "portrait": "crush_girl",
-    "partner": 107
+    "partner": 107,
+    "partnerLevel": 38
   },
   {
     "title": "Cooltrainer",
     "name": "Leroy",
     "sprite": "cooltrainer_m",
     "portrait": "cool_trainer_m",
-    "partner": 217
+    "partner": 217,
+    "partnerLevel": 50
   },
   {
     "title": "Cooltrainer",
     "name": "Michelle",
     "sprite": "cooltrainer_f",
     "portrait": "cool_trainer_f",
-    "partner": 203
+    "partner": 203,
+    "partnerLevel": 50
   },
   {
     "title": "Gentleman",
     "name": "Clifford",
     "sprite": "gentleman",
     "portrait": "gentleman",
-    "partner": 55
+    "partner": 55,
+    "partnerLevel": 49
   },
   {
     "title": "Bug Catcher",
     "name": "Garret",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 214
+    "partner": 214,
+    "partnerLevel": 49
   },
   {
     "title": "Bug Catcher",
     "name": "Jonah",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 15
+    "partner": 15,
+    "partnerLevel": 47
   },
   {
     "title": "Bug Catcher",
     "name": "Vance",
     "sprite": "bug_catcher",
     "portrait": "bug_catcher",
-    "partner": 49
+    "partner": 49,
+    "partnerLevel": 48
   },
   {
     "title": "Youngster",
     "name": "Nash",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 71
+    "partner": 71,
+    "partnerLevel": 49
   },
   {
     "title": "Youngster",
     "name": "Cordell",
     "sprite": "youngster",
     "portrait": "youngster",
-    "partner": 83
+    "partner": 83,
+    "partnerLevel": 48
   },
   {
     "title": "Lass",
     "name": "Dalia",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 188
+    "partner": 188,
+    "partnerLevel": 48
   },
   {
     "title": "Lass",
     "name": "Joana",
     "sprite": "lass",
     "portrait": "lass",
-    "partner": 209
+    "partner": 209,
+    "partnerLevel": 49
   },
   {
     "title": "Camper",
     "name": "Riley",
     "sprite": "camper",
     "portrait": "camper",
-    "partner": 214
+    "partner": 214,
+    "partnerLevel": 50
   },
   {
     "title": "Picnicker",
     "name": "Marcy",
     "sprite": "picnicker",
     "portrait": "picnicker",
-    "partner": 47
+    "partner": 47,
+    "partnerLevel": 49
   }
 ] as const;
 
@@ -1996,55 +2280,63 @@ export const ROCKETS = [
     "name": "Jessie",
     "sprite": "rocket_f",
     "portrait": "rocket_grunt_f",
-    "partner": 24
+    "partner": 24,
+    "partnerLevel": 25
   },
   {
     "title": "Rocket",
     "name": "James",
     "sprite": "rocket_m",
     "portrait": "rocket_grunt_m",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 25
   },
   {
     "title": "Rocket",
     "name": "Cassidy",
     "sprite": "rocket_f",
     "portrait": "rocket_grunt_f",
-    "partner": 20
+    "partner": 20,
+    "partnerLevel": 25
   },
   {
     "title": "Rocket",
     "name": "Butch",
     "sprite": "rocket_m",
     "portrait": "rocket_grunt_m",
-    "partner": 107
+    "partner": 107,
+    "partnerLevel": 25
   },
   {
     "title": "Rocket",
     "name": "Ariana",
     "sprite": "rocket_f",
     "portrait": "rocket_grunt_f",
-    "partner": 24
+    "partner": 24,
+    "partnerLevel": 25
   },
   {
     "title": "Rocket",
     "name": "Archer",
     "sprite": "rocket_m",
     "portrait": "rocket_grunt_m",
-    "partner": 229
+    "partner": 229,
+    "partnerLevel": 25
   },
   {
     "title": "Rocket",
     "name": "Proton",
     "sprite": "rocket_m",
     "portrait": "rocket_grunt_m",
-    "partner": 42
+    "partner": 42,
+    "partnerLevel": 25
   },
   {
     "title": "Rocket",
     "name": "Petrel",
     "sprite": "rocket_m",
     "portrait": "rocket_grunt_m",
-    "partner": 110
+    "partner": 110,
+    "partnerLevel": 25
   }
 ] as const;

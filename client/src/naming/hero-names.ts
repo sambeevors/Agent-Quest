@@ -33,6 +33,8 @@ export interface Trainer {
   readonly portrait: string;
   /** National dex number of the Pokémon that follows them. */
   readonly partner: number;
+  /** Its level in the trainer's own party — where its levelling starts (progress/). */
+  readonly partnerLevel: number;
 }
 
 /**

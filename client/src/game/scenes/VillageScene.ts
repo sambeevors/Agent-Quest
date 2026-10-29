@@ -11,6 +11,11 @@ import { sceneRenderScale } from '../dpr';
 import { ARENA_NPCS, SPRITE_SCALE, TOWN_GROUND_KEY, TOWN_OVERHEAD_KEY } from '../pokemon';
 import { footOf, SPAWN_TILE, tileRectToWorld, VIEW_RECT, WORLD_HEIGHT, WORLD_WIDTH, type Point } from '../town/town';
 import { declutterLabels } from '../data/label-declutter';
+import { iconTextureKey } from '../pokemon';
+import { STATION_ITEMS } from '../../progress/stations';
+import { speciesName } from '../../progress/evolution';
+import type { ProgressEvent } from '../../progress/tally';
+import type { PartnerStates } from '../../hooks/useProgress';
 import { Traffic } from '../town/traffic';
 
 /** Set `cam.zoom` to `newZoom` while keeping the world point currently
@@ -36,6 +41,8 @@ const LABEL_DECLUTTER_INTERVAL_MS = 200;
  * below the name labels. */
 const OVERHEAD_DEPTH = 3000;
 
+const PROGRESS_EVENTS: readonly ProgressEvent['kind'][] = ['earned', 'levelup', 'evolve'];
+
 export class VillageScene extends Phaser.Scene {
   private buildings: Building[] = [];
   private heroes = new Map<string, HeroSprite>();
@@ -43,6 +50,11 @@ export class VillageScene extends Phaser.Scene {
   private onCameraFollow: ((agentId: unknown) => void) | null = null;
   private onSelectionChanged: ((agentId: unknown) => void) | null = null;
   private onBackgroundPointerDown: ((pointer: Phaser.Input.Pointer, hits: Phaser.GameObjects.GameObject[]) => void) | null = null;
+  private onProgress: ((e: unknown) => void) | null = null;
+  private onPartners: ((partners: unknown) => void) | null = null;
+
+  /** Every live hero's partner as progress/ last reported it — read when a hero spawns. */
+  private partners: PartnerStates = {};
 
   /** Tracks which hero IDs are at each building, in arrival order. */
   private buildingSlots = new Map<string, string[]>();
@@ -367,6 +379,23 @@ export class VillageScene extends Phaser.Scene {
     };
     this.input.on('pointerdown', this.onBackgroundPointerDown);
 
+    // Items earned, levels gained and evolutions, from useProgress — popups
+    // over the hero that earned them.
+    this.onProgress = (e: unknown) => {
+      try { if (!this.sys.isActive()) return; } catch { return; }
+      this.handleProgress(e as ProgressEvent);
+    };
+    for (const kind of PROGRESS_EVENTS) eventBridge.on(`progress:${kind}`, this.onProgress);
+    this.onPartners = (partners: unknown) => {
+      this.partners = partners as PartnerStates;
+      try { if (!this.sys.isActive()) return; } catch { return; }
+      for (const [id, hero] of this.heroes) {
+        const species = this.partners[id]?.species;
+        if (species !== undefined) hero.setPartnerSpecies(species);
+      }
+    };
+    eventBridge.on('progress:partners', this.onPartners);
+
     // The scene clock is torn down with the scene, so no cleanup entry.
     this.time.addEvent({
       delay: LABEL_DECLUTTER_INTERVAL_MS,
@@ -399,6 +428,14 @@ export class VillageScene extends Phaser.Scene {
         this.input.off('pointerdown', this.onBackgroundPointerDown);
         this.onBackgroundPointerDown = null;
       }
+      if (this.onProgress !== null) {
+        for (const kind of PROGRESS_EVENTS) eventBridge.off(`progress:${kind}`, this.onProgress);
+        this.onProgress = null;
+      }
+      if (this.onPartners !== null) {
+        eventBridge.off('progress:partners', this.onPartners);
+        this.onPartners = null;
+      }
       this.lightningTimer?.remove();
       this.lightningTimer = null;
       for (const hero of this.heroes.values()) {
@@ -418,6 +455,25 @@ export class VillageScene extends Phaser.Scene {
     };
     this.events.on('shutdown', cleanup);
     this.events.on('destroy', cleanup);
+  }
+
+  /** Pop what a hero just earned over its head. */
+  private handleProgress(e: ProgressEvent): void {
+    const hero = this.heroes.get(e.agentId);
+    if (hero === undefined) return;
+    switch (e.kind) {
+      case 'earned':
+        hero.showPopup({ iconKey: iconTextureKey(STATION_ITEMS[e.activity].icon), text: `+${e.count}`, color: '#FFFFFF' });
+        break;
+      case 'levelup':
+        hero.showPopup({ iconKey: null, text: `Lv. ${e.level}!`, color: '#FFD700' });
+        break;
+      case 'evolve':
+        hero.evolvePartner(e.to, () => {
+          hero.showPopup({ iconKey: null, text: `${speciesName(e.to)}!`, color: '#88E08A' });
+        });
+        break;
+    }
   }
 
   /** Let go of the followed hero; the camera stays where it is. */
@@ -722,6 +778,7 @@ export class VillageScene extends Phaser.Scene {
           this.heroSpawn.y,
           agent.id.startsWith('agent-'),
           agent.source,
+          this.partners[agent.id]?.species,
         );
         hero.setActivity(agent.currentActivity);
         hero.setStatus(agent.status);

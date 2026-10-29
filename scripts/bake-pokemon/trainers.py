@@ -58,6 +58,9 @@ RENAME = {'TERRY': 'Blue', 'PROF. OAK': 'Prof. Oak'}
 # them instead. Red's Pikachu, Leaf's Bulbasaur, the Hoenn starters, and the
 # Nidoran♂ Oak shows off in FireRed's opening.
 PARTNERS = {'Red': 25, 'Leaf': 1, 'Brendan': 252, 'May': 255, 'Prof. Oak': 32}
+# The named characters' partners are their starters, so they start where a
+# starter does.
+PARTNER_LEVEL = 5
 # Trainer pic constant -> front_pics/<file> where it isn't just lowercased.
 PIC_FILES = {
     'COOLTRAINER_M': 'cool_trainer_m', 'COOLTRAINER_F': 'cool_trainer_f',
@@ -78,6 +81,9 @@ ROCKETS = [
     ('Proton', 'rocket_m', 'rocket_grunt_m', 42),    # Golbat
     ('Petrel', 'rocket_m', 'rocket_grunt_m', 110),   # Weezing
 ]
+# Their Pokémon are fully evolved already; this is roughly where FireRed's
+# Rocket Hideout executives field them.
+ROCKET_LEVEL = 25
 
 
 def _title(name: str) -> str:
@@ -91,11 +97,13 @@ def _species(root: Path) -> dict[str, int]:
     return {m[1]: int(m[2]) for m in re.finditer(r'#define (SPECIES_\w+) (\d+)\b', text)}
 
 
-def _parties(root: Path, species: dict[str, int]) -> dict[str, list[int]]:
+def _parties(root: Path, species: dict[str, int]) -> dict[str, list[tuple[int, int]]]:
+    """Each party as (species, level) pairs, in order."""
     text = (root / 'src' / 'data' / 'trainer_parties.h').read_text()
-    out: dict[str, list[int]] = {}
+    out: dict[str, list[tuple[int, int]]] = {}
     for m in re.finditer(r'(sParty_\w+)\[\] = \{(.*?)\};', text, re.S):
-        out[m[1]] = [species[s] for s in re.findall(r'\.species = (SPECIES_\w+)', m[2])]
+        mons = re.findall(r'\.lvl = (\d+),\s*\.species = (SPECIES_\w+)', m[2])
+        out[m[1]] = [(species[s], int(lvl)) for lvl, s in mons]
     return out
 
 
@@ -119,9 +127,9 @@ def roster(root: Path) -> list[dict]:
         spec = BY_PIC.get((cls, pic)) or CLASSES.get(cls)
         if spec is None:
             continue
-        mons = [d for d in parties.get(party, []) if 0 < d <= 386]
+        mons = [(d, lvl) for d, lvl in parties.get(party, []) if 0 < d <= 386]
         if _title(name) in PARTNERS:
-            mons = [PARTNERS[_title(name)]]
+            mons = [(PARTNERS[_title(name)], PARTNER_LEVEL)]
         if not mons:
             continue
         display, sprite = spec
@@ -134,13 +142,14 @@ def roster(root: Path) -> list[dict]:
             'name': _title(name),
             'sprite': sprite,
             'portrait': PIC_FILES.get(pic, pic.lower()),
-            'partner': mons[-1],
+            'partner': mons[-1][0],
+            'partnerLevel': mons[-1][1],
         })
     return out
 
 
 def rockets() -> list[dict]:
     return [
-        {'title': 'Rocket', 'name': n, 'sprite': s, 'portrait': p, 'partner': d}
+        {'title': 'Rocket', 'name': n, 'sprite': s, 'portrait': p, 'partner': d, 'partnerLevel': ROCKET_LEVEL}
         for n, s, p, d in ROCKETS
     ]

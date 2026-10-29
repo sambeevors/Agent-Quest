@@ -3,6 +3,7 @@ import { HeroAvatar } from './HeroAvatar';
 import { usePartyPrefs } from '../hooks/usePartyPrefs';
 import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, modelBadge, displayActivity, type AgentState } from '../types/agent';
 import { heroNameFor } from '../naming/hero-names';
+import { trainerKey, type Tally } from '../progress/tally';
 import './PartyBar.css';
 
 interface PartyBarProps {
@@ -10,6 +11,7 @@ interface PartyBarProps {
   selectedAgentId: string | null;
   onSelectAgent: (id: string | null) => void;
   showSourceBadge: boolean;
+  tally: Tally | null;
 }
 
 const AVATAR_SIZE = 66;
@@ -29,9 +31,11 @@ interface PartyRowProps {
   isSelected: boolean;
   onClick: () => void;
   showSourceBadge: boolean;
+  /** The partner's level, once the tally has one. */
+  level: number | undefined;
 }
 
-function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge }: PartyRowProps) {
+function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge, level }: PartyRowProps) {
   const [flashing, setFlashing] = useState(false);
   const prevSelected = useRef(isSelected);
 
@@ -78,6 +82,7 @@ function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge }: PartyRo
               className="partybar-agent-name"
               style={isSelected ? undefined : { color: HERO_LABEL_COLOR[agent.heroColor] }}
             >{heroName}</span>
+            {level !== undefined && <span className="partybar-level" title="Partner level">Lv{level}</span>}
             <span className={`partybar-dot ${agent.status}`} aria-hidden="true" />
           </span>
           <span className="partybar-row-bottom">
@@ -122,7 +127,7 @@ function PartyRow({ agent, mode, isSelected, onClick, showSourceBadge }: PartyRo
 
 const LIVE_STATUSES = new Set<AgentState['status']>(['active', 'waiting', 'idle']);
 
-export function PartyBar({ agents, selectedAgentId, onSelectAgent, showSourceBadge }: PartyBarProps) {
+export function PartyBar({ agents, selectedAgentId, onSelectAgent, showSourceBadge, tally }: PartyBarProps) {
   const [prefs, updatePrefs] = usePartyPrefs();
   const mode: 'full' | 'icons' = prefs.foldState;
   const [showCompleted, setShowCompleted] = useState(false);
@@ -180,6 +185,7 @@ export function PartyBar({ agents, selectedAgentId, onSelectAgent, showSourceBad
             isSelected={agent.id === selectedAgentId}
             onClick={() => handleClick(agent.id)}
             showSourceBadge={showSourceBadge}
+            level={tally?.byTrainer.get(trainerKey(agent.id, agent.source))?.level}
           />
         ))}
       </div>
@@ -208,6 +214,7 @@ export function PartyBar({ agents, selectedAgentId, onSelectAgent, showSourceBad
                   isSelected={agent.id === selectedAgentId}
                   onClick={() => handleClick(agent.id)}
                   showSourceBadge={showSourceBadge}
+                  level={tally?.byTrainer.get(trainerKey(agent.id, agent.source))?.level}
                 />
               ))}
             </div>

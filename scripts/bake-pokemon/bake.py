@@ -19,6 +19,8 @@ A sparse checkout is enough:
            graphics/object_events graphics/trainers graphics/door_anims
            src/data/object_events src/data/trainers.h src/data/trainer_parties.h
            graphics/items graphics/misc/emoticons.png
+           graphics/interface/bag_male.png graphics/interface/bag.pal
+           src/data/pokemon/evolution.h src/data/text/species_names.h
            include/constants/species.h
   pokeapi: sprites/pokemon/versions/generation-iii/icons
 
@@ -41,7 +43,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from frlg import _read_pal  # noqa: E402
 from overworld import Overworld, walker_sheet  # noqa: E402
 from town import bake_town  # noqa: E402
-from trainers import rockets, roster  # noqa: E402
+from trainers import _species, rockets, roster  # noqa: E402
+from evolutions import chain, evolutions, species_names  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 OUT = REPO / 'client/public/assets/pokemon'
@@ -215,7 +218,17 @@ ITEM_ICONS = {
     'moon': 'moon_stone',       # night
     'rain': 'water_stone',      # rain
     'settings': 'teachy_tv',    # settings
+    # What each station hands out for time spent there (client/src/progress/stations.ts).
+    'potion': 'potion',               # Pokémon Center — idle
+    'antidote': 'antidote',           # Poké Mart — debugging: it cures bugs
+    'tm': 'tm_hm',                    # Cerulean Gym — reviewing
+    'bicycle': 'bicycle',             # Bike Shop — editing
+    'mail': 'orange_mail',            # Trade House — reading
+    'spoon': 'twisted_spoon',         # Badge House — thinking
+    'nugget': 'nugget',               # Nugget Bridge — bash
 }
+# Item icons that share one picture across several palettes. key -> palette.
+ITEM_PALETTES = {'tm_hm': 'normal_tm_hm'}
 # key -> row of the 16x16 bubble in graphics/misc/emoticons.png's last column.
 EMOTES = {'alert': 0, 'help': 4}
 
@@ -228,7 +241,7 @@ def opaque(img: Image.Image) -> Image.Image:
 def item_icon(root: Path, name: str) -> Image.Image:
     """A 24x24 bag icon in its own palette."""
     img = Image.open(root / 'graphics/items/icons' / f'{name}.png')
-    pal = _read_pal(root / 'graphics/items/icon_palettes' / f'{name}.pal')
+    pal = _read_pal(root / 'graphics/items/icon_palettes' / f'{ITEM_PALETTES.get(name, name)}.pal')
     img.putpalette([c for rgba in pal for c in rgba[:3]])
     out = img.convert('RGBA')
     out.putalpha(opaque(img))
@@ -248,6 +261,41 @@ def bake_icons(root: Path, out: Path) -> None:
     x0 = sheet.width - 16
     for key, row in EMOTES.items():
         save(emotes.crop((x0, row * 16, x0 + 16, row * 16 + 16)), out / 'icons' / f'{key}.png')
+    save(bag_icon(root), out / 'icons' / 'bag.png')
+
+
+def bag_icon(root: Path) -> Image.Image:
+    """The Bag screen's backpack, cropped and halved to sit with the item icons."""
+    img = Image.open(root / 'graphics/interface/bag_male.png')
+    pal = _read_pal(root / 'graphics/interface/bag.pal')
+    img.putpalette([c for rgba in pal for c in rgba[:3]])
+    out = img.convert('RGBA')
+    out.putalpha(opaque(img))
+    bag = out.crop((0, 0, 64, 64))  # first frame: the closed bag
+    bag = bag.crop(bag.getbbox())
+    return bag.resize((bag.width // 2, bag.height // 2), Image.NEAREST)
+
+
+def bake_flower_icon(out: Path, beds: list[list[int]]) -> None:
+    """The flower bed's item is one of its own flowers, lifted off the baked
+    ground: the busiest bed block, with the grass around it keyed out."""
+    ground = Image.open(out / 'town' / 'ground.png').convert('RGBA')
+    best: Image.Image | None = None
+    best_colours = 0
+    for bx, by in beds:
+        block = ground.crop((bx * 16 * Z, by * 16 * Z, (bx + 1) * 16 * Z, (by + 1) * 16 * Z))
+        block = block.resize((16, 16), Image.NEAREST)
+        colours = len(block.getcolors(256) or [])
+        if colours > best_colours:
+            best, best_colours = block, colours
+    assert best is not None
+    grass = max(best.getcolors(256) or [], key=lambda c: c[0])[1]
+    px = best.load()
+    for y in range(16):
+        for x in range(16):
+            if px[x, y] == grass:
+                px[x, y] = (0, 0, 0, 0)
+    save(best, out / 'icons' / 'flower.png')
 
 
 def ts(name: str, value: object) -> str:
@@ -262,15 +310,22 @@ def main() -> None:
 
     trainers = roster(args.firered)
     rocket = rockets()
-    partners = sorted({e['partner'] for e in trainers + rocket})
+    species = _species(args.firered)
+    evos = evolutions(args.firered, species)
+    # Every partner, and everything it can grow into.
+    partners = sorted({d for e in trainers + rocket for d in chain(e['partner'], evos)})
 
     town = bake_town(args.firered, OUT, scale)
+    pokemon = bake_pokemon(args.pokeapi, OUT, partners)
+    pokemon['evolutions'] = {d: evos[d] for d in partners if d in evos}
+    pokemon['names'] = species_names(args.firered, species, set(partners))
     sheet = {
         'trainers': bake_trainers(args.firered, OUT, trainers + rocket),
-        'pokemon': bake_pokemon(args.pokeapi, OUT, partners),
+        'pokemon': pokemon,
     }
     bake_ui()
     bake_icons(args.firered, OUT)
+    bake_flower_icon(OUT, town['buildings']['farm']['slots'])
 
     TOWN_TS.parent.mkdir(parents=True, exist_ok=True)
     TOWN_TS.write_text(ts('TOWN_DATA', town))

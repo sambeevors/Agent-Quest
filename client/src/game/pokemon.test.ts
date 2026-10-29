@@ -1,9 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { imagePreload, portraitUrl, spritesheetPreload, standFrame, walkFrames, partnerSpec, trainerTextureKey } from './pokemon';
+import { iconTextureKey, iconUrl, imagePreload, UI_ICONS, portraitUrl, spritesheetPreload, standFrame, walkFrames, partnerSpec, trainerTextureKey } from './pokemon';
 import { TOWN_COLS, TOWN_ROWS, TILE } from './town/town';
 import { ROCKETS, TRAINERS } from '../naming/trainer-roster';
+import { STATION_ITEMS } from '../progress/stations';
 
 /** The contract between scripts/bake-pokemon/ and the code that reads it. */
 
@@ -23,7 +24,16 @@ describe('baked art', () => {
   });
 
   test('door frames are one block', () => {
-    for (const e of imagePreload().slice(2)) expect(pngSize(e.path)).toEqual([TILE, TILE]);
+    const icons = new Set(UI_ICONS.map(iconTextureKey));
+    const doors = imagePreload().slice(2).filter((e) => !icons.has(e.key));
+    expect(doors.length).toBeGreaterThan(0);
+    for (const e of doors) expect(pngSize(e.path)).toEqual([TILE, TILE]);
+  });
+
+  test('station items are bag icons at native size; the flower is one bed block', () => {
+    for (const item of Object.values(STATION_ITEMS)) {
+      expect(pngSize(iconUrl(item.icon))).toEqual(item.icon === 'flower' ? [16, 16] : [24, 24]);
+    }
   });
 
   test('every trainer has a four-way walker, a portrait and a partner', () => {

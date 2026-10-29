@@ -197,6 +197,14 @@ export function TopBar({ agents, connected, notifications }: TopBarProps) {
             </button>
             <button
               className="topbar-effect-btn"
+              onClick={() => eventBridge.emit('bag:open')}
+              title="Bag"
+              aria-label="Bag"
+            >
+              <PokeIcon icon="bag" />
+            </button>
+            <button
+              className="topbar-effect-btn"
               onClick={() => eventBridge.emit('settings:open')}
               title="Settings"
               aria-label="Settings"

@@ -1,0 +1,155 @@
+/* The Bag reuses the Settings modal's shell (backdrop, frame, close, title);
+   these are its pockets. */
+
+.bag-modal {
+  width: min(620px, 94vw);
+}
+
+.bag-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bag-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.2);
+  margin-bottom: 8px;
+}
+
+.bag-tab {
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: #9a937e;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+.bag-tab:hover { color: #C4A35A; }
+.bag-tab.active {
+  color: #E2C77A;
+  background: rgba(196, 163, 90, 0.12);
+  border-color: rgba(196, 163, 90, 0.3);
+}
+
+.bag-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bag-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto 64px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.1);
+}
+
+.bag-item-name,
+.bag-trainer-name {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: #F5E6C8;
+  line-height: 1.2;
+}
+
+.bag-item-place {
+  font-size: 10px;
+  color: #9a937e;
+}
+
+.bag-item-time {
+  font-size: 11px;
+  color: #9a937e;
+  font-variant-numeric: tabular-nums;
+}
+
+.bag-item-count {
+  font-size: 15px;
+  color: #E2C77A;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bag-foot {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #9a937e;
+}
+
+.bag-trainers-scroll {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.bag-trainers {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.bag-trainers th,
+.bag-trainers td {
+  padding: 3px 4px;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.1);
+  text-align: center;
+  font-weight: normal;
+}
+
+.bag-trainers thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(40, 56, 80, 1);
+  color: #9a937e;
+  font-size: 10px;
+}
+
+.bag-trainers th.bag-trainer,
+.bag-trainers thead th:first-child {
+  text-align: left;
+}
+
+.bag-trainer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bag-portrait {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.bag-partner {
+  white-space: nowrap;
+}
+
+.bag-partner .partner-icon {
+  vertical-align: middle;
+}
+
+.bag-level {
+  font-size: 11px;
+  color: #E2C77A;
+}
+
+.bag-count {
+  color: #F5E6C8;
+  font-variant-numeric: tabular-nums;
+}
+
+.bag-count.zero {
+  color: #5c6478;
+}

@@ -63,8 +63,12 @@ export function portraitUrl(trainer: Trainer): string {
 }
 
 /** The panels' icons, in place of emoji: FireRed bag items and emote bubbles
- * (`ITEM_ICONS` / `EMOTES` in the bake). */
-export const UI_ICONS = ['bell', 'ball', 'alert', 'help', 'sun', 'moon', 'rain', 'settings'] as const;
+ * (`ITEM_ICONS` / `EMOTES` in the bake), the Bag itself, and the items each
+ * station hands out (progress/stations.ts). */
+export const UI_ICONS = [
+  'bell', 'ball', 'alert', 'help', 'sun', 'moon', 'rain', 'settings', 'bag',
+  'potion', 'antidote', 'tm', 'bicycle', 'mail', 'spoon', 'nugget', 'flower',
+] as const;
 export type UiIcon = (typeof UI_ICONS)[number];
 
 export function iconUrl(icon: UiIcon): string {
@@ -82,9 +86,24 @@ export interface PokemonSpec {
   scale: number;
 }
 
-/** The Pokémon that trots at a trainer's heels: the one it sends out last. */
-export function partnerSpec(trainer: Trainer): PokemonSpec {
-  return { textureKey: `pokemon-${trainer.partner}`, extent: PKMN.partnerExtent, facesLeft: true, scale: 0.75 };
+/** The Pokémon that trots at a trainer's heels: the one it sends out last,
+ * or what that has evolved into (`species`, from progress/). */
+export function partnerSpec(trainer: Trainer, species: number = trainer.partner): PokemonSpec {
+  return { textureKey: pokemonTextureKey(species), extent: PKMN.partnerExtent, facesLeft: true, scale: 0.75 };
+}
+
+export function pokemonTextureKey(dex: number): string {
+  return `pokemon-${dex}`;
+}
+
+/** A party-icon strip, for the panels (frame 0 is the resting pose). */
+export function pokemonIconUrl(dex: number): string {
+  return `/${ASSET_BASE}/pokemon/${dex}.png`;
+}
+
+/** Item icons as Phaser textures, for the +1 popups over a trainer. */
+export function iconTextureKey(icon: UiIcon): string {
+  return `icon-${icon}`;
 }
 
 /** The Pokémon holding the north end of Nugget Bridge. Frames: 0 rest,
@@ -141,7 +160,7 @@ export function spritesheetPreload(): SheetEntry[] {
     frameHeight: SHEET.frameHeight,
   }));
   for (const dex of PKMN.partners) {
-    out.push({ key: `pokemon-${dex}`, path: `${ASSET_BASE}/pokemon/${dex}.png`, frameWidth: 32, frameHeight: 32 });
+    out.push({ key: pokemonTextureKey(dex), path: `${ASSET_BASE}/pokemon/${dex}.png`, frameWidth: 32, frameHeight: 32 });
   }
   for (const w of PKMN.arena) {
     out.push({ key: `npc-${w.key}`, path: `${ASSET_BASE}/pokemon/${w.key}.png`, frameWidth: 32, frameHeight: 32 });
@@ -162,5 +181,6 @@ export function imagePreload(): ImageEntry[] {
   for (const b of Object.values(TOWN_BUILDINGS)) {
     for (const d of b.doorOverlays) out.push({ key: d.key, path: `${ASSET_BASE}/town/${d.key}.png` });
   }
+  for (const icon of UI_ICONS) out.push({ key: iconTextureKey(icon), path: `${ASSET_BASE}/icons/${icon}.png` });
   return out;
 }
