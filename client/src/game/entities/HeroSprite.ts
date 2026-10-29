@@ -104,8 +104,10 @@ const EVOLVE_FLICKER_MS = 110;
 /** A change of task: the red `!` a FireRed trainer flashes on spotting you,
  * lifted out of its bubble, pops up over the label stack and holds a beat. */
 const ALERT_TEXTURE_KEY = 'hero-alert';
-/** The emote's own glyph: a 2x5 bar, a row of air, a 2x1 dot, in its red. */
+/** The emote's own glyph: a 2x5 bar, a row of air, a 2x1 dot, in its red —
+ * cased in a 1px black outline, as the names are stroked. */
 const ALERT_COLOR = 0xc53939;
+const ALERT_OUTLINE = 0x000000;
 const ALERT_HOLD_MS = 1100;
 const ALERT_GAP = 2;
 /** It jumps this far up into place as it appears. */
@@ -114,11 +116,22 @@ const ALERT_HOP_MS = 160;
 
 function ensureAlertTexture(scene: Phaser.Scene): void {
   if (scene.textures.exists(ALERT_TEXTURE_KEY)) return;
+  // The glyph sits 1px in from every edge, leaving room for its outline.
+  const glyph = [
+    { x: 1, y: 1, w: 2, h: 5 },
+    { x: 1, y: 7, w: 2, h: 1 },
+  ];
   const g = scene.make.graphics({}, false);
+  g.fillStyle(ALERT_OUTLINE);
+  // Each part grown 1px straight out (not diagonally), as a pixel font's
+  // stroke is: the corners stay round and the gap above the dot stays notched.
+  for (const r of glyph) {
+    g.fillRect(r.x - 1, r.y, r.w + 2, r.h);
+    g.fillRect(r.x, r.y - 1, r.w, r.h + 2);
+  }
   g.fillStyle(ALERT_COLOR);
-  g.fillRect(0, 0, 2, 5);
-  g.fillRect(0, 6, 2, 1);
-  g.generateTexture(ALERT_TEXTURE_KEY, 2, 7);
+  for (const r of glyph) g.fillRect(r.x, r.y, r.w, r.h);
+  g.generateTexture(ALERT_TEXTURE_KEY, 4, 9);
   g.destroy();
 }
 
