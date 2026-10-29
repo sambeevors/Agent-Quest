@@ -1,0 +1,17 @@
+.partner-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  background-size: 200% 100%;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.partner-icon:hover {
+  animation: partner-icon-hop 0.33s steps(1) infinite;
+}
+
+@keyframes partner-icon-hop {
+  0% { background-position: 0 0; }
+  50% { background-position: 100% 0; }
+}

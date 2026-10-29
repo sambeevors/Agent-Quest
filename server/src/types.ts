@@ -27,6 +27,15 @@ export type AgentActivity =
   | 'debugging'  // Alchemist Shop: fix after errors
   | 'reviewing'; // Watchtower: Agent subagent, review
 
+/** Milliseconds spent at each station (see progress/station-time.ts). */
+export type ActivityMs = Partial<Record<AgentActivity, number>>;
+
+/** What an agent has been doing since its last event, and since when. */
+export interface Segment {
+  activity: AgentActivity;
+  since: number;
+}
+
 // --- Tool call record ---
 export interface ToolCall {
   id: string;
@@ -79,6 +88,13 @@ export interface AgentState {
    * suppress per-subagent notifications. Always false for Codex (no subagents).
    */
   isSubagent: boolean;
+  /**
+   * Station time from closed segments — the gaps between events, credited to
+   * what the agent was doing and capped. Rebuilt identically on replay.
+   */
+  activityMs: ActivityMs;
+  /** The open segment, which the next event closes into `activityMs`. */
+  segment: Segment;
 }
 
 // --- Session metadata from ~/.claude/sessions/<pid>.json
@@ -132,4 +148,16 @@ export type WsEvent =
   | { type: 'agent:new'; agent: AgentState }
   | { type: 'agent:complete'; id: string }
   | { type: 'activity:log'; agentId: string; action: string; detail: string; timestamp: number }
-  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] };
+  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[]; ledger: LedgerEntry[] }
+  | { type: 'ledger:update'; entries: LedgerEntry[] };
+
+/**
+ * One session's station time, as the ledger keeps it after the session itself
+ * has been cleaned up — so the town's tallies outlive the agents that earned them.
+ */
+export interface LedgerEntry {
+  id: string;
+  source: AgentSource;
+  activityMs: ActivityMs;
+  lastSeen: number;
+}

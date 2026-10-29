@@ -5,6 +5,7 @@ import { findWalk } from '../town/pathfinding';
 import { TILE, type Point } from '../town/town';
 import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
+import { spawnItemPopup, type PopupContent } from './ItemPopup';
 import { spriteAnchors, type SpriteAnchors } from '../data/sprite-anchors';
 import { leaderSegment, type LabelBox, type LabelOffset } from '../data/label-declutter';
 import { CHATTER_HOLD_MS, nextChatterDelay, pickChatterLine, type ChatterMood } from '../data/hero-chatter';
@@ -92,6 +93,13 @@ const PARTNER_RESTING_FPS = 2;
 const PARTNER_BATTLE_DISTANCE = 28;
 /** The flash a struck Pokémon shows — the bake's hit-flash colour. */
 const HIT_FLASH_COLOR = 0xf8f8f8;
+/** Gap between popups queued together, so a +1 and a level-up don't stack. */
+const POPUP_STAGGER_MS = 450;
+/** Clear air between the top of the label stack and a popup. */
+const POPUP_GAP = 4;
+/** An evolution: the partner flickers white this many times, changing at the midpoint. */
+const EVOLVE_FLICKERS = 10;
+const EVOLVE_FLICKER_MS = 110;
 
 /**
  * Lazily build a soft radial-gradient texture we can reuse as the selection
@@ -172,6 +180,15 @@ export class HeroSprite {
   private inside = false;
   /** The partner walking on its own — to its post, or back to the door. */
   private partnerTween: Phaser.Tweens.Tween | null = null;
+  /** The species the partner is drawn as — the trainer's own, or what it has evolved into. */
+  private partnerSpecies: number;
+  private evolveTimer: Phaser.Time.TimerEvent | null = null;
+  /** Popups waiting their turn (or for the trainer to arrive). */
+  private popupQueue: PopupContent[] = [];
+  private popupTimer: Phaser.Time.TimerEvent | null = null;
+  /** Top of the label stack, where popups rise from. */
+  private labelTop = 0;
+  private labelX = 0;
 
   /** Grid base position — used for slot repositioning. */
   gridBaseX = 0;
@@ -188,6 +205,7 @@ export class HeroSprite {
     feetY: number,
     isSubagent = false,
     source: AgentSource = 'claude',
+    partnerSpecies: number = trainer.partner,
   ) {
     this.scene = scene;
     this.id = id;
@@ -208,8 +226,9 @@ export class HeroSprite {
     // regardless of which code path later wires up interactivity.
     this.sprite.setData('isHero', true);
 
+    this.partnerSpecies = partnerSpecies;
     this.playStationary();
-    this.createPartner(partnerSpec(trainer));
+    this.createPartner(partnerSpec(trainer, partnerSpecies));
 
     const nameColor = HERO_LABEL_COLOR[heroColor] ?? '#DDDDDD';
     this.nameBaseColor = nameColor;
@@ -553,6 +572,76 @@ export class HeroSprite {
       top -= BADGE_GAP + badgeH;
     }
     this.bubble.setPosition(labelX, top - BUBBLE_GAP);
+    this.labelX = labelX;
+    this.labelTop = top;
+  }
+
+  /**
+   * Float a popup off the trainer — an item earned, a level gained. A
+   * trainer on the road holds it, as it holds its thoughts: the item belongs
+   * to the place it is walking to, and lands when it gets there.
+   */
+  showPopup(content: PopupContent): void {
+    this.popupQueue.push(content);
+    this.drainPopups();
+  }
+
+  private drainPopups(): void {
+    if (this.popupTimer !== null || this.moving) return;
+    const next = this.popupQueue.shift();
+    if (next === undefined) return;
+    spawnItemPopup(this.scene, this.labelX, this.labelTop - POPUP_GAP, next);
+    this.popupTimer = this.scene.time.delayedCall(POPUP_STAGGER_MS, () => {
+      this.popupTimer = null;
+      this.drainPopups();
+    });
+  }
+
+  /** Draw the partner as `dex` — where it has levelled to, on spawn or after a reload. */
+  setPartnerSpecies(dex: number): void {
+    if (dex === this.partnerSpecies || this.evolveTimer !== null) return;
+    this.partnerSpecies = dex;
+    this.swapPartner(dex);
+  }
+
+  /**
+   * The partner evolves in front of you: it flickers white, changes halfway
+   * through, and settles as the new species.
+   */
+  evolvePartner(dex: number, onDone: () => void): void {
+    const p = this.partner;
+    if (p === null || dex === this.partnerSpecies) return;
+    this.partnerSpecies = dex;
+    this.evolveTimer?.remove();
+    let flicker = 0;
+    this.evolveTimer = this.scene.time.addEvent({
+      delay: EVOLVE_FLICKER_MS,
+      repeat: EVOLVE_FLICKERS * 2 - 1,
+      callback: () => {
+        flicker++;
+        if (flicker === EVOLVE_FLICKERS) this.swapPartner(dex);
+        const lit = flicker % 2 === 1 && flicker < EVOLVE_FLICKERS * 2;
+        if (lit) this.partner?.sprite.setTint(HIT_FLASH_COLOR).setTintMode(Phaser.TintModes.FILL);
+        else this.partner?.sprite.clearTint();
+        if (flicker >= EVOLVE_FLICKERS * 2) {
+          this.evolveTimer = null;
+          onDone();
+        }
+      },
+    });
+  }
+
+  private swapPartner(dex: number): void {
+    const p = this.partner;
+    const spec = partnerSpec(this.trainer, dex);
+    if (p === null || !this.scene.textures.exists(spec.textureKey)) return;
+    this.ensureFollowAnim(spec.textureKey);
+    p.spec = spec;
+    p.sprite.setTexture(spec.textureKey, 0);
+    if (this.battleFoe === null) {
+      p.sprite.play(`${spec.textureKey}-follow`);
+      p.sprite.anims.timeScale = this.moving ? 1 : PARTNER_RESTING_FPS / PARTNER_MOVING_FPS;
+    }
   }
 
   /**
@@ -628,17 +717,25 @@ export class HeroSprite {
     this.sprite.play(key, true);
   }
 
+  private ensureFollowAnim(textureKey: string): void {
+    const animKey = `${textureKey}-follow`;
+    if (this.scene.anims.exists(animKey)) return;
+    this.scene.anims.create({
+      key: animKey,
+      frames: this.scene.anims.generateFrameNumbers(textureKey, { frames: [0, 1] }),
+      frameRate: PARTNER_MOVING_FPS,
+      repeat: -1,
+    });
+  }
+
   private createPartner(spec: PokemonSpec): void {
-    if (!this.scene.textures.exists(spec.textureKey)) return;
-    const animKey = `${spec.textureKey}-follow`;
-    if (!this.scene.anims.exists(animKey)) {
-      this.scene.anims.create({
-        key: animKey,
-        frames: this.scene.anims.generateFrameNumbers(spec.textureKey, { frames: [0, 1] }),
-        frameRate: PARTNER_MOVING_FPS,
-        repeat: -1,
-      });
+    if (!this.scene.textures.exists(spec.textureKey)) {
+      // A species the bake didn't ship falls back to the trainer's own.
+      spec = partnerSpec(this.trainer);
+      if (!this.scene.textures.exists(spec.textureKey)) return;
     }
+    const animKey = `${spec.textureKey}-follow`;
+    this.ensureFollowAnim(spec.textureKey);
     const scale = this.sprite.scaleY * spec.scale;
     const sprite = this.scene.add.sprite(this._x, this._y, spec.textureKey);
     sprite.setScale(scale);
@@ -924,6 +1021,7 @@ export class HeroSprite {
     const cb = this.arrivalCallback;
     this.arrivalCallback = null;
     cb?.();
+    this.drainPopups();
   }
 
   private moveAlongPath(path: Point[]): void {
@@ -1004,6 +1102,11 @@ export class HeroSprite {
     }
     this.battleTimer?.remove();
     this.battleTimer = null;
+    this.evolveTimer?.remove();
+    this.evolveTimer = null;
+    this.popupTimer?.remove();
+    this.popupTimer = null;
+    this.popupQueue = [];
     this.partnerTween?.stop();
     this.partnerTween = null;
     this.sprite.destroy();

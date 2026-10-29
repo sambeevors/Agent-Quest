@@ -1,5 +1,5 @@
 import type { ServerWebSocket } from 'bun';
-import type { WsEvent, AgentState } from '../types';
+import type { WsEvent, AgentState, LedgerEntry } from '../types';
 
 export type WsClient = ServerWebSocket<{ id: string }>;
 
@@ -16,8 +16,8 @@ export class WebSocketServer {
     console.log(`[WS] client disconnected (total: ${this.clients.size})`);
   }
 
-  sendSnapshot(ws: WsClient, agents: AgentState[], configDirs: readonly string[]): void {
-    const event: WsEvent = { type: 'snapshot', agents, configDirs: [...configDirs] };
+  sendSnapshot(ws: WsClient, agents: AgentState[], configDirs: readonly string[], ledger: LedgerEntry[]): void {
+    const event: WsEvent = { type: 'snapshot', agents, configDirs: [...configDirs], ledger };
     ws.send(JSON.stringify(event));
   }
 
@@ -35,6 +35,10 @@ export class WebSocketServer {
 
   broadcastActivityLog(agentId: string, action: string, detail: string, timestamp: number): void {
     this.broadcast({ type: 'activity:log', agentId, action, detail, timestamp });
+  }
+
+  broadcastLedger(entries: LedgerEntry[]): void {
+    this.broadcast({ type: 'ledger:update', entries });
   }
 
   get clientCount(): number {

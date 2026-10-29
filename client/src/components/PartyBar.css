@@ -222,6 +222,12 @@
   flex-shrink: 0;
   line-height: 1.2;
 }
+.partybar-level {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: #E2C77A;
+  flex-shrink: 0;
+}
 .partybar-dot {
   width: 6px;
   height: 6px;

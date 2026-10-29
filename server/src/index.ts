@@ -11,6 +11,7 @@ import { CodexProvider } from './providers/codex-provider';
 import { registerClientRoutes } from './static/client-routes';
 import type { ProviderHandlers, SessionStartPayload, SessionEventsPayload } from './providers/types';
 import type { ParsedEvent } from './parsers/session-parser';
+import { Ledger, defaultLedgerPath } from './progress/ledger';
 
 /** Return IPv4 addresses bound to non-internal, non-link-local interfaces. */
 function listLanAddresses(): string[] {
@@ -47,6 +48,8 @@ const SUBAGENT_COMPLETED_THRESHOLD_MS = 5 * 60_000;        // 5 min idle → com
 const SUBAGENT_BUSY_COMPLETED_THRESHOLD_MS = 15 * 60_000;  // 15 min busy silent → presumed crashed
 
 const CLIENT_DIR = process.env.POKEAGENT_CLIENT_DIR;
+const LEDGER_RECORD_INTERVAL_MS = 5_000;  // fold station time into the ledger + broadcast
+const LEDGER_SAVE_INTERVAL_MS = 10_000;   // write the ledger to disk if it grew
 
 const app = new Hono();
 const sessionRegistry = new SessionRegistry({ configDirs: [] });
@@ -59,6 +62,8 @@ const stateManager = new AgentStateManager({
   livenessOracle: sessionRegistry,
 });
 const wsServer = new WebSocketServer();
+const ledger = new Ledger(defaultLedgerPath());
+ledger.load();
 
 // --- CORS for client on :4445 ---
 // In LAN mode we reflect any origin (the client is served from the host's
@@ -172,7 +177,7 @@ if (CLIENT_DIR !== undefined) registerClientRoutes(app, CLIENT_DIR);
 // without killing us (crash, force-quit), the pipe closes — exit rather than
 // hold :4444 and block the next launch.
 if (process.env.POKEAGENT_EXIT_WITH_PARENT === '1') {
-  process.stdin.on('close', () => process.exit(0));
+  process.stdin.on('close', () => saveAndExit());
   process.stdin.resume();
 }
 
@@ -229,6 +234,11 @@ if (allConfigDirs().length === 0) {
 sessionRegistry.setConfigDirs(claudeProvider.getConfigDirs());
 await sessionRegistry.start(10_000);
 console.log(`[SessionRegistry] live session ids: ${sessionRegistry.snapshot().length}`);
+// The replay above ran before the registry knew which pids are alive, so
+// sessions whose process is gone still read as waiting. Settle them now —
+// before the ledger's first record, which would otherwise credit those dead
+// sessions an open segment of idle time they never spent.
+stateManager.refreshAll();
 
 // Every time the registry refreshes, re-derive every agent's status so that
 // sessions that just died get demoted to `completed`, and resumed pids come
@@ -240,6 +250,22 @@ setInterval(() => {
     if (agent !== undefined) wsServer.broadcastAgentUpdate(agent);
   }
 }, 10_000);
+
+// --- Station ledger: the town's item and XP tallies, kept past each session ---
+// Recording on a timer rather than per event keeps a burst of tool calls from
+// flooding the socket; a client projects the open segment between pushes.
+setInterval(() => {
+  const changed = ledger.record(stateManager.getAll(), Date.now());
+  if (changed.length > 0) wsServer.broadcastLedger(changed);
+}, LEDGER_RECORD_INTERVAL_MS);
+setInterval(() => ledger.save(), LEDGER_SAVE_INTERVAL_MS);
+const saveAndExit = () => {
+  ledger.record(stateManager.getAll(), Date.now());
+  ledger.save();
+  process.exit(0);
+};
+process.on('SIGINT', saveAndExit);
+process.on('SIGTERM', saveAndExit);
 
 // --- Start ---
 const server = Bun.serve({
@@ -259,7 +285,8 @@ const server = Bun.serve({
   websocket: {
     open(ws: WsClient) {
       wsServer.handleOpen(ws);
-      wsServer.sendSnapshot(ws, stateManager.getAll(), allConfigDirs());
+      ledger.record(stateManager.getAll(), Date.now());
+      wsServer.sendSnapshot(ws, stateManager.getAll(), allConfigDirs(), ledger.all());
     },
     close(ws: WsClient) {
       wsServer.handleClose(ws);

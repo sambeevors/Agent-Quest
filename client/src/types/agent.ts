@@ -51,6 +51,23 @@ export type AgentActivity =
   | 'debugging'
   | 'reviewing';
 
+/** Milliseconds spent at each station (see progress/). Mirrors server/src/types.ts. */
+export type ActivityMs = Partial<Record<AgentActivity, number>>;
+
+/** What an agent has been doing since its last event, and since when. */
+export interface Segment {
+  activity: AgentActivity;
+  since: number;
+}
+
+/** One session's station time as the server's ledger keeps it — past the session's own lifetime. */
+export interface LedgerEntry {
+  id: string;
+  source: AgentSource;
+  activityMs: ActivityMs;
+  lastSeen: number;
+}
+
 export interface ToolCall {
   id: string;
   name: string;
@@ -93,6 +110,10 @@ export interface AgentState {
   /** True for Claude Code subagents (Task tool). Set by the server once it
    * sends the flag; until then `isSubagentAgent()` falls back to the id prefix. */
   isSubagent?: boolean;
+  /** Station time from closed segments. Optional so an older server still renders. */
+  activityMs?: ActivityMs;
+  /** The open segment, which the next event closes into `activityMs`. */
+  segment?: Segment;
 }
 
 /**
@@ -197,4 +218,5 @@ export type WsEvent =
   | { type: 'agent:new'; agent: AgentState }
   | { type: 'agent:complete'; id: string }
   | { type: 'activity:log'; agentId: string; action: string; detail: string; timestamp: number }
-  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[] };
+  | { type: 'snapshot'; agents: AgentState[]; configDirs: string[]; ledger?: LedgerEntry[] }
+  | { type: 'ledger:update'; entries: LedgerEntry[] };

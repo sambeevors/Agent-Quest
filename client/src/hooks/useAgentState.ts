@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { AgentState, WsEvent, ActivityLogEntry } from '../types/agent';
+import type { AgentState, WsEvent, ActivityLogEntry, LedgerEntry } from '../types/agent';
 import { eventBridge } from '../game/EventBridge';
 import { WS_URL } from '../config';
 
@@ -14,6 +14,15 @@ export interface AgentStateHook {
    * we haven't received a snapshot yet (still connecting); an empty array
    * means the server found neither ~/.claude* nor ~/.codex install on disk. */
   configDirs: string[] | null;
+  /** The server's station ledger, by session id — every session's station
+   * time, including ones long since cleaned out of `agents`. */
+  ledger: ReadonlyMap<string, LedgerEntry>;
+}
+
+function withEntries(prev: ReadonlyMap<string, LedgerEntry>, entries: readonly LedgerEntry[]): Map<string, LedgerEntry> {
+  const next = new Map(prev);
+  for (const e of entries) next.set(e.id, e);
+  return next;
 }
 
 export function useAgentState(): AgentStateHook {
@@ -21,6 +30,7 @@ export function useAgentState(): AgentStateHook {
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [connected, setConnected] = useState(false);
   const [configDirs, setConfigDirs] = useState<string[] | null>(null);
+  const [ledger, setLedger] = useState<ReadonlyMap<string, LedgerEntry>>(() => new Map());
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -29,6 +39,11 @@ export function useAgentState(): AgentStateHook {
       case 'snapshot':
         setAgents(event.agents);
         setConfigDirs(event.configDirs);
+        setLedger(withEntries(new Map(), event.ledger ?? []));
+        break;
+
+      case 'ledger:update':
+        setLedger((prev) => withEntries(prev, event.entries));
         break;
 
       case 'agent:new':
@@ -109,5 +124,5 @@ export function useAgentState(): AgentStateHook {
     };
   }, [connect]);
 
-  return { agents, activityLog, connected, configDirs };
+  return { agents, activityLog, connected, configDirs, ledger };
 }

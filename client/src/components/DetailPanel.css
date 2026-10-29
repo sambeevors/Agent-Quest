@@ -529,3 +529,51 @@
 }
 
 .detail-value--num.detail-cost { color: #C8E08A; }
+
+/* Partner: species, level, XP bar, and the trainer's items. */
+.detail-partner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.detail-partner-body {
+  flex: 1;
+  min-width: 0;
+}
+.detail-partner-name {
+  font-size: 13px;
+  color: #F5E6C8;
+}
+.detail-partner-level {
+  color: #E2C77A;
+  margin-left: 4px;
+}
+/* FireRed's EXP bar: a thin blue fill in a dark track. */
+.detail-xp-bar {
+  height: 4px;
+  margin-top: 4px;
+  background: #283850;
+  border: 1px solid #101820;
+}
+.detail-xp-bar > span {
+  display: block;
+  height: 100%;
+  background: #40c8f8;
+  transition: width 0.4s ease-out;
+}
+.detail-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 12px;
+  color: #F5E6C8;
+  font-variant-numeric: tabular-nums;
+}

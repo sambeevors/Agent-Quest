@@ -128,6 +128,7 @@ export const POKEMON_SHEET = {
       2,
       3,
       4,
+      5,
       6,
       7,
       8,
@@ -140,9 +141,11 @@ export const POKEMON_SHEET = {
       15,
       16,
       17,
+      18,
       19,
       20,
       21,
+      22,
       23,
       24,
       25,
@@ -185,7 +188,9 @@ export const POKEMON_SHEET = {
       74,
       75,
       77,
+      78,
       79,
+      80,
       81,
       82,
       83,
@@ -210,6 +215,7 @@ export const POKEMON_SHEET = {
       109,
       110,
       111,
+      112,
       113,
       114,
       115,
@@ -226,10 +232,13 @@ export const POKEMON_SHEET = {
       137,
       171,
       183,
+      184,
       185,
       188,
+      189,
       203,
       209,
+      210,
       211,
       214,
       217,
@@ -241,6 +250,311 @@ export const POKEMON_SHEET = {
       "frameHeight": 32,
       "headY": 10,
       "footY": 30
+    },
+    "evolutions": {
+      "1": {
+        "level": 16,
+        "into": 2
+      },
+      "2": {
+        "level": 32,
+        "into": 3
+      },
+      "4": {
+        "level": 16,
+        "into": 5
+      },
+      "5": {
+        "level": 36,
+        "into": 6
+      },
+      "7": {
+        "level": 16,
+        "into": 8
+      },
+      "8": {
+        "level": 36,
+        "into": 9
+      },
+      "10": {
+        "level": 7,
+        "into": 11
+      },
+      "11": {
+        "level": 10,
+        "into": 12
+      },
+      "13": {
+        "level": 7,
+        "into": 14
+      },
+      "14": {
+        "level": 10,
+        "into": 15
+      },
+      "16": {
+        "level": 18,
+        "into": 17
+      },
+      "17": {
+        "level": 36,
+        "into": 18
+      },
+      "19": {
+        "level": 20,
+        "into": 20
+      },
+      "21": {
+        "level": 20,
+        "into": 22
+      },
+      "23": {
+        "level": 22,
+        "into": 24
+      },
+      "27": {
+        "level": 22,
+        "into": 28
+      },
+      "29": {
+        "level": 16,
+        "into": 30
+      },
+      "32": {
+        "level": 16,
+        "into": 33
+      },
+      "41": {
+        "level": 22,
+        "into": 42
+      },
+      "43": {
+        "level": 21,
+        "into": 44
+      },
+      "48": {
+        "level": 31,
+        "into": 49
+      },
+      "52": {
+        "level": 28,
+        "into": 53
+      },
+      "56": {
+        "level": 28,
+        "into": 57
+      },
+      "60": {
+        "level": 25,
+        "into": 61
+      },
+      "66": {
+        "level": 28,
+        "into": 67
+      },
+      "69": {
+        "level": 21,
+        "into": 70
+      },
+      "72": {
+        "level": 30,
+        "into": 73
+      },
+      "74": {
+        "level": 25,
+        "into": 75
+      },
+      "77": {
+        "level": 40,
+        "into": 78
+      },
+      "79": {
+        "level": 37,
+        "into": 80
+      },
+      "81": {
+        "level": 30,
+        "into": 82
+      },
+      "86": {
+        "level": 34,
+        "into": 87
+      },
+      "88": {
+        "level": 38,
+        "into": 89
+      },
+      "92": {
+        "level": 25,
+        "into": 93
+      },
+      "98": {
+        "level": 28,
+        "into": 99
+      },
+      "100": {
+        "level": 30,
+        "into": 101
+      },
+      "104": {
+        "level": 28,
+        "into": 105
+      },
+      "109": {
+        "level": 35,
+        "into": 110
+      },
+      "111": {
+        "level": 42,
+        "into": 112
+      },
+      "116": {
+        "level": 32,
+        "into": 117
+      },
+      "118": {
+        "level": 33,
+        "into": 119
+      },
+      "129": {
+        "level": 20,
+        "into": 130
+      },
+      "183": {
+        "level": 18,
+        "into": 184
+      },
+      "188": {
+        "level": 27,
+        "into": 189
+      },
+      "209": {
+        "level": 23,
+        "into": 210
+      }
+    },
+    "names": {
+      "1": "Bulbasaur",
+      "2": "Ivysaur",
+      "3": "Venusaur",
+      "4": "Charmander",
+      "5": "Charmeleon",
+      "6": "Charizard",
+      "7": "Squirtle",
+      "8": "Wartortle",
+      "9": "Blastoise",
+      "10": "Caterpie",
+      "11": "Metapod",
+      "12": "Butterfree",
+      "13": "Weedle",
+      "14": "Kakuna",
+      "15": "Beedrill",
+      "16": "Pidgey",
+      "17": "Pidgeotto",
+      "18": "Pidgeot",
+      "19": "Rattata",
+      "20": "Raticate",
+      "21": "Spearow",
+      "22": "Fearow",
+      "23": "Ekans",
+      "24": "Arbok",
+      "25": "Pikachu",
+      "26": "Raichu",
+      "27": "Sandshrew",
+      "28": "Sandslash",
+      "29": "Nidoran♀",
+      "30": "Nidorina",
+      "31": "Nidoqueen",
+      "32": "Nidoran♂",
+      "33": "Nidorino",
+      "34": "Nidoking",
+      "35": "Clefairy",
+      "38": "Ninetales",
+      "39": "Jigglypuff",
+      "40": "Wigglytuff",
+      "41": "Zubat",
+      "42": "Golbat",
+      "43": "Oddish",
+      "44": "Gloom",
+      "47": "Parasect",
+      "48": "Venonat",
+      "49": "Venomoth",
+      "52": "Meowth",
+      "53": "Persian",
+      "55": "Golduck",
+      "56": "Mankey",
+      "57": "Primeape",
+      "58": "Growlithe",
+      "59": "Arcanine",
+      "60": "Poliwag",
+      "61": "Poliwhirl",
+      "66": "Machop",
+      "67": "Machoke",
+      "69": "Bellsprout",
+      "70": "Weepinbell",
+      "71": "Victreebel",
+      "72": "Tentacool",
+      "73": "Tentacruel",
+      "74": "Geodude",
+      "75": "Graveler",
+      "77": "Ponyta",
+      "78": "Rapidash",
+      "79": "Slowpoke",
+      "80": "Slowbro",
+      "81": "Magnemite",
+      "82": "Magneton",
+      "83": "Farfetch'd",
+      "86": "Seel",
+      "87": "Dewgong",
+      "88": "Grimer",
+      "89": "Muk",
+      "90": "Shellder",
+      "91": "Cloyster",
+      "92": "Gastly",
+      "93": "Haunter",
+      "95": "Onix",
+      "98": "Krabby",
+      "99": "Kingler",
+      "100": "Voltorb",
+      "101": "Electrode",
+      "102": "Exeggcute",
+      "104": "Cubone",
+      "105": "Marowak",
+      "107": "Hitmonchan",
+      "108": "Lickitung",
+      "109": "Koffing",
+      "110": "Weezing",
+      "111": "Rhyhorn",
+      "112": "Rhydon",
+      "113": "Chansey",
+      "114": "Tangela",
+      "115": "Kangaskhan",
+      "116": "Horsea",
+      "117": "Seadra",
+      "118": "Goldeen",
+      "119": "Seaking",
+      "120": "Staryu",
+      "121": "Starmie",
+      "128": "Tauros",
+      "129": "Magikarp",
+      "130": "Gyarados",
+      "131": "Lapras",
+      "137": "Porygon",
+      "171": "Lanturn",
+      "183": "Marill",
+      "184": "Azumarill",
+      "185": "Sudowoodo",
+      "188": "Skiploom",
+      "189": "Jumpluff",
+      "203": "Girafarig",
+      "209": "Snubbull",
+      "210": "Granbull",
+      "211": "Qwilfish",
+      "214": "Heracross",
+      "217": "Ursaring",
+      "229": "Houndoom",
+      "252": "?",
+      "255": "?"
     }
   }
 } as const;

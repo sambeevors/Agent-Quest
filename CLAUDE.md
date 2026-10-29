@@ -32,6 +32,7 @@ Features this fork adds on top of upstream. Each is isolated in its own module w
 | Trainer chatter | — | `game/data/hero-chatter.ts` (lines + timing) drawn by `game/entities/ThoughtBubble.ts`; scheduled per hero in `HeroSprite` |
 | Cerulean City | — | `game/town/` (generated `town-data.ts`, `town.ts`, `pathfinding.ts`); `Building`, `ArenaFighters`, `FarmWork` hang meaning on it |
 | FireRed art | — | `game/pokemon.ts` + generated `pokemon-sheet.ts`; baked assets under `client/public/assets/pokemon/`; bake pipeline in `scripts/bake-pokemon/` |
+| Station progress | `progress/station-time.ts` (time per station from event timestamps), `progress/ledger.ts` (kept in `~/.pokeagent/ledger.json`) | `progress/` (items, XP, levels, evolution, tally), `hooks/useProgress.ts`, `ItemPopup`, `BagPanel`, Partner section in `DetailPanel` |
 
 Notes for anyone extending these:
 
@@ -68,6 +69,18 @@ If something about the town looks wrong, fix the bake (`town.py`) and re-run it 
 - **Portraits** are the battle front pics, cropped square to the face, for every React avatar.
 - **Icons** in the panels are FireRed's own, never emoji: bag item icons in their palettes (Soothe Bell = waiting, Poké Ball = done, Sun/Moon/Water Stone = day/night/rain, Teachy TV = settings) and the trainer emote bubbles (`!` = error, `?` = help). `ITEM_ICONS`/`EMOTES` in `bake.py` pick them, `UI_ICONS` in `game/pokemon.ts` lists them, `<PokeIcon>` draws one at native size, and `ALERT_ICON` maps alert kinds to them.
 - **Panel chrome** is a FireRed-style 9-slice (`pokemon-ui.css`, `assets/pokemon/ui/`) — chrome only; layout, text palette and RuneScape type unchanged.
+
+## Station progress
+
+Game Dev Tycoon in FireRed's bag: every station hands out its own item for time spent there, and time at any station is XP for the trainer's partner.
+
+- **Time is the server's, from event timestamps alone.** `station-time.ts` credits the gap between two events to what the agent was doing after the first, capped at 5 min of work or 30 min of idle (a silence longer than that isn't the activity). It never reads the clock, and the lifecycle timers that force an agent idle don't touch it, so replaying a session's JSONL rebuilds identical totals. `AgentState` carries `activityMs` (closed segments) and `segment` (the open one).
+- **The ledger outlives the sessions.** `Ledger` folds every agent's time in every 5s — closed segments plus the open one so far, except for a finished session — and writes `${POKEAGENT_DATA_DIR ?? ~/.pokeagent}/ledger.json` every 10s and on exit. Entries merge by **max per activity, never by adding**: a restart's 3h replay lands on the figures already there. The server re-derives every status once the liveness registry primes, before the first record, or a dead session would be credited an open idle segment. The snapshot carries the ledger; `ledger:update` sends what grew.
+- **The client projects and never goes backwards.** Between pushes `progress/accrual.ts` adds the open segment with the same caps (keep them in sync), and `foldSessions` keeps a high-water mark per session, so a count on screen never ticks down.
+- **One item per minute, floored per session then summed**, so the fleet's total is the sum of its trainers'. 1 XP per second at any station, the Pokémon Center included. Items (`progress/stations.ts`, icons via `ITEM_ICONS` in the bake): Orange Mail (Trade House, reading), Bicycle (Bike Shop, editing), Twisted Spoon (Badge House, thinking), Nugget (Nugget Bridge, bash), Flower (flower bed, git — lifted off the bed's own block), Antidote (Poké Mart, debugging), TM (Gym, reviewing), Potion (Pokémon Center, idle).
+- **Per trainer means per roster trainer.** A tally groups sessions by `trainerKey` (source + trainer name), so a trainer keeps levelling across every session that hashes to it. The partner starts at its level in that trainer's real party (`partnerLevel`, from `trainer_parties.h`) and grows on FireRed's medium-fast curve (n³ XP at level n), evolving where the game evolves it by level (`evolutions` in `pokemon-sheet.ts`, from `evolution.h`; stones, trades and friendship never come up). Every species in a partner's line is baked.
+- **The +1 is a popup, not a thought.** `useProgress` diffs the tally each second and emits `progress:earned` / `levelup` / `evolve`; `HeroSprite.showPopup` floats the item icon and count (or "Lv. 18!") off the label stack, and a trainer on the road holds it until it arrives, as it holds its thoughts. Nothing pops on the first tally or a session's first appearance — loading the page isn't earning. `progress:partners` (sticky) tells the scene each hero's species, so one spawned later walks out with the evolved Pokémon.
+- The global view is the **Bag** (TopBar): Items pocket (count and time per item) and Trainers pocket (partner, level, items per trainer). The Detail Panel shows the selected trainer's partner, XP bar and items; the Party Bar shows its level.
 
 ## Typography
 
