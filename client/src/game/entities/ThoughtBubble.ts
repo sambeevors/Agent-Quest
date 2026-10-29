@@ -80,6 +80,13 @@ export class ThoughtBubble {
     });
   }
 
+  /** Drop the bubble at once — its thought belongs to a task that's over. */
+  hide(): void {
+    this.stopAnimation();
+    this.container.setAlpha(0);
+    this.container.setVisible(false);
+  }
+
   setPosition(x: number, y: number): void {
     this.container.setPosition(x, y);
   }
