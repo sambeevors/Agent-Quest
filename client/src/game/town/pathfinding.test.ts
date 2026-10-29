@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { corners, findTilePath, findWalk, nearestWalkable } from './pathfinding';
-import { footOf, isWalkable, SPAWN_TILE, TOWN_BUILDINGS, type Tile } from './town';
+import { footOf, isRoad, isWalkable, SPAWN_TILE, stepCost, TOWN_BUILDINGS, type Tile } from './town';
 
 /** A little map: '#' blocked, '.' walkable. */
 function grid(rows: string[]): (x: number, y: number) => boolean {
@@ -38,6 +38,20 @@ describe('findTilePath', () => {
       '....',
     ]);
     expect(corners(findTilePath([0, 0], [3, 2], walk)!)).toHaveLength(3);
+  });
+
+  test('goes the long way round on the road rather than cut across grass', () => {
+    const walk = grid([
+      '.....',
+      '.....',
+      '.....',
+    ]);
+    // The middle row is lawn bar its west end, a step aside.
+    const road = (x: number, y: number): number => (y === 1 && x > 0 && x < 4 ? 4 : 1);
+    const path = findTilePath([1, 0], [1, 2], walk, road)!;
+    expect(path.some(([x, y]) => y === 1 && x > 0 && x < 4)).toBe(false);
+    // Flat, it takes the two steps straight across.
+    expect(findTilePath([1, 0], [1, 2], walk)).toHaveLength(3);
   });
 });
 
@@ -83,6 +97,22 @@ describe('the town', () => {
       // Trainers go in (and come out) through the tile below every door.
       for (const [dx, dy] of b.doors) expect(isWalkable(dx, dy + 1)).toBe(true);
     }
+  });
+
+  test('trainers keep to the roads between places', () => {
+    const offRoad = (path: readonly Tile[]): number => path.filter(([x, y]) => !isRoad(x, y)).length;
+    const places: Tile[] = [SPAWN_TILE, ...Object.values(TOWN_BUILDINGS).map((b) => b.slots[0]!)];
+    for (const a of places) {
+      for (const b of places) {
+        const flat = findTilePath(a, b)!;
+        const routed = findTilePath(a, b, isWalkable, stepCost)!;
+        expect(offRoad(routed)).toBeLessThanOrEqual(offRoad(flat));
+      }
+    }
+    // Spawn to the Gym is road the whole way; the shortest route cuts a lawn.
+    const gym = TOWN_BUILDINGS.watchtower!.slots[0]!;
+    expect(offRoad(findTilePath(SPAWN_TILE, gym, isWalkable, stepCost)!)).toBe(0);
+    expect(offRoad(findTilePath(SPAWN_TILE, gym)!)).toBeGreaterThan(0);
   });
 
   test('walks between buildings stay on walkable ground and turn at right angles', () => {

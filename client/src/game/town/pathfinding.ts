@@ -1,9 +1,13 @@
-import { footOf, isWalkable, tileAt, type Point, type Tile } from './town';
+import { footOf, isWalkable, stepCost, tileAt, type Point, type Tile } from './town';
 
 /**
  * Four-way grid routing over the town's walkable blocks — how a FireRed
  * character moves: one tile at a time, turning only at right angles, never
  * through a fence, a ledge or the water.
+ *
+ * Heroes keep to the roads: routes are weighed by `stepCost`, so a hero
+ * follows the streets wherever they go its way and leaves them only to reach
+ * a door or a spot off the path.
  *
  * Paths are in FEET coordinates (see `footOf`). The returned polyline keeps
  * only the corners, so a hero tweens down a straight street in one leg and
@@ -11,6 +15,9 @@ import { footOf, isWalkable, tileAt, type Point, type Tile } from './town';
  */
 
 type WalkableFn = (tx: number, ty: number) => boolean;
+type CostFn = (tx: number, ty: number) => number;
+
+const FLAT: CostFn = () => 1;
 
 const STEPS: ReadonlyArray<readonly [number, number]> = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
@@ -37,11 +44,15 @@ export function nearestWalkable(tile: Tile, walkable: WalkableFn = isWalkable): 
 }
 
 /**
- * Shortest 4-way tile path from `from` to `to`, both inclusive; null when
- * there is none. A* with a Manhattan heuristic, preferring to keep going
- * straight on ties so routes read as streets rather than staircases.
+ * Cheapest 4-way tile path from `from` to `to`, both inclusive; null when
+ * there is none. `cost` is what stepping onto a tile costs (at least 1, so
+ * the Manhattan heuristic stays admissible); flat by default, which makes it
+ * the shortest path. A*, preferring to keep going straight on ties so routes
+ * read as streets rather than staircases.
  */
-export function findTilePath(from: Tile, to: Tile, walkable: WalkableFn = isWalkable): Tile[] | null {
+export function findTilePath(
+  from: Tile, to: Tile, walkable: WalkableFn = isWalkable, cost: CostFn = FLAT,
+): Tile[] | null {
   const key = (x: number, y: number): number => (y << 16) | x;
   const goal = key(to[0], to[1]);
   const h = (x: number, y: number): number => Math.abs(x - to[0]) + Math.abs(y - to[1]);
@@ -97,7 +108,7 @@ export function findTilePath(from: Tile, to: Tile, walkable: WalkableFn = isWalk
       const ny = y + dy;
       if (!walkable(nx, ny)) return;
       const nk = key(nx, ny);
-      const ng = gk + 1;
+      const ng = gk + cost(nx, ny);
       if (ng >= (g.get(nk) ?? Infinity)) return;
       g.set(nk, ng);
       came.set(nk, k);
@@ -131,14 +142,17 @@ export function corners(path: readonly Tile[]): Tile[] {
 /**
  * Feet-to-feet walk across town. Starts with `from` itself: a hero caught
  * between tiles (a walk cut short by a new destination) first steps onto
- * its tile, then follows the streets. Falls back to a straight line only if
+ * its tile, then follows the streets (weighed by `cost`, the town's roads by
+ * default). Falls back to a straight line only if
  * either end is nowhere near walkable ground, so a hero is never stranded.
  */
-export function findWalk(from: Point, to: Point, walkable: WalkableFn = isWalkable): Point[] {
+export function findWalk(
+  from: Point, to: Point, walkable: WalkableFn = isWalkable, cost: CostFn = stepCost,
+): Point[] {
   const start = nearestWalkable(tileAt(from), walkable);
   const end = nearestWalkable(tileAt(to), walkable);
   if (start === null || end === null) return [from, to];
-  const tiles = findTilePath(start, end, walkable);
+  const tiles = findTilePath(start, end, walkable, cost);
   if (tiles === null) return [from, to];
   const out: Point[] = [from];
   const points = corners(tiles).map(footOf);
