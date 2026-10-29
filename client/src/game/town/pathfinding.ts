@@ -143,17 +143,40 @@ export function corners(path: readonly Tile[]): Tile[] {
  * Feet-to-feet walk across town. Starts with `from` itself: a hero caught
  * between tiles (a walk cut short by a new destination) first steps onto
  * its tile, then follows the streets (weighed by `cost`, the town's roads by
- * default). Falls back to a straight line only if
- * either end is nowhere near walkable ground, so a hero is never stranded.
+ * default). `avoid` marks tiles to go round if there is a way — trainers
+ * standing in the street (see traffic.ts); with no way round, the walk goes
+ * through them. Falls back to a straight line only if either end is nowhere
+ * near walkable ground, so a hero is never stranded.
  */
 export function findWalk(
   from: Point, to: Point, walkable: WalkableFn = isWalkable, cost: CostFn = stepCost,
+  avoid?: WalkableFn,
 ): Point[] {
+  return (avoid === undefined ? null : findDetour(from, to, avoid, walkable, cost))
+    ?? walkBetween(from, to, walkable, cost)
+    ?? [from, to];
+}
+
+/**
+ * The walk from `from` to `to` that never sets foot on an `avoid` tile (bar
+ * the two ends: a walker may be standing on one, and the goal is the goal),
+ * or null if there is none.
+ */
+export function findDetour(
+  from: Point, to: Point, avoid: WalkableFn, walkable: WalkableFn = isWalkable, cost: CostFn = stepCost,
+): Point[] | null {
+  const a = tileAt(from);
+  const b = tileAt(to);
+  const end = (x: number, y: number): boolean => (x === a[0] && y === a[1]) || (x === b[0] && y === b[1]);
+  return walkBetween(from, to, (x, y) => walkable(x, y) && (end(x, y) || !avoid(x, y)), cost);
+}
+
+function walkBetween(from: Point, to: Point, walkable: WalkableFn, cost: CostFn): Point[] | null {
   const start = nearestWalkable(tileAt(from), walkable);
   const end = nearestWalkable(tileAt(to), walkable);
-  if (start === null || end === null) return [from, to];
+  if (start === null || end === null) return null;
   const tiles = findTilePath(start, end, walkable, cost);
-  if (tiles === null) return [from, to];
+  if (tiles === null) return null;
   const out: Point[] = [from];
   const points = corners(tiles).map(footOf);
   // The goal may sit off-centre on its tile (a hero standing on the bridge
