@@ -15,6 +15,11 @@ Movement comes from the same data the game moves on: a block is walkable when
 its collision bits are clear and its behaviour isn't water or a ledge. Only the
 part reachable from the spawn is kept — the flower garden north of the Badge
 House is reached through its back door in the game, so here it's scenery.
+
+The game doesn't mark its roads: a sandy path is behaviour-for-behaviour the
+same as the grass beside it. So a block is road when most of its ground is the
+path's sand, which is what the player's eye goes by too (Nugget Bridge's planks
+are the same colour and count as road).
 """
 from __future__ import annotations
 
@@ -36,6 +41,12 @@ ROUTES = {'MAP_ROUTE24': 'Route24', 'MAP_ROUTE5': 'Route5', 'MAP_ROUTE4': 'Route
 
 WATER = range(0x10, 0x1C)       # MB_POND_WATER .. MB_CYCLING_ROAD_WATER
 DIRECTIONAL = range(0x30, 0x3C)  # MB_IMPASSABLE_* and MB_JUMP_* (ledges)
+
+# The sand of Cerulean's paths (and its routes'), and how much of a block's
+# ground must be it for the block to be road: the half-sand edge tiles of a
+# path count, a grass tile with a sandy corner doesn't.
+PATH_SAND = (238, 230, 139)
+ROAD_SHARE = 0.5
 
 # Door metatile -> (door_anims png, palette slot), from sDoorAnimGraphicsTable
 # in src/field_door.c. The Bike Shop's door (0x296) has no animation.
@@ -135,6 +146,11 @@ class World:
         layout, lx, ly = cell
         behavior = layout.renderer.behavior(layout.block(lx, ly))
         return layout.collision(lx, ly) == 0 and behavior not in WATER and behavior not in DIRECTIONAL
+
+    def road(self, x: int, y: int) -> bool:
+        layout, mid = self.metatile(x, y)
+        pixels = layout.renderer.metatile(mid, 'below').convert('RGB').getdata()
+        return sum(p == PATH_SAND for p in pixels) >= ROAD_SHARE * BLOCK * BLOCK
 
     def render(self, layers: str) -> Image.Image:
         img = Image.new('RGBA', (self.cols * BLOCK, self.rows * BLOCK), (0, 0, 0, 0))
@@ -292,7 +308,13 @@ def bake_town(root: Path, out: Path, scale) -> dict:
         'labelInside': False,
     }
 
-    rows = [''.join('.' if (x, y) in walk else '#' for x in range(world.cols)) for y in range(world.rows)]
+    # '=' road, '.' the rest of the walkable ground, '#' blocked.
+    def cell(x: int, y: int) -> str:
+        if (x, y) not in walk:
+            return '#'
+        return '=' if world.road(x, y) else '.'
+
+    rows = [''.join(cell(x, y) for x in range(world.cols)) for y in range(world.rows)]
     vx, vy, vw, vh = VIEW
     return {
         'name': 'Cerulean City',

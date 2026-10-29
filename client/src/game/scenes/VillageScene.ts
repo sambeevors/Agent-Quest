@@ -16,6 +16,7 @@ import { STATION_ITEMS } from '../../progress/stations';
 import { speciesName } from '../../progress/evolution';
 import type { ProgressEvent } from '../../progress/tally';
 import type { PartnerStates } from '../../hooks/useProgress';
+import { Traffic } from '../town/traffic';
 
 /** Set `cam.zoom` to `newZoom` while keeping the world point currently
  * under screen coordinates (sx, sy) pinned to the same screen spot.
@@ -87,6 +88,9 @@ export class VillageScene extends Phaser.Scene {
    * slot assignment.
    */
   private arrived = new Set<string>();
+
+  /** Which tile each trainer is standing on, so none walks through another. */
+  private traffic = new Traffic();
 
   /** The hero the camera is following, if any. Dropped when the user drags
    *  the map, the selection moves elsewhere, or the hero leaves town. */
@@ -765,6 +769,7 @@ export class VillageScene extends Phaser.Scene {
         // New hero: spawn at configured spawn point then assign to building
         const hero = new HeroSprite(
           this,
+          this.traffic,
           agent.id,
           heroNameFor(agent.id, agent.source),
           trainerFor(agent.id, agent.source),

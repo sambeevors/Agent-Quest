@@ -1,8 +1,9 @@
 import * as Phaser from 'phaser';
 import { HERO_LABEL_COLOR, SOURCE_BADGE_COLOR, type HeroColor, type AgentActivity, type AgentSource, type AgentState } from '../../types/agent';
 import type { Trainer } from '../../naming/hero-names';
-import { findWalk } from '../town/pathfinding';
-import { TILE, type Point } from '../town/town';
+import { findDetour, findWalk } from '../town/pathfinding';
+import { TILE, tileAt, type Point } from '../town/town';
+import { YIELD_WAIT_MS, type Traffic } from '../town/traffic';
 import { addCrispText, HERO_LABEL_DEPTH, LABEL_FONT } from '../text';
 import { ThoughtBubble } from './ThoughtBubble';
 import { spawnItemPopup, type PopupContent } from './ItemPopup';
@@ -143,6 +144,12 @@ export class HeroSprite {
   private _x: number;
   private _y: number;
   private moveTween: Phaser.Tweens.Tween | null = null;
+  /** Who stands where, shared by every trainer in town — see traffic.ts. */
+  private traffic: Traffic;
+  /** Pending retry of a step someone else is standing in the way of. */
+  private yieldTimer: Phaser.Time.TimerEvent | null = null;
+  /** Beats spent waiting for the tile ahead; reset by every step taken. */
+  private yieldWaits = 0;
   /** Fired once the current walk reaches its destination; a new moveTo drops it. */
   private arrivalCallback: (() => void) | null = null;
   private waitingTween: Phaser.Tweens.Tween | null = null;
@@ -197,6 +204,7 @@ export class HeroSprite {
   /** `feetX`/`feetY` is where the trainer stands — see town.ts. */
   constructor(
     scene: Phaser.Scene,
+    traffic: Traffic,
     id: string,
     name: string,
     trainer: Trainer,
@@ -208,6 +216,7 @@ export class HeroSprite {
     partnerSpecies: number = trainer.partner,
   ) {
     this.scene = scene;
+    this.traffic = traffic;
     this.id = id;
     this.trainer = trainer;
     this.source = source;
@@ -216,6 +225,8 @@ export class HeroSprite {
     this.anchors = spriteAnchors(TRAINER_EXTENT, SPRITE_SCALE);
     this._x = feetX;
     this._y = feetY - this.anchors.footOffset;
+    // Trainers arriving together share the spawn until they file out.
+    traffic.claim(id, tileAt({ x: feetX, y: feetY }));
     const x = this._x;
     const y = this._y;
 
@@ -886,7 +897,10 @@ export class HeroSprite {
   /** The walk to `to`, as sprite positions — starting out of `door` if the
    *  trainer has just come out of one, since a doorway isn't walkable ground. */
   private route(door: Point | null, to: Point): Point[] {
-    const feet = door === null ? findWalk(this.feet, to) : [door, ...findWalk(doorstepOf(door), to)];
+    const avoid = this.traffic.obstacles(this.id);
+    const feet = door === null
+      ? findWalk(this.feet, to, undefined, undefined, avoid)
+      : [door, ...findWalk(doorstepOf(door), to, undefined, undefined, avoid)];
     return feet.map((p) => this.bodyAt(p));
   }
 
@@ -905,6 +919,7 @@ export class HeroSprite {
     this.walkPartnerTo(doorstepOf(indoors.door), () => {
       this.inside = false;
       this.sprite.setVisible(true);
+      this.traffic.settle(this.id, tileAt(indoors.door));
       const p = this.partner;
       this.trail = p === null ? [] : [{ x: p.sprite.x, y: p.sprite.y + p.footOffset }, indoors.door];
       this.layoutLabels();
@@ -919,6 +934,7 @@ export class HeroSprite {
     if (indoors === null) return;
     this.inside = true;
     this.sprite.setVisible(false);
+    this.traffic.release(this.id);
     this.layoutLabels();
     this.updateDepth();
     this.walkPartnerTo(indoors.post, () => this.facePartnerTowards(indoors.door));
@@ -986,6 +1002,9 @@ export class HeroSprite {
       this.moveTween.stop();
       this.moveTween = null;
     }
+    this.yieldTimer?.remove();
+    this.yieldTimer = null;
+    this.yieldWaits = 0;
     this.arrivalCallback = onArrive ?? null;
 
     // Remove the first point (current position)
@@ -994,15 +1013,14 @@ export class HeroSprite {
     }
 
     if (path.length === 0) {
-      this.moving = false;
-      this.playStationary();
-      this.notifyArrival();
+      this.arrive();
       return;
     }
 
     // Setting off calls the partner back to heel.
     this.setBattling(null);
     this.moving = true;
+    this.traffic.setWalking(this.id, true);
     this.moveAlongPath(path);
   }
 
@@ -1024,16 +1042,28 @@ export class HeroSprite {
     this.drainPopups();
   }
 
+  /** Standing on the spot the walk was headed for. */
+  private arrive(): void {
+    this.moving = false;
+    this.traffic.setWalking(this.id, false);
+    if (!this.inside) this.traffic.settle(this.id, tileAt(this.feet));
+    this.playStationary();
+    this.notifyArrival();
+  }
+
+  /**
+   * Walk `path` (sprite positions) one tile at a time, as FireRed does —
+   * each step first claims the tile it lands on, so no two trainers ever
+   * walk through each other (see town/traffic.ts).
+   */
   private moveAlongPath(path: Point[]): void {
     if (path.length === 0) {
-      this.moving = false;
-      this.playStationary();
-      this.notifyArrival();
+      this.arrive();
       return;
     }
 
-    const next = path[0]!;
-    const remaining = path.slice(1);
+    let next = path[0]!;
+    let remaining = path.slice(1);
 
     const dx = next.x - this._x;
     const dy = next.y - this._y;
@@ -1051,15 +1081,25 @@ export class HeroSprite {
     this.facing = Math.abs(dx) >= Math.abs(dy)
       ? (dx < 0 ? 'left' : 'right')
       : (dy < 0 ? 'up' : 'down');
-    this.playDirectional('walk', walkFrames(this.facing), 4 * (MOVE_SPEED / WALK_PIXELS_PER_CYCLE));
 
-    const duration = (distance / MOVE_SPEED) * 1000;
+    // A leg down a street is several steps; take the first.
+    if (distance > TILE + 0.5) {
+      remaining = [next, ...remaining];
+      next = { x: this._x + (dx * TILE) / distance, y: this._y + (dy * TILE) / distance };
+    }
+    const tile = tileAt({ x: next.x, y: next.y + this.anchors.footOffset });
+    if (!this.traffic.claim(this.id, tile) && !this.giveWay(tile, [next, ...remaining])) return;
+    this.yieldWaits = 0;
+
+    this.playDirectional('walk', walkFrames(this.facing), 4 * (MOVE_SPEED / WALK_PIXELS_PER_CYCLE));
+    const stepDistance = Math.hypot(next.x - this._x, next.y - this._y);
+    const to = next;
 
     this.moveTween = this.scene.tweens.add({
       targets: { x: this._x, y: this._y },
-      x: next.x,
-      y: next.y,
-      duration,
+      x: to.x,
+      y: to.y,
+      duration: (stepDistance / MOVE_SPEED) * 1000,
       ease: 'Linear',
       onUpdate: (_tween, target: { x: number; y: number }) => {
         this._x = target.x;
@@ -1070,17 +1110,53 @@ export class HeroSprite {
         this.updateDepth();
       },
       onComplete: () => {
-        this._x = next.x;
-        this._y = next.y;
+        this._x = to.x;
+        this._y = to.y;
         this.moveTween = null;
+        this.traffic.settle(this.id, tile);
         this.updateDepth();
         this.moveAlongPath(remaining);
       },
     });
   }
 
+  /**
+   * Someone is standing on `tile`, the next step of `path`. Go round them,
+   * wait a beat for them to move, or — when neither is getting anywhere —
+   * step through after all. True means take the step regardless.
+   */
+  private giveWay(tile: readonly [number, number], path: Point[]): boolean {
+    const { action, blocker } = this.traffic.onBlocked(this.id, tile, this.yieldWaits);
+    if (action === 'push') return true;
+    const last = path[path.length - 1]!;
+    const goal = { x: last.x, y: last.y + this.anchors.footOffset };
+    const goalTile = tileAt(goal);
+    // Someone on the very spot it's headed for can't be gone round — only waited out.
+    if (action === 'detour' && (goalTile[0] !== tile[0] || goalTile[1] !== tile[1])) {
+      const detour = findDetour(this.feet, goal, this.traffic.obstacles(this.id, blocker));
+      if (detour !== null) {
+        this.yieldWaits++;
+        this.moveAlongPath(detour.slice(1).map((p) => this.bodyAt(p)));
+        return false;
+      }
+    }
+    // Stand still, facing the way it wants to go, until the tile clears.
+    this.yieldWaits++;
+    this.sprite.stop();
+    this.sprite.setFrame(standFrame(this.facing));
+    this.placePartner();
+    this.yieldTimer = this.scene.time.delayedCall(YIELD_WAIT_MS * (0.75 + Math.random() * 0.5), () => {
+      this.yieldTimer = null;
+      this.moveAlongPath(path);
+    });
+    return false;
+  }
+
   destroy(): void {
     this.arrivalCallback = null;
+    this.yieldTimer?.remove();
+    this.yieldTimer = null;
+    this.traffic.release(this.id);
     if (this.moveTween !== null) {
       this.moveTween.stop();
     }
